@@ -591,7 +591,7 @@ local function vh(g, p)
 	return a
 end
 
-local function va(g, a, b)
+local function va(g, a, b, bn)
 	local X, Y, Z, A, M = g.X, g.Y, g.Z, g.A, g.M
 	local bx, by, bz = X[b], Y[b], Z[b]
 	local G, P, cl, hp, hv, hn, it = {[a] = 0}, {}, {}, {}, {}, 0, 0
@@ -638,7 +638,7 @@ local function va(g, a, b)
 			cl[u], it = true, it + 1
 			if it % 4000 == 0 then task.wait() end
 			for w, dy in A[u] do
-				if dy <= 6 and not cl[w] then
+				if dy <= 6 and not cl[w] and not (bn and bn[w] and w ~= b) then
 					local ng = G[u] + math.sqrt((X[w] - X[u]) ^ 2 + (Z[w] - Z[u]) ^ 2) + (dy > 1.2 and 4 or 0) + (dy < -3 and 1 or 0) + 0.35 * M[w]
 					if ng < (G[w] or math.huge) then
 						G[w], P[w] = ng, u
@@ -669,12 +669,23 @@ local function vl(g, u, w)
 	return c == w
 end
 
-local function vr(g, p0, p1)
+local function vz(g, p, bn)
+	local i0, q0 = math.round((p.X - g.x0) / g.st), math.round((p.Z - g.z0) / g.st)
+	for i = i0 - 2, i0 + 2 do
+		for q = q0 - 2, q0 + 2 do
+			for _, n in g.C[i * (g.nz + 1) + q] or {} do
+				if (g.X[n] - p.X) ^ 2 + (g.Z[n] - p.Z) ^ 2 <= 6.25 and math.abs(g.Y[n] + 3 - p.Y) <= 4 then bn[n] = true end
+			end
+		end
+	end
+end
+
+local function vr(g, p0, p1, bn)
 	local a = vh(g, p0)
 	if not a then return nil, "Nav Failed: Off Map" end
 	local b = vn(g, p1, g.P[a])
 	if not b then return nil, "Nav Failed: No Route" end
-	local r = va(g, a, b)
+	local r = va(g, a, b, bn)
 	if not r then return nil, "Nav Failed: No Route" end
 	local o, i = {r[1]}, 1
 	while i < #r do
@@ -756,6 +767,7 @@ wk = function(f, p)
 			local d = (tg - r.Position) * Vector3.new(1, 0, 1)
 			h:Move(d.Magnitude > 0.3 and d.Unit or Vector3.zero)
 		end)
+		local bn = {}
 		for _ = 1, 4 do
 			local c, r = lc()
 			if not c then return nil, "No Character" end
@@ -777,13 +789,13 @@ wk = function(f, p)
 				c, r = lc()
 				if not r then return nil, "No Character" end
 			end
-			local w, we = vr(g, r.Position - Vector3.new(0, 3, 0), p)
+			local w, we = vr(g, r.Position - Vector3.new(0, 3, 0), p, bn)
 			if not w then return nil, we end
 			local fd = ((Vector3.new(w[#w][1], 0, w[#w][3]) - p) * Vector3.new(1, 0, 1)).Magnitude + math.abs(w[#w][2] + 3 - p.Y)
 			if fd > 30 then return nil, "Nav Failed: Unreachable" end
 			if fd > 0.5 and fd <= 5 then table.insert(w, {p.X, p.Y - 3, p.Z, false}) end
 			local pe = Vector3.new(w[#w][1], w[#w][2] + 3, w[#w][3])
-			local i, lt, lq, js, sk = 2, os.clock(), r.Position, 0, false
+			local i, lt, bd, js, sj, sk = 2, os.clock(), math.huge, 0, 0, false
 			local dl = os.clock() + #w * 3 + 20
 			while i <= #w and f.st == "Running" do
 				local _, rt = lc()
@@ -791,13 +803,19 @@ wk = function(f, p)
 				local x = w[i]
 				tg = Vector3.new(x[1], x[2], x[3])
 				local d = ((tg - rt.Position) * Vector3.new(1, 0, 1)).Magnitude
-				if x[4] and d < 3.5 and rt.Position.Y - 3 < x[2] - 1 and os.clock() - js > 0.6 then vj(); js = os.clock() end
+				if x[4] and d < 3.5 and rt.Position.Y - 3 < x[2] - 1 and os.clock() - js > 0.6 and sj < 3 then vj(); js, sj = os.clock(), sj + 1 end
 				if d < (i == #w and 1.5 or 2) and rt.Position.Y - 3 > x[2] - 1.5 and rt.Position.Y - 3 < x[2] + 3 then
-					i, lt, lq = i + 1, os.clock(), rt.Position
+					i, lt, bd, sj = i + 1, os.clock(), math.huge, 0
 				else
-					if (rt.Position - lq).Magnitude > 0.6 then lt, lq = os.clock(), rt.Position end
-					if os.clock() - lt > 0.7 and os.clock() - js > 0.7 then vj(); js = os.clock() end
-					if os.clock() - lt > 3 or os.clock() > dl or rv.Swimming and rv.Swimming:IsSwimming() then sk = true; break end
+					if d < bd - 0.5 then lt, bd = os.clock(), d end
+					if os.clock() - lt > 0.7 and os.clock() - js > 0.7 and sj < 3 then vj(); js, sj = os.clock(), sj + 1 end
+					if os.clock() - lt > 2.5 then
+						local u = (tg - rt.Position) * Vector3.new(1, 0, 1)
+						vz(g, rt.Position + (u.Magnitude > 0.1 and u.Unit * 1.5 or Vector3.zero), bn)
+						sk = true
+						break
+					end
+					if os.clock() > dl or rv.Swimming and rv.Swimming:IsSwimming() then sk = true; break end
 				end
 				task.wait()
 			end
@@ -905,13 +923,21 @@ local function dp(f, m, id, pt)
 	local w = workspace:FindFirstChild("World")
 	local il, rp = w and w:FindFirstChild("Islands"), RaycastParams.new()
 	rp.FilterType, rp.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
-	local s0, to, wq, si = Vector3.new(mn.Position.X, 0, mn.Position.Z), pt and Vector3.new(pt.X, 0, pt.Z) or Vector3.new(cp.X, 0, cp.Z), {}, vi(mn.Position)
+	local s0, to, wq, si, e0 = Vector3.new(mn.Position.X, 0, mn.Position.Z), pt and Vector3.new(pt.X, 0, pt.Z) or Vector3.new(cp.X, 0, cp.Z), {}, vi(mn.Position), nil
+	for _, x in cs:GetTagged("IslandRegion") do
+		if x:IsA("BasePart") and si ~= id and x:GetAttribute("islandId") == si then
+			local c = Vector3.new(x.Position.X, 0, x.Position.Z)
+			local q = s0 - c
+			if q.Magnitude > 1 and (to - s0):Dot(c - s0) > 0 then e0 = c + q.Unit * math.max(q.Magnitude, x.Size.X / 2 * 0.7 + 60) end
+		end
+	end
+	local sb = e0 or s0
 	for _, x in cs:GetTagged("IslandRegion") do
 		local xi = x:GetAttribute("islandId")
-		if x:IsA("BasePart") and xi ~= id and xi ~= si then
-			local c, rr, d = Vector3.new(x.Position.X, 0, x.Position.Z), x.Size.X / 2 * 0.7, to - s0
-			local t = math.clamp((c - s0):Dot(d) / math.max(d:Dot(d), 1), 0, 1)
-			local pc = s0 + d * t
+		if x:IsA("BasePart") and xi ~= id and (e0 or xi ~= si) then
+			local c, rr, d = Vector3.new(x.Position.X, 0, x.Position.Z), x.Size.X / 2 * 0.7, to - sb
+			local t = math.clamp((c - sb):Dot(d) / math.max(d:Dot(d), 1), 0, 1)
+			local pc = sb + d * t
 			if (c - pc).Magnitude < rr then
 				local of = (pc - c).Magnitude > 1 and (pc - c).Unit or Vector3.new(-d.Z, 0, d.X).Unit
 				table.insert(wq, {t, c + of * (rr + 60)})
@@ -919,7 +945,7 @@ local function dp(f, m, id, pt)
 		end
 	end
 	table.sort(wq, function(a, b) return a[1] < b[1] end)
-	local ws = {}
+	local ws = {e0}
 	for _, x in wq do table.insert(ws, x[2]) end
 	table.insert(ws, to)
 	local th, st, er, dn, sh, hl = 0, 0, nil, false, nil, math.max(mn.Size.X, mn.Size.Z) / 2 + 3
@@ -1276,7 +1302,7 @@ local function ug(f, q, ac)
 	local np = gn(q)
 	if not np then return nil, "No Island Guide" end
 	local sp = ap(c, np, rt.Position)
-	ok, e = go(f, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+	ok, e = (q[1] == "zen_staff_rod" and gf or go)(f, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
 	if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
 	if f.st ~= "Running" then return nil end
 	local qr, iu = rv.QuestController, q[1]:find("^unlock_island_") ~= nil
@@ -1295,6 +1321,18 @@ local function ug(f, q, ac)
 		if not qc(q, pd(), cq.Progress or {}) then
 			f.nq = {Title = tt, Text = `{q[4]} Quest Accepted, Requirements Not Met`}
 			return true
+		end
+	end
+	local cq = (pd().Quest or {}).Current
+	local _, ks = qc(q, pd(), cq and cq.Id == q[1] and cq.Progress or q[5])
+	for u in ks do
+		local x = pd().Inventory.Fishes[u]
+		if x and x.locked == true then
+			local s, v = rv.SellController:ToggleLock(u)
+			if s ~= 0 or v ~= false then
+				f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: Unlock Fish Failed`}
+				return true
+			end
 		end
 	end
 	local cp, m = qr:Complete(q[1])
@@ -2205,7 +2243,7 @@ local function ib(j)
 		local id, fm = ix[L.Flags.si], ge.__FmF
 		if not id then j.why = "Auto Island Failed: No Island Selected"; return end
 		if ic() == id then j.ar = true; return end
-		if not (fm and not fm.dn and fm.bz) then
+		if not (fm and not fm.dn and fm.bz or ge.__FmG and not ge.__FmG.dn and ge.__FmG.bz) then
 			j.bz = true
 			local ok, e = ti(j, id, bi[L.Flags.sb] or "truck")
 			j.bz = false
@@ -2250,24 +2288,46 @@ local function gl(j)
 		end
 		local fm = ge.__FmF
 		j.rq = true
-		while j.st == "Running" and (fm and not fm.dn and fm.bz or ge.__FmR and not ge.__FmR.dn and ge.__FmR.bz) do task.wait(0.5) end
+		while j.st == "Running" and (fm and not fm.dn and fm.bz or ge.__FmR and not ge.__FmR.dn and ge.__FmR.bz or ge.__FmI and not ge.__FmI.dn) do task.wait(0.5) end
 		if j.st ~= "Running" then return end
 		j.bz, j.rq = true, false
-		local c, rt = lc()
+		local _, rt = lc()
 		if not rt then
 			j.why = "Auto Roll Failed: No Character"
 			return
 		end
-		local o = rt.CFrame
-		local np = ns("npc_gacha_book", o.Position)
-		if not np then
-			j.why = "Auto Roll Failed: No Skill Master"
-			return
+		local o, oi, bk = rt.CFrame, ic(), bi[L.Flags.sb] or "truck"
+		local w, we = ti(j, "island_starter", bk)
+		local r, np
+		if w then
+			local c, r2 = lc()
+			np = r2 and ns("npc_gacha_book", r2.Position)
+			if r2 and not np then
+				local g = rg("island_starter")
+				if g then sq(Vector3.new(g.X, 2, g.Z), 10) end
+				np = ns("npc_gacha_book", r2.Position)
+			end
+			if not r2 then w, we = nil, "No Character" elseif not np then w, we = nil, "No Skill Master" else
+				local sp = ap(c, np, r2.Position)
+				w, we = go(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+			end
 		end
-		local sp = ap(c, np, o.Position)
-		local w, we = go(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
-		local r = w and j.st == "Running" and sc.Pull:Fire("Coin", k)
-		if j.st == "Running" then go(j, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
+		while w and j.st == "Running" do
+			r = sc.Pull:Fire("Coin", k)
+			if type(r) ~= "table" or not r.ok then break end
+			local ct, t = md("Data", "Catalog"), {}
+			for _, x in r.results or {} do
+				local sv = ct.Skill.GetById(x.skill_id)
+				table.insert(t, `{sv and sv.name or x.skill_id} ({x.rarity})`)
+			end
+			j.nt = {Title = "Skill Master", Text = table.concat(t, ", ")}
+			task.wait(1)
+			local q2 = sc.GetQuote:Fire(k)
+			if type(q2) ~= "table" or not q2.ok or (pd().Coin or 0) < q2.coin_cost then break end
+		end
+		local hk, he = true, nil
+		if j.st == "Running" and oi ~= "" and ic() ~= oi then hk, he = ti(j, oi, bk) end
+		if hk and j.st == "Running" and ic() == oi then hk, he = go(j, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
 		j.bz = false
 		if j.st ~= "Running" then return end
 		if not w then
@@ -2282,13 +2342,9 @@ local function gl(j)
 			j.why = `Auto Roll Failed: {r.reason}`
 			return
 		end
-		if r.ok then
-			local ct, t = md("Data", "Catalog"), {}
-			for _, x in r.results or {} do
-				local sv = ct.Skill.GetById(x.skill_id)
-				table.insert(t, `{sv and sv.name or x.skill_id} ({x.rarity})`)
-			end
-			j.nt = {Title = "Skill Master", Text = table.concat(t, ", ")}
+		if not hk then
+			j.why = `Auto Roll Failed: Return Failed: {he or "Move Failed"}`
+			return
 		end
 		task.wait(1)
 	end
