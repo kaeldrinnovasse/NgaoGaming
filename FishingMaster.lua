@@ -2569,6 +2569,121 @@ it = tl:Toggle({Name = "Auto Island", Flag = "ai", Callback = function(v)
 	elseif ge.__FmI then ge.__FmI.st = "Stopped" end
 end})
 
+local ez, eo = {cs = {}, o = {}, w = {}}, nil
+do
+	local ov = ge.__FmV
+	if ov then
+		ov.w = {}
+		if ov.rw then pcall(ov.rw) end
+		for _, c in ov.cs do c:Disconnect() end
+	end
+	ge.__FmV = ez
+	for _, n in {"RodSkinId", "AuraCatalogId"} do
+		if ov then ez.o[n] = ov.o[n] else ez.o[n] = lp:GetAttribute(n) end
+		table.insert(ez.cs, lp:GetAttributeChangedSignal(n):Connect(function()
+			local v = lp:GetAttribute(n)
+			if v == ez.w[n] then return end
+			ez.o[n] = v
+			if ez.w[n] then lp:SetAttribute(n, ez.w[n]) end
+		end))
+	end
+	local et, an = 0, "AuraCatalogId"
+	table.insert(ez.cs, game:GetService("RunService").Heartbeat:Connect(function()
+		if not ez.w[an] or os.clock() < et then return end
+		et = os.clock() + 0.25
+		local c = lp.Character
+		local fx = c and c:FindFirstChild("ClientAuraEffect")
+		for _, d in fx and fx:GetDescendants() or {} do
+			if d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") or d:IsA("Light") or d:IsA("Highlight") then
+				if not d.Enabled then d.Enabled = true end
+			elseif d:IsA("BasePart") and d.LocalTransparencyModifier ~= 0 then
+				d.LocalTransparencyModifier = 0
+			end
+		end
+	end))
+	local sn, ac, ah, zo = "RodSkinId", {}, nil, {}
+	local function rw(t)
+		local sk, df, nm = ez.w[sn], eo and eo[3], ah
+		local r = sk and df and nm and df[1](t.Name, df[2][sk])
+		if not r or r.id == t.Animation.AnimationId then return end
+		local n = ac[r.id]
+		if not n then
+			local an2 = Instance.new("Animation")
+			an2.AnimationId = r.id
+			local ok, x = pcall(nm.LoadAnimation, nm, an2)
+			if not ok or not x then return end
+			n, ac[r.id] = x, x
+		end
+		n.Priority, n.Looped = r.priority, r.looped
+		t:AdjustWeight(0.001, 0)
+		zo[t] = n
+		n:Play(r.fadeTime, 1, r.playbackSpeed)
+		local c1
+		c1 = t.Stopped:Connect(function()
+			c1:Disconnect()
+			if zo[t] ~= n then return end
+			zo[t] = nil
+			for _, n2 in zo do
+				if n2 == n then return end
+			end
+			n:Stop(r.fadeTime)
+		end)
+	end
+	local function hk2(c)
+		local h = c and c:WaitForChild("Humanoid", 10)
+		local nm = h and h:WaitForChild("Animator", 10)
+		if not nm or ge.__FmV ~= ez then return end
+		ah, ac, zo = nm, {}, {}
+		table.insert(ez.cs, nm.AnimationPlayed:Connect(rw))
+	end
+	table.insert(ez.cs, lp.CharacterAdded:Connect(hk2))
+	task.spawn(hk2, lp.Character)
+	ez.rw = function()
+		for t, n in zo do
+			pcall(function() n:Stop(0.15); t:AdjustWeight(1, 0.15) end)
+		end
+		zo = {}
+		for _, t in ah and ah:GetPlayingAnimationTracks() or {} do
+			if t.WeightTarget > 0 then rw(t) end
+		end
+	end
+	local ok, a, b, rz2 = cx(function()
+		local ct, rk, sa2 = md("Data", "Catalog"), {}, {}
+		for _, v in ct.RodSkin.GetAll() do
+			if type(v) == "table" and type(v.id) == "string" then sa2[v.id] = v.animations end
+		end
+		for i, r in ra do rk[r] = i end
+		local function bl(t)
+			local l, m, n = {}, {}, {"Default"}
+			for _, v in t.GetAll() do
+				if type(v) == "table" and type(v.name) == "string" and type(v.id) == "string" then table.insert(l, v); m[v.name] = v.id end
+			end
+			table.sort(l, function(x, y)
+				local p, q = rk[x.rarity] or 0, rk[y.rarity] or 0
+				if p ~= q then return p > q end
+				return x.name < y.name
+			end)
+			for _, v in l do table.insert(n, v.name) end
+			return {n, m}
+		end
+		return bl(ct.RodSkin), bl(ct.Aura), {md("Data", "Config", "RodAnimationConfig").Resolve, sa2}
+	end)
+	if ok then eo = {a, b, rz2} else gw:Notify({Title = "Visual", Text = "Effect List Failed: Catalog Error"}) end
+end
+
+local function ep(n, id)
+	ez.w[n] = id
+	lp:SetAttribute(n, id or ez.o[n])
+	if ez.rw then ez.rw() end
+end
+
+if eo then
+	local tv = gw:Tab({Name = "Visual"})
+	tv:Section({Name = "Effect"})
+	tv:Dropdown({Name = "Rod Skin", Options = eo[1][1], Default = "Default", Flag = "es", Callback = function(v) ep("RodSkinId", eo[1][2][v]) end})
+	tv:Dropdown({Name = "Aura", Options = eo[2][1], Default = "Default", Flag = "ea", Callback = function(v) ep("AuraCatalogId", eo[2][2][v]) end})
+end
+
 local ts = gw:Tab({Name = "Setting"})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
