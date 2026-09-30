@@ -119,7 +119,7 @@ local function sq(p, t)
 	return dn
 end
 
-local fz, cj ={Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll}, nil
+local fz, cj = {Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll}, nil
 
 local function lc()
 	local c = lp.Character
@@ -855,11 +855,12 @@ local function gb(f, k)
 	if not cf then return nil, "No Cars Folder" end
 	local nm = tostring(lp.UserId)
 	local om = cf:FindFirstChild(nm)
-	local function ok(x) return x and x:FindFirstChild("Main") and x:FindFirstChild("DSeat") and x:GetAttribute("Speed") == bv(k) end
-	if ok(om) and (not pm.on or (om.Main.Position - r.Position).Magnitude < 100) then return om end
 	local ct = md("Data", "Catalog", "Car")
-	if (ct[k] and ct[k].price or 0) > (pd().Coin or 0) then k = "truck" end
-	if ok(om) and (not pm.on or (om.Main.Position - r.Position).Magnitude < 100) then return om end
+	local function pc() return ct[k] and ct[k].price or 0 end
+	local function ok(x) return x and x:FindFirstChild("Main") and x:FindFirstChild("DSeat") and x:GetAttribute("Speed") == bv(k) and (not pm.on or pc() > 0 or (x.Main.Position - r.Position).Magnitude < 100) end
+	if ok(om) then return om end
+	if pc() > (pd().Coin or 0) then k = "truck" end
+	if ok(om) then return om end
 	local mp, mx = ns("npc_car_merchant", r.Position)
 	if not mp then return nil, "No Boat Merchant" end
 	local g, e = go(f, ap(c, mp, r.Position))
@@ -1186,7 +1187,9 @@ local function bo(f)
 	local _, r, h = lc()
 	if not r then return nil, "No Character" end
 	f.br = x
-	if ((r.Position - q) * Vector3.new(1, 0, 1)).Magnitude <= 45 and not h.SeatPart then return q end
+	local sw = rv.Swimming and rv.Swimming:IsSwimming()
+	if ((r.Position - q) * Vector3.new(1, 0, 1)).Magnitude <= 45 and not h.SeatPart and not sw then return q end
+	if not (f.hm or f.bb or sw or h.SeatPart) and ic() ~= "" then f.hm = {r.CFrame, ic()} end
 	local d = (r.Position - q) * Vector3.new(1, 0, 1)
 	local m, e = gb(f, f.bk())
 	if not m then return nil, e end
@@ -1373,11 +1376,20 @@ local function ss(f)
 	local ks = sk()
 	if #ks == 0 then return "Auto Fish Failed: No Skill Equipped" end
 	local bp, be
-	if f.ab() then
-		bp, be = bo(f)
-		if be then return nil, be end
-	end
+	if f.ab() then bp, be = bo(f) end
+	f.bu = bp ~= nil
+	if be then return nil, be end
 	if not bp and f.bb then f.bb, f.rp = false, true end
+	if not bp and f.hm then
+		local o, oi = f.hm[1], f.hm[2]
+		local ok, e = true, nil
+		if ic() ~= oi then ok, e = ti(f, oi, f.bk()) end
+		if ok and f.st == "Running" then ok, e = go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
+		if f.st ~= "Running" then return nil end
+		if not ok then return nil, e or "Return Failed" end
+		f.hm, f.rp = nil, false
+		return nil
+	end
 	if not bp then
 		for _, q in {f.au() and qn(f) or false, f.qa() and qp(f) or false} do
 			local u, ue = uq(f, q or nil)
@@ -2200,7 +2212,7 @@ local function fs()
 		local dl = os.clock() + 5
 		repeat task.wait(0.1) until o.dn or os.clock() > dl
 	end
-	local f = {st = "Running", s = {cd = {}, sw = 0, bs = 0}, cs = {}, c = 0, rp = true, dn = false, qx = {}, qw = {}, nq = false}
+	local f = {st = "Running", s = {cd = {}, sw = 0, bs = 0}, cs = {}, c = 0, rp = true, dn = false, bu = false, qx = {}, qw = {}, nq = false}
 	function f.ao() return L.Flags.as == true end
 	function f.au() return L.Flags.au == true end
 	function f.qa() return L.Flags.qa == true end
@@ -2216,7 +2228,7 @@ local function fs()
 	function f.bk() return bi[L.Flags.sb] or "truck" end
 	function f.iw()
 		local j, id, g, b = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR
-		return g and not g.dn and (g.bz or g.rq) or b and not b.dn and (b.bz or b.rq) or j and not j.dn and (j.bz or id and ic() ~= id) or false
+		return g and not g.dn and (g.bz or g.rq and not f.bu) or b and not b.dn and (b.bz or b.rq and not f.bu) or j and not j.dn and (j.bz or id and ic() ~= id) or false
 	end
 	ge.__FmF = f
 	task.spawn(function()
@@ -2273,22 +2285,39 @@ local function is()
 	it:Set(false)
 end
 
+local ga, gm = {"Skill Master", "Ocean Chest", "Dragon Chest", "Aura"}, {["Ocean Chest"] = "crate_ocean_chest", ["Dragon Chest"] = "crate_dragon_chest"}
+
 local function gl(j)
 	local sc = rv.SkillGachaController
 	while j.st == "Running" do
-		local k = L.Flags.gr == "x10" and 10 or 1
-		local q = sc.GetQuote:Fire(k)
-		if type(q) ~= "table" or not q.ok then
-			j.why = `Auto Roll Failed: {type(q) == "table" and q.reason or "No Quote"}`
+		local k, cr = L.Flags.gr == "x10" and 10 or 1, gm[L.Flags.gk]
+		local cc = cr and md("Data", "Config", "CrateConfig").GetCrate(cr)
+		if cr and not cc then
+			j.why = "Auto Roll Failed: No Chest"
 			return
 		end
-		if (pd().Coin or 0) < q.coin_cost then
+		local ag = L.Flags.gk == "Aura" and md("Data", "Config", "AuraGachaConfig").Pull
+		local nm, ni = cc and cc.DisplayName or ag and "Aura" or "Skill Master", cr or ag and "npc_gacha_aura" or "npc_gacha_book"
+		local function ca()
+			local d = pd()
+			if cc then return (((d.CrateGacha or {}).Credits or {})[cr] or 0) >= k or ((cc.Currency == "Coin" and d.Coin or d.Gem) or 0) >= (cc.Prices[k] or math.huge) end
+			if ag then return ((d.AuraGacha or {}).Credits or 0) >= k or (d.Gem or 0) >= math.ceil(ag.CostGem * k * (ag.BulkDiscount[k] or 1)) end
+			local q = sc.GetQuote:Fire(k)
+			if type(q) ~= "table" or not q.ok then return nil, type(q) == "table" and q.reason or "No Quote" end
+			return (d.Coin or 0) >= q.coin_cost
+		end
+		local af, ae = ca()
+		if ae then
+			j.why = `Auto Roll Failed: {ae}`
+			return
+		end
+		if not af then
 			task.wait(5)
 			continue
 		end
 		local fm = ge.__FmF
 		j.rq = true
-		while j.st == "Running" and (fm and not fm.dn and fm.bz or ge.__FmR and not ge.__FmR.dn and ge.__FmR.bz or ge.__FmI and not ge.__FmI.dn) do task.wait(0.5) end
+		while j.st == "Running" and (fm and not fm.dn and (fm.bz or fm.bu) or ge.__FmR and not ge.__FmR.dn and ge.__FmR.bz or ge.__FmI and not ge.__FmI.dn) do task.wait(0.5) end
 		if j.st ~= "Running" then return end
 		j.bz, j.rq = true, false
 		local _, rt = lc()
@@ -2301,29 +2330,28 @@ local function gl(j)
 		local r, np
 		if w then
 			local c, r2 = lc()
-			np = r2 and ns("npc_gacha_book", r2.Position)
+			np = r2 and ns(ni, r2.Position)
 			if r2 and not np then
 				local g = rg("island_starter")
 				if g then sq(Vector3.new(g.X, 2, g.Z), 10) end
-				np = ns("npc_gacha_book", r2.Position)
+				np = ns(ni, r2.Position)
 			end
-			if not r2 then w, we = nil, "No Character" elseif not np then w, we = nil, "No Skill Master" else
+			if not r2 then w, we = nil, "No Character" elseif not np then w, we = nil, `No {nm}` else
 				local sp = ap(c, np, r2.Position)
 				w, we = go(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
 			end
 		end
 		while w and j.st == "Running" do
-			r = sc.Pull:Fire("Coin", k)
+			r = cc and rv.CrateGachaController.OpenPacket:Fire(cr, k) or ag and rv.AuraGachaController.Pull:Fire(k) or not (cc or ag) and sc.Pull:Fire("Coin", k)
 			if type(r) ~= "table" or not r.ok then break end
 			local ct, t = md("Data", "Catalog"), {}
 			for _, x in r.results or {} do
-				local sv = ct.Skill.GetById(x.skill_id)
-				table.insert(t, `{sv and sv.name or x.skill_id} ({x.rarity})`)
+				local sv = cc and ct.RodSkin.GetById(x.rod_skin_id) or ag and ct.Aura.GetById(x.aura_id) or not (cc or ag) and ct.Skill.GetById(x.skill_id)
+				table.insert(t, `{sv and sv.name or x.rod_skin_id or x.aura_id or x.skill_id} ({x.rarity})`)
 			end
-			j.nt = {Title = "Skill Master", Text = table.concat(t, ", ")}
+			j.nt = {Title = nm, Text = table.concat(t, ", ")}
 			task.wait(1)
-			local q2 = sc.GetQuote:Fire(k)
-			if type(q2) ~= "table" or not q2.ok or (pd().Coin or 0) < q2.coin_cost then break end
+			if not ca() then break end
 		end
 		local hk, he = true, nil
 		if j.st == "Running" and oi ~= "" and ic() ~= oi then hk, he = ti(j, oi, bk) end
@@ -2338,7 +2366,7 @@ local function gl(j)
 			j.why = "Auto Roll Failed: No Response"
 			return
 		end
-		if not r.ok and r.reason ~= "insufficient_coin" then
+		if not r.ok and r.reason ~= "insufficient_coin" and r.reason ~= "insufficient_gem" then
 			j.why = `Auto Roll Failed: {r.reason}`
 			return
 		end
@@ -2374,7 +2402,7 @@ local function gg()
 	if not ok then j.why = `Auto Roll Failed: {e}` end
 	j.dn = true
 	if ge.__FmG ~= j or not j.why then return end
-	gw:Notify({Title = "Skill Master", Text = j.why})
+	gw:Notify({Title = "Auto Roll", Text = j.why})
 	gs:Set(false)
 end
 
@@ -2436,7 +2464,7 @@ local function rj(j)
 		end
 		local fm = ge.__FmF
 		j.rq = true
-		while j.st == "Running" and (fm and not fm.dn and fm.bz or ge.__FmG and not ge.__FmG.dn and ge.__FmG.bz or ge.__FmI and not ge.__FmI.dn) do task.wait(0.5) end
+		while j.st == "Running" and (fm and not fm.dn and (fm.bz or fm.bu) or ge.__FmG and not ge.__FmG.dn and ge.__FmG.bz or ge.__FmI and not ge.__FmI.dn) do task.wait(0.5) end
 		if j.st ~= "Running" then return end
 		j.bz, j.rq = true, false
 		local _, rt = lc()
@@ -2517,8 +2545,9 @@ gt:Toggle({Name = "Auto Sell", Flag = "as"})
 
 local tq = gw:Tab({Name = "Shop"})
 tq:Section({Name = "Gacha"})
+tq:Dropdown({Name = "Select Gacha", Options = ga, Default = "Skill Master", Flag = "gk"})
 tq:Dropdown({Name = "Select Roll", Options = {"x1", "x10"}, Default = "x1", Flag = "gr"})
-gs = tq:Toggle({Name = "Auto Roll Skill Master", Flag = "gs", Callback = function(v)
+gs = tq:Toggle({Name = "Auto Roll", Flag = "gs", Callback = function(v)
 	if v then gg() elseif ge.__FmG then ge.__FmG.st = "Stopped" end
 end})
 tq:Section({Name = "Rod"})
@@ -2549,10 +2578,9 @@ local rx = "Ngao-Gaming Hub"
 
 local function nt()
 	for _, c in ge.__FmN or {} do c:Disconnect() end
-	local cs, tx = {}, rx
+	local cs, tx, gr = {}, rx, {}
 	ge.__FmN = cs
 	local function hk(m)
-		if m.Name ~= lp.Name then return end
 		task.spawn(function()
 			local p = m:WaitForChild("PlrName", 10)
 			local s = p and p:WaitForChild("Surface", 10)
@@ -2562,21 +2590,21 @@ local function nt()
 			table.insert(cs, l:GetPropertyChangedSignal("Text"):Connect(function() if l.Text ~= tx then l.Text = tx end end))
 			local g = l:FindFirstChild("Rb") or Instance.new("UIGradient")
 			g.Name, g.Parent = "Rb", l
-			local cn
-			cn = game:GetService("RunService").Heartbeat:Connect(function()
-				if not g.Parent then cn:Disconnect(); return end
-				local p, k = os.clock() * 0.25, {}
-				for i = 0, 9 do k[i + 1] = ColorSequenceKeypoint.new(i / 9, Color3.fromHSV((i / 9 - p) % 1, 1, 1)) end
-				g.Color = ColorSequence.new(k)
-			end)
-			table.insert(cs, cn)
+			gr[g] = true
 		end)
 	end
 	local nf = workspace:FindFirstChild("Nametags")
 	if not nf then return end
+	table.insert(cs, game:GetService("RunService").Heartbeat:Connect(function()
+		local p, k = os.clock() * 0.25, {}
+		for i = 0, 9 do k[i + 1] = ColorSequenceKeypoint.new(i / 9, Color3.fromHSV((i / 9 - p) % 1, 1, 1)) end
+		local q = ColorSequence.new(k)
+		for g in gr do
+			if g.Parent then g.Color = q else gr[g] = nil end
+		end
+	end))
 	table.insert(cs, nf.ChildAdded:Connect(hk))
-	local m = nf:FindFirstChild(lp.Name)
-	if m then hk(m) end
+	for _, m in nf:GetChildren() do hk(m) end
 end
 
 nt()
