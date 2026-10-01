@@ -1564,6 +1564,7 @@ local function ss(f)
 	end
 	if s.rr == "NoSkillEquipped" then return "Auto Fish Failed: No Skill Equipped" end
 	if s.rr == "SatchelFull" and not f.ao() then return "Auto Fish Failed: Satchel Full" end
+	if s.rr == "SessionActive" then fc.FishCancel:Fire(); task.wait(1) end
 	if s.rr then return nil, s.rr end
 	if s.cr[1] then
 		f.c += 1
