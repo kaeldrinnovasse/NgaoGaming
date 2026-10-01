@@ -279,7 +279,7 @@ local function tr(f)
 	local c = lp.Character
 	local h = c and c:FindFirstChild("HumanoidRootPart")
 	if not h then return nil, "No Character" end
-	local o = h.CFrame
+	local o, sw = h.CFrame, rv.Swimming and rv.Swimming:IsSwimming()
 	local np = ns("npc_fish_seller", o.Position)
 	if not np then return "Auto Fish Failed: No Fish Seller" end
 	local hl, e = lk(f.sr(), f.kp())
@@ -297,7 +297,8 @@ local function tr(f)
 		if s ~= 1 then break end
 	end
 	local uo, ue = uk(hl)
-	if f.st == "Running" then go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
+	if f.st == "Running" and not sw then go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
+	if sw then f.rp = true end
 	if f.st ~= "Running" then return nil, nil end
 	if not uo then return nil, ue end
 	if not w then return nil, we or "Move Failed" end
@@ -1145,6 +1146,62 @@ local function br(f)
 	return (fd())
 end
 
+local function zd(m)
+	local mn = m and m:FindFirstChild("Main")
+	if not mn then return nil end
+	local cf, sz, rp, st, pt, bn = mn.CFrame, mn.Size, RaycastParams.new(), {}, {}, {}
+	rp.FilterType, rp.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {m}
+	for _, x in m:GetDescendants() do
+		if x:IsA("Seat") or x:IsA("VehicleSeat") then table.insert(st, x) end
+	end
+	for z = 0, sz.Z / 2, 0.5 do
+		for x = -sz.X / 2, sz.X / 2, 0.5 do
+			local o = cf:PointToWorldSpace(Vector3.new(x, 0, z))
+			local h = workspace:Raycast(Vector3.new(o.X, cf.Position.Y + 20, o.Z), Vector3.new(0, -40, 0), rp)
+			if h and h.Instance.CanCollide and h.Normal.Y > 0.95 then
+				local k = math.floor(h.Position.Y * 2 + 0.5)
+				bn[k] = (bn[k] or 0) + 1
+				table.insert(pt, {h.Position, k})
+			end
+		end
+	end
+	local fk, fn = nil, 0
+	for k, n in bn do
+		if n > fn then fk, fn = k, n end
+	end
+	local c, b, bd = cf:PointToWorldSpace(Vector3.new(0, 0, sz.Z / 4)), nil, math.huge
+	for _, v in pt do
+		if math.abs(v[2] - fk) <= 1 then
+			local fr = true
+			for _, q in st do
+				local l = q.CFrame:PointToObjectSpace(v[1])
+				if math.abs(l.X) < q.Size.X / 2 + 0.75 and math.abs(l.Z) < q.Size.Z / 2 + 0.75 then fr = false; break end
+			end
+			local d = ((v[1] - c) * Vector3.new(1, 0, 1)).Magnitude
+			if fr and d < bd then b, bd = v[1], d end
+		end
+	end
+	return b
+end
+
+local function oz(m)
+	local _, r, h = lc()
+	if not (r and m and m.Parent) or h.SeatPart or rv.Swimming and rv.Swimming:IsSwimming() then return false end
+	local rp = RaycastParams.new()
+	rp.FilterType, rp.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {m}
+	return workspace:Raycast(r.Position, Vector3.new(0, -6, 0), rp) ~= nil
+end
+
+local function sd(f, m)
+	local p = zd(m)
+	if not p then return false end
+	local g = gf(f, p + Vector3.new(0, 3, 0))
+	if cj then cj:Stop() end
+	if not g or f.st ~= "Running" then return false end
+	task.wait(1)
+	return oz(m)
+end
+
 local function bw(f)
 	local _, r = lc()
 	if not r then return nil, "No Character" end
@@ -1173,7 +1230,24 @@ local function bw(f)
 	local ok
 	ok, e = sb(f, m)
 	if not ok then return nil, e end
-	return dv(f, m, id, pt)
+	ok, e = dv(f, m, id, pt)
+	if ok then sd(f, m) end
+	return ok, e
+end
+
+local function hz(f, y)
+	local _, r = lc()
+	if not r then return nil, "No Character" end
+	local function sw() return rv.Swimming and rv.Swimming:IsSwimming() end
+	if cj and not cj.dn and not sw() and r.Position.Y > y - 2 then return true end
+	local j, e = mo(Vector3.new(r.Position.X, y, r.Position.Z), 30)
+	if not j then return nil, e end
+	local dl = os.clock() + 4
+	repeat task.wait(0.1) until j.st == "Arrived" and not sw() or j.dn or f.st ~= "Running" or os.clock() > dl
+	if j.dn then return nil, j.why or "Hover Failed" end
+	if f.st ~= "Running" then return nil end
+	if sw() then return nil, "Hover Failed: Still Swimming" end
+	return true
 end
 
 local function bo(f)
@@ -1188,7 +1262,16 @@ local function bo(f)
 	if not r then return nil, "No Character" end
 	f.br = x
 	local sw = rv.Swimming and rv.Swimming:IsSwimming()
-	if ((r.Position - q) * Vector3.new(1, 0, 1)).Magnitude <= 45 and not h.SeatPart and not sw then return q end
+	local cm = workspace:FindFirstChild("Cars")
+	cm = cm and cm:FindFirstChild(tostring(lp.UserId))
+	local cn = cm and cm:FindFirstChild("Main") and ((cm.Main.Position - q) * Vector3.new(1, 0, 1)).Magnitude <= 50
+	if ((r.Position - q) * Vector3.new(1, 0, 1)).Magnitude <= 45 and not h.SeatPart then
+		if cn and (oz(cm) or sd(f, cm)) then return q end
+		if f.st ~= "Running" then return nil end
+		local ok, e = hz(f, q.Y + 9)
+		if not ok then return nil, e end
+		return q
+	end
 	if not (f.hm or f.bb or sw or h.SeatPart) and ic() ~= "" then f.hm = {r.CFrame, ic()} end
 	local d = (r.Position - q) * Vector3.new(1, 0, 1)
 	local m, e = gb(f, f.bk())
@@ -1210,6 +1293,10 @@ local function bo(f)
 	ok, e = dv(f, m, id, pt or q + (d.Magnitude > 1 and d.Unit or Vector3.xAxis) * 40)
 	if not ok then return nil, e end
 	f.bb = true
+	if sd(f, m) then return q end
+	if f.st ~= "Running" then return nil end
+	ok, e = hz(f, q.Y + 9)
+	if not ok then return nil, e end
 	return q
 end
 
@@ -1419,9 +1506,21 @@ local function ss(f)
 	if not ok then return nil, e end
 	local h = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
 	if not h then return nil, "No Character" end
-	if not bp and (f.rp or not tg(h)) then
+	if not bp and (f.rp or rv.Swimming and rv.Swimming:IsSwimming() or not tg(h)) then
 		f.rp = false
-		local g = if pm.on then rs(vf, vi(h.Position)) else rs()
+		local g = if pm.on then rs(vf, vi(h.Position)) else rs(nil, vi(h.Position))
+		if not g and vi(h.Position) == "" then
+			local nb, nd = nil, math.huge
+			for _, x in game:GetService("CollectionService"):GetTagged("IslandRegion") do
+				local id = x:GetAttribute("islandId")
+				if x:IsA("BasePart") and type(id) == "string" and ul(id) and (x.Position - h.Position).Magnitude < nd then nb, nd = id, (x.Position - h.Position).Magnitude end
+			end
+			if nb then
+				f.rp = true
+				local ok, e = ti(f, nb, f.bk())
+				return nil, not ok and (e or "Move Failed") or nil
+			end
+		end
 		if not g and pm.on then
 			f.rp = true
 			return nil, "No Reachable Spot"
@@ -1431,7 +1530,7 @@ local function ss(f)
 		local mk, me = go(f, g, q and ((q - g) * Vector3.new(1, 0, 1)).Unit)
 		if not mk then return nil, me end
 	end
-	if pm.on and not bp and rv.Swimming and rv.Swimming:IsSwimming() then
+	if not bp and rv.Swimming and rv.Swimming:IsSwimming() then
 		f.rp = true
 		return nil, "Swimming"
 	end
@@ -1486,8 +1585,13 @@ local function rn(f)
 		f.bz = false
 		if hd then f.why = hd; return end
 		n = sf and n + 1 or 0
-		if n >= 5 then f.why = `Auto Fish Failed: {sf}`; return end
-		if sf then task.wait(1) end
+		if n >= 5 then
+			n, f.rp, f.nq = 0, true, {Title = "Auto Fish", Text = `Auto Fish Retry: {sf}`}
+			if cj then cj:Stop() end
+			task.wait(1)
+		elseif sf then
+			task.wait(1)
+		end
 	end
 end
 
@@ -2137,38 +2241,68 @@ local gi = (function()
 	end)
 	return ok and type(r) == "string" and r or nil
 end)()
-local dq = (function()
-	local function mi(k, q)
-		local x = Instance.new(k)
-		for a, v in q do x[a] = v end
-		return x
-	end
-	local sg, ch = mi("ScreenGui", {Name = game:GetService("HttpService"):GenerateGUID(false), ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 1000}), nil
+do
+	local kf, ky, ex = "Avenoric/Key.txt", "NGAO-GADH-RBMY", 1790930292
+	local function xp() return workspace:GetServerTimeNow() >= ex end
+	local o, s = pcall(readfile, kf)
 	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
-	ge.__FmD = sg
-	if not pcall(function() sg.Parent = gethui() end) then sg.Parent = lp:WaitForChild("PlayerGui") end
-	local fr = mi("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(300, 140), BackgroundColor3 = Color3.fromRGB(37, 37, 34), BorderSizePixel = 0})
-	mi("UICorner", {Parent = fr, CornerRadius = UDim.new(0, 10)})
-	mi("UIStroke", {Parent = fr, Color = Color3.fromRGB(72, 72, 66), Thickness = 1})
-	mi("TextLabel", {Parent = fr, BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 14), Size = UDim2.new(1, -32, 0, 22), Font = Enum.Font.GothamBold, TextSize = 16, TextColor3 = Color3.fromRGB(244, 240, 232), Text = "Ngao-Gaming Hub"})
-	mi("TextLabel", {Parent = fr, BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 42), Size = UDim2.new(1, -32, 0, 36), Font = Enum.Font.GothamMedium, TextSize = 13, TextWrapped = true, TextColor3 = Color3.fromRGB(150, 147, 140), Text = "Support The Hub? Donate To Keep It Free"})
-	for _, x in {{"Donate", 16, Color3.fromRGB(244, 240, 232), Color3.fromRGB(37, 37, 34), "d"}, {"No", 156, Color3.fromRGB(62, 62, 57), Color3.fromRGB(244, 240, 232), "n"}} do
-		local b = mi("TextButton", {Parent = fr, Position = UDim2.fromOffset(x[2], 92), Size = UDim2.fromOffset(128, 34), BackgroundColor3 = x[3], BorderSizePixel = 0, AutoButtonColor = true, Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = x[4], Text = x[1]})
-		mi("UICorner", {Parent = b, CornerRadius = UDim.new(0, 8)})
-		b.Activated:Connect(function() ch = ch or x[5] end)
-	end
-	repeat task.wait() until ch or ge.__FmD ~= sg
-	if ge.__FmD ~= sg then error("Donate Prompt Replaced", 0) end
 	ge.__FmD = nil
-	sg:Destroy()
-	if ch ~= "d" then return nil end
-	local cf = setclipboard or toclipboard
-	if not cf then return "Copy Failed: No Clipboard" end
-	local ok = pcall(cf, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb")
-	return ok and "Link Copied" or "Copy Failed: Clipboard Error"
-end)()
+	if xp() or not (o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky) then
+		local function mi(k, q)
+			local x = Instance.new(k)
+			for a, v in q do x[a] = v end
+			return x
+		end
+		local sg, ch = mi("ScreenGui", {Name = game:GetService("HttpService"):GenerateGUID(false), ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 1000}), nil
+		ge.__FmD = sg
+		if not pcall(function() sg.Parent = gethui() end) then sg.Parent = lp:WaitForChild("PlayerGui") end
+		local fr = mi("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(300, 174), BackgroundColor3 = Color3.fromRGB(37, 37, 34), BorderSizePixel = 0})
+		mi("UICorner", {Parent = fr, CornerRadius = UDim.new(0, 10)})
+		mi("UIStroke", {Parent = fr, Color = Color3.fromRGB(72, 72, 66), Thickness = 1})
+		mi("TextLabel", {Parent = fr, BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 14), Size = UDim2.new(1, -32, 0, 22), Font = Enum.Font.GothamBold, TextSize = 16, TextColor3 = Color3.fromRGB(244, 240, 232), Text = "Ngao-Gaming Hub"})
+		local st = mi("TextLabel", {Parent = fr, BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 40), Size = UDim2.new(1, -32, 0, 32), Font = Enum.Font.GothamMedium, TextSize = 13, TextWrapped = true, TextColor3 = Color3.fromRGB(150, 147, 140), Text = xp() and "Key Expired, Get The New Key" or "Press Get Key, Pass The Link And Paste The Key"})
+		local tb = mi("TextBox", {Parent = fr, Position = UDim2.fromOffset(16, 80), Size = UDim2.new(1, -32, 0, 34), BackgroundColor3 = Color3.fromRGB(28, 28, 26), BorderSizePixel = 0, ClearTextOnFocus = false, Font = Enum.Font.GothamMedium, TextSize = 14, TextColor3 = Color3.fromRGB(244, 240, 232), PlaceholderColor3 = Color3.fromRGB(110, 108, 102), PlaceholderText = "Enter Key", Text = ""})
+		mi("UICorner", {Parent = tb, CornerRadius = UDim.new(0, 8)})
+		mi("UIStroke", {Parent = tb, Color = Color3.fromRGB(72, 72, 66), Thickness = 1})
+		local function sx(t) st.Text = t end
+		local function sb()
+			local t = tb.Text:match("^%s*(.-)%s*$")
+			if t == "" then
+				sx("Key Check Failed: Empty Key")
+			elseif t ~= ky then
+				sx("Key Check Failed: Wrong Key")
+			elseif xp() then
+				sx("Key Check Failed: Key Expired")
+			else
+				pcall(function()
+					if not isfolder("Avenoric") then makefolder("Avenoric") end
+					writefile(kf, ky)
+				end)
+				ch = ch or "k"
+			end
+		end
+		local ac = {
+			g = function()
+				local cf = setclipboard or toclipboard
+				sx(not cf and "Copy Failed: No Clipboard" or pcall(cf, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb") and "Link Copied, Open It In Your Browser" or "Copy Failed: Clipboard Error")
+			end,
+			s = sb,
+			c = function() ch = ch or "c" end,
+		}
+		for _, x in {{"Get Key", 16, Color3.fromRGB(244, 240, 232), Color3.fromRGB(37, 37, 34), "g"}, {"Submit", 108, Color3.fromRGB(244, 240, 232), Color3.fromRGB(37, 37, 34), "s"}, {"Close", 200, Color3.fromRGB(62, 62, 57), Color3.fromRGB(244, 240, 232), "c"}} do
+			local b = mi("TextButton", {Parent = fr, Position = UDim2.fromOffset(x[2], 126), Size = UDim2.fromOffset(84, 34), BackgroundColor3 = x[3], BorderSizePixel = 0, AutoButtonColor = true, Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = x[4], Text = x[1]})
+			mi("UICorner", {Parent = b, CornerRadius = UDim.new(0, 8)})
+			b.Activated:Connect(ac[x[5]])
+		end
+		tb.FocusLost:Connect(function(e) if e then sb() end end)
+		repeat task.wait() until ch or ge.__FmD ~= sg
+		if ge.__FmD ~= sg then error("Key Gate Replaced", 0) end
+		ge.__FmD = nil
+		sg:Destroy()
+		if ch ~= "k" then error("Key Gate Closed", 0) end
+	end
+end
 local gw = L:Window({Title = "Ngao-Gaming Hub | Fishing Master", Config = "FishingMaster", Icon = gi})
-if dq then gw:Notify({Title = "Donate", Text = dq}) end
 local gt, ft = gw:Tab({Name = "General"}), nil
 
 local function cx(fn, ...)
@@ -2543,6 +2677,10 @@ gt:Section({Name = "Sell"})
 gt:Dropdown({Name = "Sell Rarity", Options = ra, Default = {}, Multi = true, Flag = "sr"})
 gt:Toggle({Name = "Auto Sell", Flag = "as"})
 
+local tz, qtx = gw:Tab({Name = "Status"}), `Iq{game:GetService("HttpService"):GenerateGUID(false)}`
+tz:Section({Name = "Island Quest"})
+local iql = tz:Label({Text = qtx})
+
 local tq = gw:Tab({Name = "Shop"})
 tq:Section({Name = "Gacha"})
 tq:Dropdown({Name = "Select Gacha", Options = ga, Default = "Skill Master", Flag = "gk"})
@@ -2825,3 +2963,85 @@ local function bh()
 end
 
 task.spawn(bh)
+
+local function iq()
+	local o = ge.__FmQ
+	if o then
+		o.on = false
+		pcall(function() o.sg:Destroy() end)
+	end
+	local tk, lb = {on = true}, nil
+	ge.__FmQ = tk
+	local ok0, hu = pcall(gethui)
+	for _, rt in {ok0 and hu or lp.PlayerGui, lp.PlayerGui} do
+		for _, x in rt:GetDescendants() do
+			if x:IsA("TextLabel") and x.Text == qtx then lb = x; break end
+		end
+		if lb then break end
+	end
+	if lb then lb.RichText = true end
+	iql:Set("Loading...")
+	local iy = {}
+	for n, v in ix do iy[v] = n end
+	local function nf(v)
+		return (tostring(math.floor(v + 0.5)):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
+	end
+	local function kg(v)
+		return v >= 100 and `{nf(v)} kg` or `{string.format("%.1f", v)} kg`
+	end
+	local function dt()
+		local d, q = pd(), nil
+		for _, x in qd do
+			if not ul(x[3]) then q = x; break end
+		end
+		if not q then return {} end
+		local ct, cq = md("Data", "Catalog"), d.Quest and d.Quest.Current
+		local pr = cq and cq.Id == q[1] and cq.Progress or q[5]
+		local _, ks = qc(q, d, pr)
+		local ln, n, bw, fl = {{"Coins", d.Coin or 0, pr.RequiredCoin or 0}}, {}, {}, {}
+		for u in ks do
+			local x = d.Inventory.Fishes[u]
+			if x then n[x.fishId] = (n[x.fishId] or 0) + 1 end
+		end
+		for _, x in d.Inventory.Fishes do bw[x.fishId] = math.max(bw[x.fishId] or 0, x.weight or 0) end
+		for _, il in ix do
+			for _, x in (ct.Island.GetById(il) or {}).fishes or {} do
+				fl[x.fishId] = fl[x.fishId] and `{fl[x.fishId]}, {iy[il]}` or iy[il]
+			end
+		end
+		if q[6] then
+			local c = 0
+			for _ in ks do c += 1 end
+			table.insert(ln, {`{q[6][1]} Fish`, c, pr.RequiredFish or 1, `Any {q[6][1]} fish from {iy[q[6][2]] or q[6][2]}`})
+		else
+			local wk, fs = q[1] == "unlock_island_6" and md("Data", "Config", "QuestConfig").UnlockIsland6MinWeightKg or {}, {}
+			for id, v in pr.RequiredFishes or {} do
+				local fi = ct.Fish.GetById(id)
+				local nm, rr, il = fi and fi.name or id, fi and fi.rarity or "?", fl[id] or "?"
+				table.insert(fs, {nm, n[id] or 0, v, wk[id] and `Need {kg(wk[id])} - Best {bw[id] and kg(bw[id]) or "none"} - {rr} - {il}` or `{rr} - {il}`, wk[id] or 0})
+			end
+			table.sort(fs, function(x, y)
+				if x[5] ~= y[5] then return x[5] < y[5] end
+				return x[1] < y[1]
+			end)
+			for _, x in fs do table.insert(ln, x) end
+		end
+		return {q[4], ln, cq and cq.Id == q[1]}
+	end
+	while ge.__FmQ == tk do
+		local ok, r = cx(dt)
+		if ok and r then
+			local t = {r[1] and `Next Island: {r[1]}{r[3] and " (Accepted)" or ""}` or "All Islands Unlocked"}
+			if lb then t[1] = `<b>{t[1]}</b>` end
+			for _, v in r[2] or {} do
+				local x = `{v[1]}: {nf(v[2])} / {nf(v[3])}`
+				table.insert(t, lb and `<font color="#{v[2] >= v[3] and "78C882" or "D66A5E"}">{x}</font>` or x)
+				if v[4] then table.insert(t, lb and `<font color="#96938C" size="11">   {v[4]}</font>` or `   {v[4]}`) end
+			end
+			iql:Set(table.concat(t, "\n"))
+		end
+		task.wait(1)
+	end
+end
+
+task.spawn(iq)
