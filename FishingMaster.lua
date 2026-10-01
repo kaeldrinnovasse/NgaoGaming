@@ -2823,10 +2823,71 @@ if eo then
 	tv:Dropdown({Name = "Aura", Options = eo[2][1], Default = "Default", Flag = "ea", Callback = function(v) ep("AuraCatalogId", eo[2][2][v]) end})
 end
 
+local function zp()
+	if ge.__FmP then return nil, "Already On" end
+	ge.__FmP = true
+	local sc, lt, tr, oc = rv.SettingsController, game:GetService("Lighting"), workspace.Terrain, workspace:FindFirstChild("Ocean")
+	local ul = true
+	for k, v in {ultra_low_graphic = true, show_others_vfx = false, show_my_vfx = false, show_cutscenes = false, show_damage_indicator = false, camera_shaking = false, auto_fishing_hide_vfx = true} do
+		if not (sc and sc._SetLocal and pcall(sc._SetLocal, sc, k, v)) then ul = false end
+	end
+	local function ko(d)
+		d.Enabled = false
+		d:GetPropertyChangedSignal("Enabled"):Connect(function() if d.Enabled then d.Enabled = false end end)
+	end
+	local function lf()
+		if lt.GlobalShadows then lt.GlobalShadows = false end
+		if lt.FogEnd < 1e9 then lt.FogEnd = 1e9 end
+	end
+	local function kx(d)
+		if d:IsA("PostEffect") then
+			ko(d)
+		elseif d:IsA("Atmosphere") then
+			local function z() if d.Density ~= 0 or d.Haze ~= 0 or d.Glare ~= 0 then d.Density, d.Haze, d.Glare = 0, 0, 0 end end
+			z()
+			d.Changed:Connect(z)
+		end
+	end
+	local function px(d)
+		if d == tr or oc and d:IsDescendantOf(oc) then return end
+		if d:IsA("ParticleEmitter") then
+			d.Lifetime = NumberRange.new(0)
+			ko(d)
+		elseif d:IsA("Beam") or d:IsA("Trail") or d:IsA("Smoke") or d:IsA("Fire") or d:IsA("Sparkles") or d:IsA("Light") or d:IsA("Highlight") then
+			ko(d)
+		elseif d:IsA("Decal") then
+			d.Transparency = 1
+		elseif d:IsA("SurfaceAppearance") then
+			task.defer(pcall, d.Destroy, d)
+		elseif d:IsA("BasePart") and d.Material ~= Enum.Material.Water then
+			d.Material, d.Reflectance, d.CastShadow = Enum.Material.SmoothPlastic, 0, false
+		end
+	end
+	lf()
+	lt:GetPropertyChangedSignal("GlobalShadows"):Connect(lf)
+	lt:GetPropertyChangedSignal("FogEnd"):Connect(lf)
+	for _, d in lt:GetChildren() do pcall(kx, d) end
+	lt.ChildAdded:Connect(function(d) pcall(kx, d) end)
+	pcall(function() tr.WaterWaveSize, tr.WaterWaveSpeed, tr.WaterReflectance = 0, 0, 0 end)
+	workspace.DescendantAdded:Connect(function(d) pcall(px, d) end)
+	task.spawn(function()
+		for i, d in workspace:GetDescendants() do
+			pcall(px, d)
+			if i % 2000 == 0 then task.wait() end
+		end
+	end)
+	if not ul then return nil, "Game Settings Failed: Settings Error" end
+	return true
+end
+
 local ts = gw:Tab({Name = "Setting"})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Player Mode (Beta)", Flag = "pm", Callback = function(v) pm.on = v == true end})
+ts:Button({Name = "FPS Booster", Callback = function()
+	local ok, e = zp()
+	gw:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e})
+end})
 
 local rx = "Ngao-Gaming Hub"
 
