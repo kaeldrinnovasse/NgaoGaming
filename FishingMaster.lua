@@ -1555,6 +1555,7 @@ local function ss(f)
 	local re = s.rl and f.st == "Running" and rl(f, s, ks, bf and 900 or 180) or not (s.cr or s.rr) and f.st == "Running" and "Bite Timeout"
 	if bf and not (s.cr and s.cr[1]) then f.bl = os.clock() + 180 end
 	if f.st ~= "Running" or re then
+		if s.cr and s.cr[1] and not s.cr[2] then task.wait(0.75); fc.FishLootConfirm:Fire() end
 		if not (s.cr or s.rr) then fc.FishCancel:Fire(); task.wait(1) end
 		return nil, re
 	end
@@ -1564,7 +1565,11 @@ local function ss(f)
 	end
 	if s.rr == "NoSkillEquipped" then return "Auto Fish Failed: No Skill Equipped" end
 	if s.rr == "SatchelFull" and not f.ao() then return "Auto Fish Failed: Satchel Full" end
-	if s.rr == "SessionActive" then fc.FishCancel:Fire(); task.wait(1) end
+	if s.rr == "SessionActive" then
+		fc.FishLootConfirm:Fire()
+		fc.FishCancel:Fire()
+		task.wait(1)
+	end
 	if s.rr then return nil, s.rr end
 	if s.cr[1] then
 		f.c += 1
@@ -1704,7 +1709,7 @@ function L:Window(o)
 	end
 
 	local v0, t0 = vs()
-	local wp, zm, lg, lq = Vector2.new(v0.X / 2, (v0.Y + t0) / 2), 1, nil, false
+	local wp, zm, lg, lq = Vector2.new(v0.X / 2, (v0.Y + t0) / 2), nil, nil, false
 	local function put()
 		wp = cl(wp, Vector2.new(ww, wh) * us.Scale)
 		if lg then
@@ -1716,7 +1721,7 @@ function L:Window(o)
 
 	local function zs()
 		local v, t = vs()
-		return math.clamp(math.min((v.X - 24) / ww, (v.Y - t - 24) / wh, zm), 0.5, 2)
+		return zm or math.clamp(math.min((v.X - 24) / ww, (v.Y - t - 24) / wh, 1), 0.5, 1)
 	end
 
 	local function fit()
@@ -1788,7 +1793,8 @@ function L:Window(o)
 		if f == nil then return nil end
 		return dt[f]
 	end
-	zm = math.clamp(tonumber(lv("_z")) or 1, 0.5, 2)
+	local zv = tonumber(lv("_z"))
+	zm = zv and math.clamp(zv, 0.5, 10) or nil
 	local lh = lv("_f")
 	if type(lh) == "table" and tonumber(lh[1]) and tonumber(lh[2]) then lg = Vector2.new(tonumber(lh[1]), tonumber(lh[2])) end
 
@@ -1814,15 +1820,13 @@ function L:Window(o)
 		wp = w0 + d
 		put()
 	end)
-	local z0, s0, tl0
+	local z0, s0
 	dg(gz, cs, function()
 		z0, s0 = us.Scale, Vector2.new(ww, wh) * us.Scale
-		tl0 = wp - s0 / 2
 	end, function(d)
-		zm = math.clamp(z0 * (1 + (d.X / s0.X + d.Y / s0.Y) / 2), 0.5, 2)
+		zm = math.clamp(z0 * (1 + (d.X / s0.X + d.Y / s0.Y) / 2), 0.5, 10)
 		us.Scale = zs()
-		qs.Scale, zm = us.Scale, us.Scale
-		wp = tl0 + Vector2.new(ww, wh) * us.Scale / 2
+		qs.Scale = us.Scale
 		put()
 	end, function() sf("_z", zm) end)
 	local f1
@@ -1941,8 +1945,8 @@ function L:Window(o)
 				if x == v then return end
 				v = x
 				sf(q.Flag, v)
-				tws:Create(k, TweenInfo.new(0.15), {BackgroundColor3 = v and c.tx or c.sk}):Play()
-				tws:Create(d, TweenInfo.new(0.15), {Position = UDim2.new(0, v and 19 or 3, 0.5, 0), BackgroundColor3 = v and c.bg or c.tx}):Play()
+				tws:Create(k, TweenInfo.new(0.15), {BackgroundColor3 = v and Color3.fromRGB(96, 165, 110) or c.sk}):Play()
+				tws:Create(d, TweenInfo.new(0.15), {Position = UDim2.new(0, v and 19 or 3, 0.5, 0), BackgroundColor3 = c.tx}):Play()
 				if cb then fire(q.Callback, v) end
 			end
 
@@ -2243,59 +2247,131 @@ local gi = (function()
 	return ok and type(r) == "string" and r or nil
 end)()
 do
-	local kf, ky, ex = "Avenoric/Key.txt", "NGAO-GADH-RBMY", 1790930292
+	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-GADH-RBMY", 1790930292, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
 	ge.__FmD = nil
 	if xp() or not (o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky) then
-		local function mi(k, q)
-			local x = Instance.new(k)
-			for a, v in q do x[a] = v end
+		local tws = game:GetService("TweenService")
+		local k = {bg = Color3.fromRGB(37, 37, 34), rw = Color3.fromRGB(47, 47, 43), sk = Color3.fromRGB(72, 72, 66), tx = Color3.fromRGB(244, 240, 232), dm = Color3.fromRGB(150, 147, 140), ib = Color3.fromRGB(28, 28, 26), gn = Color3.fromRGB(96, 165, 110), er = Color3.fromRGB(214, 106, 94)}
+		local function mi(c, q, cs)
+			local x = Instance.new(c)
+			for a, v in q do
+				if a ~= "Parent" then x[a] = v end
+			end
+			for _, y in cs or {} do y.Parent = x end
+			x.Parent = q.Parent
 			return x
+		end
+		local function rc(r) return mi("UICorner", {CornerRadius = UDim.new(0, r)}) end
+		local function lb(q)
+			q.BackgroundTransparency, q.Font, q.TextXAlignment, q.TextTruncate = 1, q.Font or Enum.Font.GothamMedium, q.TextXAlignment or Enum.TextXAlignment.Left, Enum.TextTruncate.AtEnd
+			return mi("TextLabel", q)
+		end
+		local function bn(q, c, t)
+			q.BackgroundColor3, q.TextColor3, q.AutoButtonColor, q.Font, q.TextSize, q.BorderSizePixel = c, t, true, Enum.Font.GothamBold, 14, 0
+			return mi("TextButton", q, {rc(8)})
 		end
 		local sg, ch = mi("ScreenGui", {Name = game:GetService("HttpService"):GenerateGUID(false), ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 1000}), nil
 		ge.__FmD = sg
 		if not pcall(function() sg.Parent = gethui() end) then sg.Parent = lp:WaitForChild("PlayerGui") end
-		local fr = mi("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(300, 174), BackgroundColor3 = Color3.fromRGB(37, 37, 34), BorderSizePixel = 0})
-		mi("UICorner", {Parent = fr, CornerRadius = UDim.new(0, 10)})
-		mi("UIStroke", {Parent = fr, Color = Color3.fromRGB(72, 72, 66), Thickness = 1})
-		mi("TextLabel", {Parent = fr, BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 14), Size = UDim2.new(1, -32, 0, 22), Font = Enum.Font.GothamBold, TextSize = 16, TextColor3 = Color3.fromRGB(244, 240, 232), Text = "Ngao-Gaming Hub"})
-		local st = mi("TextLabel", {Parent = fr, BackgroundTransparency = 1, Position = UDim2.fromOffset(16, 40), Size = UDim2.new(1, -32, 0, 32), Font = Enum.Font.GothamMedium, TextSize = 13, TextWrapped = true, TextColor3 = Color3.fromRGB(150, 147, 140), Text = xp() and "Key Expired, Get The New Key" or "Press Get Key, Pass The Link And Paste The Key"})
-		local tb = mi("TextBox", {Parent = fr, Position = UDim2.fromOffset(16, 80), Size = UDim2.new(1, -32, 0, 34), BackgroundColor3 = Color3.fromRGB(28, 28, 26), BorderSizePixel = 0, ClearTextOnFocus = false, Font = Enum.Font.GothamMedium, TextSize = 14, TextColor3 = Color3.fromRGB(244, 240, 232), PlaceholderColor3 = Color3.fromRGB(110, 108, 102), PlaceholderText = "Enter Key", Text = ""})
-		mi("UICorner", {Parent = tb, CornerRadius = UDim.new(0, 8)})
-		mi("UIStroke", {Parent = tb, Color = Color3.fromRGB(72, 72, 66), Thickness = 1})
-		local function sx(t) st.Text = t end
-		local function sb()
-			local t = tb.Text:match("^%s*(.-)%s*$")
-			if t == "" then
-				sx("Key Check Failed: Empty Key")
-			elseif t ~= ky then
-				sx("Key Check Failed: Wrong Key")
-			elseif xp() then
-				sx("Key Check Failed: Key Expired")
-			else
-				pcall(function()
-					if not isfolder("Avenoric") then makefolder("Avenoric") end
-					writefile(kf, ky)
-				end)
-				ch = ch or "k"
+		local fr = mi("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(320, 296), BackgroundColor3 = k.bg, BorderSizePixel = 0}, {rc(12), mi("UIStroke", {Color = k.sk, Thickness = 1})})
+		local us = mi("UIScale", {Parent = fr, Scale = 0.9})
+		local hx = 16
+		if type(gi) == "string" then
+			mi("ImageLabel", {Parent = fr, Position = UDim2.fromOffset(16, 14), Size = UDim2.fromOffset(32, 32), BackgroundTransparency = 1, Image = gi}, {rc(16)})
+			hx = 56
+		end
+		lb({Parent = fr, Position = UDim2.fromOffset(hx, 12), Size = UDim2.new(1, -hx - 46, 0, 20), Font = Enum.Font.GothamBold, TextSize = 16, TextColor3 = k.tx, Text = "Ngao-Gaming Hub"})
+		lb({Parent = fr, Position = UDim2.fromOffset(hx, 32), Size = UDim2.new(1, -hx - 46, 0, 14), TextSize = 12, TextColor3 = k.dm, Text = "Fishing Master"})
+		local xb = mi("TextButton", {Parent = fr, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 14), Size = UDim2.fromOffset(28, 28), BackgroundColor3 = k.er, BackgroundTransparency = 1, AutoButtonColor = false, Text = ""}, {rc(6), mi("TextLabel", {Position = UDim2.fromOffset(6, 6), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, FontFace = Font.new("rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"), TextSize = 16, TextColor3 = k.dm, Text = "x"})})
+		mi("Frame", {Parent = fr, Position = UDim2.fromOffset(16, 58), Size = UDim2.new(1, -32, 0, 1), BackgroundColor3 = k.sk, BorderSizePixel = 0})
+		local function bd(n, y, t)
+			local b = lb({Parent = fr, Position = UDim2.fromOffset(16, y), Size = UDim2.fromOffset(22, 22), Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = k.tx, TextXAlignment = Enum.TextXAlignment.Center, Text = n})
+			b.BackgroundTransparency, b.BackgroundColor3 = 0, k.rw
+			rc(11).Parent = b
+			mi("UIStroke", {Parent = b, Color = k.sk, Thickness = 1})
+			lb({Parent = fr, Position = UDim2.fromOffset(46, y), Size = UDim2.new(1, -62, 0, 22), Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = k.tx, Text = t})
+			return b
+		end
+		local b1 = bd("1", 70, "Get The Key")
+		local gk = bn({Parent = fr, Position = UDim2.fromOffset(46, 98), Size = UDim2.new(1, -62, 0, 34), Text = "Get Key"}, k.tx, k.bg)
+		local b2 = bd("2", 144, "Paste It Here")
+		local tb = mi("TextBox", {Parent = fr, Position = UDim2.fromOffset(46, 172), Size = UDim2.new(1, -62, 0, 34), BackgroundColor3 = k.ib, BorderSizePixel = 0, ClearTextOnFocus = false, ClipsDescendants = true, Font = Enum.Font.GothamMedium, TextSize = 14, TextColor3 = k.tx, PlaceholderColor3 = k.dm, PlaceholderText = "Enter Key", Text = ""}, {rc(8), mi("UIStroke", {Color = k.sk, Thickness = 1})})
+		tb:GetPropertyChangedSignal("Text"):Connect(function() if #tb.Text > 32 then tb.Text = tb.Text:sub(1, 32) end end)
+		local sm = bn({Parent = fr, Position = UDim2.fromOffset(46, 214), Size = UDim2.new(1, -62, 0, 34), Text = "Submit"}, k.gn, k.tx)
+		local st = lb({Parent = fr, Position = UDim2.fromOffset(16, 256), Size = UDim2.new(1, -32, 0, 14), TextSize = 12, TextColor3 = k.er, TextXAlignment = Enum.TextXAlignment.Center, Text = xp() and "Key Expired, Get The New Key" or ""})
+		local ft = lb({Parent = fr, Position = UDim2.fromOffset(16, 274), Size = UDim2.new(1, -32, 0, 12), TextSize = 11, TextColor3 = k.dm, TextXAlignment = Enum.TextXAlignment.Center, Text = ""})
+		local function sx(t, c) st.Text, st.TextColor3 = t, c or k.er end
+		local function dn(b) b.BackgroundColor3 = k.gn end
+		local function sk()
+			local p = fr.Position
+			for _, d in {-8, 8, -5, 5, 0} do
+				fr.Position = p + UDim2.fromOffset(d, 0)
+				task.wait(0.04)
+			end
+			fr.Position = p
+		end
+		local function dj()
+			local q = request or http_request or (syn and syn.request)
+			if not q then return end
+			local h = game:GetService("HttpService")
+			for pt = 6463, 6472 do
+				local ok, r = pcall(q, {Url = `http://127.0.0.1:{pt}/rpc?v=1`, Method = "POST", Headers = {["Content-Type"] = "application/json", Origin = "https://discord.com"}, Body = h:JSONEncode({cmd = "INVITE_BROWSER", nonce = h:GenerateGUID(false), args = {code = "fTQF5TvfEJ"}})})
+				if ok and type(r) == "table" and r.StatusCode == 200 then return end
 			end
 		end
-		local ac = {
-			g = function()
-				local cf = setclipboard or toclipboard
-				sx(not cf and "Copy Failed: No Clipboard" or pcall(cf, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb") and "Link Copied, Open It In Your Browser" or "Copy Failed: Clipboard Error")
-			end,
-			s = sb,
-			c = function() ch = ch or "c" end,
-		}
-		for _, x in {{"Get Key", 16, Color3.fromRGB(244, 240, 232), Color3.fromRGB(37, 37, 34), "g"}, {"Submit", 108, Color3.fromRGB(244, 240, 232), Color3.fromRGB(37, 37, 34), "s"}, {"Close", 200, Color3.fromRGB(62, 62, 57), Color3.fromRGB(244, 240, 232), "c"}} do
-			local b = mi("TextButton", {Parent = fr, Position = UDim2.fromOffset(x[2], 126), Size = UDim2.fromOffset(84, 34), BackgroundColor3 = x[3], BorderSizePixel = 0, AutoButtonColor = true, Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = x[4], Text = x[1]})
-			mi("UICorner", {Parent = b, CornerRadius = UDim.new(0, 8)})
-			b.Activated:Connect(ac[x[5]])
+		local function sb()
+			local t = tb.Text:match("^%s*(.-)%s*$")
+			local e = t == "" and "Key Check Failed: Empty Key" or t ~= ky and "Key Check Failed: Wrong Key" or xp() and "Key Check Failed: Key Expired" or nil
+			if e then
+				sx(e)
+				task.spawn(sk)
+				return
+			end
+			pcall(function()
+				if not isfolder("Avenoric") then makefolder("Avenoric") end
+				writefile(kf, ky)
+			end)
+			dn(b2)
+			sx("Key Accepted", k.gn)
+			task.spawn(dj)
+			task.wait(0.4)
+			ch = ch or "k"
 		end
+		gk.Activated:Connect(function()
+			local cf = setclipboard or toclipboard
+			if kl == "" then return sx("Copy Failed: Link Not Set") end
+			if not cf then return sx("Copy Failed: No Clipboard") end
+			if not pcall(cf, kl) then return sx("Copy Failed: Clipboard Error") end
+			dn(b1)
+			sx("Link Copied, Open It In Your Browser", k.gn)
+		end)
+		sm.Activated:Connect(sb)
+		local xa, xn = false, 0
+		xb.Activated:Connect(function()
+			if xa then
+				ch = ch or "c"
+				return
+			end
+			xn += 1
+			local n = xn
+			xa, xb.BackgroundTransparency, xb.TextLabel.TextColor3 = true, 0, Color3.new(1, 1, 1)
+			task.delay(3, function()
+				if xa and xn == n then xa, xb.BackgroundTransparency, xb.TextLabel.TextColor3 = false, 1, k.dm end
+			end)
+		end)
 		tb.FocusLost:Connect(function(e) if e then sb() end end)
+		task.spawn(function()
+			while sg.Parent and not ch do
+				local r = ex - workspace:GetServerTimeNow()
+				ft.Text = r > 0 and string.format("Key Expires In %dh %02dm", r // 3600, r % 3600 // 60) or "Key Expired"
+				task.wait(20)
+			end
+		end)
+		local v = workspace.CurrentCamera.ViewportSize
+		tws:Create(us, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Scale = math.clamp(math.min((v.X - 24) / 320, (v.Y - 24) / 296), 0.5, 1)}):Play()
 		repeat task.wait() until ch or ge.__FmD ~= sg
 		if ge.__FmD ~= sg then error("Key Gate Replaced", 0) end
 		ge.__FmD = nil
