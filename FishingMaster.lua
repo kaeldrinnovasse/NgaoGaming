@@ -1310,10 +1310,10 @@ local qd = {
 
 local qt, qz, qm = {
 	{"crimson_bead_rod", "island_volcano", "island_volcano", "Crimson Bead Rod", {RequiredFished = 0}, nil, "legacy_rod"},
-	{"bamboo_rod", "island_volcano", "island_volcano", "Bamboo Rod", {RequiredCoin = 3600000, RequiredBamboo = 20}, nil, "crimson_bead_rod"},
-	{"heaven_piercer_turtle_rod", "island_fossil", "island_fossil", "Heaven Piercer Turtle Rod", {RequiredCoin = 5000000, RequiredFish = 5}, {"Legendary", "island_fossil"}},
-	{"zen_staff_rod", "island_fossil", "island_fossil", "Zen Staff Rod", {RequiredFish = 0}},
-	{"dread_fish_rod", "island_fossil", "island_fossil", "Dread Fish Rod", {RequiredCoin = 10000000, RequiredFish = 1}, {"Mythical", "island_fossil"}},
+	{"bamboo_rod", "island_volcano", "island_volcano", "Bamboo Rod", {RequiredBamboo = 0}, nil, "crimson_bead_rod", "island_jungle"},
+	{"heaven_piercer_turtle_rod", "island_fossil", "island_fossil", "Heaven Piercer Turtle Rod", {RequiredFish = 0}, {"Legendary", "island_fossil"}, nil, "island_fossil"},
+	{"zen_staff_rod", "island_fossil", "island_fossil", "Zen Staff Rod", {RequiredFish = 0}, nil, nil, "island_fossil"},
+	{"dread_fish_rod", "island_fossil", "island_fossil", "Dread Fish Rod", {RequiredFish = 0}, {"Mythical", "island_fossil"}, nil, "island_fossil"},
 }, {}, {}
 for _, q in qt do
 	table.insert(qz, q[4])
@@ -1483,7 +1483,9 @@ local function ss(f)
 			if u or ue then return nil, ue end
 		end
 	end
-	local fi = not bp and f.fi()
+	local rq = not bp and f.qa() and qp(f)
+	local rc = rq and rq[8] and (pd().Quest or {}).Current
+	local fi = not bp and (rc and rc.Id == rq[1] and rq[8] or f.fi())
 	if fi and ic() ~= fi then
 		if not ul(fi) then return "Auto Fish Failed: Island Locked" end
 		local ok, e = ti(f, fi, f.bk())
@@ -2757,6 +2759,9 @@ gt:Toggle({Name = "Auto Sell", Flag = "as"})
 local tz, qtx = gw:Tab({Name = "Status"}), `Iq{game:GetService("HttpService"):GenerateGUID(false)}`
 tz:Section({Name = "Island Quest"})
 local iql = tz:Label({Text = qtx})
+local rtx = `Rq{game:GetService("HttpService"):GenerateGUID(false)}`
+tz:Section({Name = "Rod Quest"})
+local rql = tz:Label({Text = rtx})
 
 local tq = gw:Tab({Name = "Shop"})
 tq:Section({Name = "Gacha"})
@@ -3108,17 +3113,20 @@ local function iq()
 		o.on = false
 		pcall(function() o.sg:Destroy() end)
 	end
-	local tk, lb = {on = true}, nil
+	local tk, lb, rb = {on = true}, nil, nil
 	ge.__FmQ = tk
 	local ok0, hu = pcall(gethui)
 	for _, rt in {ok0 and hu or lp.PlayerGui, lp.PlayerGui} do
 		for _, x in rt:GetDescendants() do
-			if x:IsA("TextLabel") and x.Text == qtx then lb = x; break end
+			if x:IsA("TextLabel") and x.Text == qtx then lb = x end
+			if x:IsA("TextLabel") and x.Text == rtx then rb = x end
 		end
 		if lb then break end
 	end
 	if lb then lb.RichText = true end
+	if rb then rb.RichText = true end
 	iql:Set("Loading...")
+	rql:Set("Loading...")
 	local iy = {}
 	for n, v in ix do iy[v] = n end
 	local function nf(v)
@@ -3126,6 +3134,53 @@ local function iq()
 	end
 	local function kg(v)
 		return v >= 100 and `{nf(v)} kg` or `{string.format("%.1f", v)} kg`
+	end
+	local qf = {
+		crimson_bead_rod = {RequiredFished = 100, RequiredCoin = 3000000},
+		bamboo_rod = {RequiredBamboo = 20, RequiredCoin = 3600000},
+		heaven_piercer_turtle_rod = {RequiredFish = 5, RequiredCoin = 5000000},
+		zen_staff_rod = {RequiredFish = 5, RequiredCoin = 5000000},
+		dread_fish_rod = {RequiredFish = 1, RequiredCoin = 10000000},
+	}
+	local function rd()
+		local q = qm[L.Flags.qs]
+		if not q then return nil end
+		local d, ct = pd(), md("Data", "Catalog")
+		local cq = d.Quest and d.Quest.Current
+		local ac, id = cq and cq.Id == q[1], q[1]
+		if ((d.Quest or {}).Done or {})[id] then return {`{q[4]} (Completed)`, {}} end
+		local pr, df, ln = ac and cq.Progress or {}, qf[id] or {}, {}
+		local function gv(k) return pr[k] or df[k] or 0 end
+		local function ro(n, h, w, s) table.insert(ln, {`{n}: {nf(h)} / {nf(w)}`, h >= w, s}) end
+		local na = not ac and "Counts only after accepting" or nil
+		local u = ul(q[2])
+		table.insert(ln, {`{iy[q[2]] or q[2]}: {u and "Unlocked" or "Locked"}`, u})
+		if q[7] then
+			local r, o = ct.Rod.GetById(q[7]), d.Rods and d.Rods[q[7]] ~= nil
+			table.insert(ln, {`Own {r and r.name or q[7]}: {o and "Yes" or "No"}`, o})
+		end
+		ro("Coins", d.Coin or 0, gv("RequiredCoin"))
+		if id == "crimson_bead_rod" then
+			ro("Fish With Legacy Rod", ac and pr.CurrentFished or 0, gv("RequiredFished"), na)
+		elseif id == "bamboo_rod" then
+			ro("Bamboo Fragments", md("Shared", "getItemCount")(d, "bamboo_fragment"), gv("RequiredBamboo"), "10% drop while fishing on Jungle Island")
+		elseif id == "zen_staff_rod" then
+			ro("Final Blows With Taiji Hooking Art V2", ac and pr.CurrentFish or 0, gv("RequiredFish"), `Legendary fish from Fossil Island{na and `, {na:lower()}` or ""}`)
+		elseif q[6] then
+			local c = 0
+			for _ in select(2, qc(q, d, {RequiredFish = gv("RequiredFish")})) do c += 1 end
+			ro(`{q[6][1]} Fish`, c, gv("RequiredFish"), `Any {q[6][1]} fish from {iy[q[6][2]] or q[6][2]}`)
+		end
+		return {`{q[4]}{ac and " (Accepted)" or ""}`, ln}
+	end
+	local function rs(r)
+		if not r then return "No Rod Quest Selected" end
+		local t = {rb and `<b>{r[1]}</b>` or r[1]}
+		for _, v in r[2] do
+			table.insert(t, rb and `<font color="#{v[2] and "78C882" or "D66A5E"}">{v[1]}</font>` or v[1])
+			if v[3] then table.insert(t, rb and `<font color="#96938C" size="11">   {v[3]}</font>` or `   {v[3]}`) end
+		end
+		return table.concat(t, "\n")
 	end
 	local function dt()
 		local d, q = pd(), nil
@@ -3178,6 +3233,8 @@ local function iq()
 			end
 			iql:Set(table.concat(t, "\n"))
 		end
+		local ok2, r2 = cx(rd)
+		if ok2 then rql:Set(rs(r2)) end
 		task.wait(1)
 	end
 end
