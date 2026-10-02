@@ -1243,7 +1243,7 @@ local function wx(f, id)
 	if not ul(id) then return nil end
 	local mp = wm(id)
 	if not mp then return nil, "Warp Failed: No Boat Merchant" end
-	local ok, e, n, sg, hp = nil, nil, 0, game:GetService("StarterGui"), true
+	local ok, e, sg, hp = nil, nil, game:GetService("StarterGui"), true
 	wc(true)
 	pcall(function()
 		hp = sg:GetCoreGuiEnabled(Enum.CoreGuiType.Health)
@@ -1263,8 +1263,6 @@ local function wx(f, id)
 		if o.hb then o.hb:Disconnect() end
 		if not s then ok, e = nil, `Warp Failed: {ok}` end
 		if ok or f.st ~= "Running" then break end
-		n += 1
-		f.nq = {Title = "Teleport", Text = `Warp Retry {n}: {e or "Unknown"}`}
 		task.wait(1)
 	end
 	pcall(function() sg:SetCoreGuiEnabled(Enum.CoreGuiType.Health, hp) end)
