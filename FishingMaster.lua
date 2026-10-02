@@ -902,7 +902,7 @@ local function sb(f, m)
 	end
 	if not g then return nil, e end
 	if cj then cj:Stop() end
-	local dl, lc2 = os.clock() + 6, false
+	local dl, lc2 = os.clock() + 20, false
 	repeat
 		fireproximityprompt(pp)
 		local d1 = os.clock() + 1
@@ -910,6 +910,7 @@ local function sb(f, m)
 		if ds.Occupant ~= h and not lc2 then
 			lc2 = true
 			rv.FishingController.FishLootConfirm:Fire()
+			rv.FishingController.FishCancel:Fire()
 		end
 	until ds.Occupant == h or os.clock() > dl
 	if ds.Occupant ~= h then return nil, "Sit Timeout" end
@@ -1314,6 +1315,7 @@ local qt, qz, qm = {
 	{"heaven_piercer_turtle_rod", "island_fossil", "island_fossil", "Heaven Piercer Turtle Rod", {RequiredFish = 0}, {"Legendary", "island_fossil"}, nil, "island_fossil"},
 	{"zen_staff_rod", "island_fossil", "island_fossil", "Zen Staff Rod", {RequiredFish = 0}, nil, nil, "island_fossil"},
 	{"dread_fish_rod", "island_fossil", "island_fossil", "Dread Fish Rod", {RequiredFish = 0}, {"Mythical", "island_fossil"}, nil, "island_fossil"},
+	{"taiji_hooking_art_v2", "island_snow", "island_snow", "Taiji Hooking Art V2 Upgrade", {RequiredKills = 0}},
 }, {}, {}
 for _, q in qt do
 	table.insert(qz, q[4])
@@ -1339,6 +1341,7 @@ local function qc(q, d, pr)
 	if id == "crimson_bead_rod" and (pr.CurrentFished or 0) < (pr.RequiredFished or 1) then ok = false end
 	if id == "zen_staff_rod" and (pr.CurrentFish or 0) < (pr.RequiredFish or 1) then ok = false end
 	if id == "bamboo_rod" and md("Shared", "getItemCount")(d, "bamboo_fragment") < (pr.RequiredBamboo or 1) then ok = false end
+	if id == "taiji_hooking_art_v2" and ((pr.CurrentKills or 0) < (pr.RequiredKills or 1) or (((d.Inventory or {}).Books or {}).taiji_hooking_art or 0) < (pr.RequiredBookCount or 1)) then ok = false end
 	return ok, ks
 end
 
@@ -1363,6 +1366,7 @@ local function qp(f)
 	end
 	if not ul(q[2]) then return qw(f, `i{q[1]}`, `Rod Quest Waiting: Island Locked`) end
 	if q[7] and not (d.Rods and d.Rods[q[7]]) then return qw(f, `r{q[1]}`, `Rod Quest Waiting: No {q[7] == "legacy_rod" and "Legacy Rod" or "Crimson Bead Rod"}`) end
+	if q[1] == "taiji_hooking_art_v2" and (((d.Inventory or {}).Books or {}).taiji_hooking_art or 0) < 1 then return qw(f, `b{q[1]}`, "Rod Quest Waiting: No Taiji Hooking Art Book") end
 	return q
 end
 
@@ -1384,6 +1388,28 @@ local function gn(q)
 	return p
 end
 
+local function ub()
+	local d, n = pd(), 0
+	for _, r in d.Rods or {} do
+		for _, id in r.BookSlots or {} do
+			if id == "taiji_hooking_art" then n += 1 end
+		end
+	end
+	if (((d.Inventory or {}).Books or {}).taiji_hooking_art or 0) - n >= 1 then return true end
+	local re = d.Rods and d.Rods[d.RodEquip]
+	for s, id in re and re.BookSlots or {} do
+		if id == "taiji_hooking_art" then
+			local i = tonumber(tostring(s):match("%d+"))
+			local x = i and rv.EquipmentsController.EquipMoveset:Fire("", i)
+			if x ~= "Success" then return nil, `Unequip Book Failed: {x or "No Response"}` end
+			local dl = os.clock() + 3
+			repeat task.wait(0.2) until (((pd().Rods or {})[d.RodEquip] or {}).BookSlots or {})[s] ~= "taiji_hooking_art" or os.clock() > dl
+			return true, nil, i
+		end
+	end
+	return nil, "Unequip Book Failed: Book On Another Rod"
+end
+
 local function ug(f, q, ac)
 	local ok, e = ti(f, q[3], f.bk())
 	if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
@@ -1397,7 +1423,9 @@ local function ug(f, q, ac)
 	if f.st ~= "Running" then return nil end
 	local qr, iu = rv.QuestController, q[1]:find("^unlock_island_") ~= nil
 	local tt, px = iu and "Island Guide" or "Rod Quest", iu and "Unlock Island Failed" or "Rod Quest Failed"
-	local function dn() return ((pd().Quest or {}).Done or {})[q[1]] == true end
+	local function vb() return ((pd().Inventory or {}).Books or {}).taiji_hooking_art_v2 or 0 end
+	local v0 = vb()
+	local function dn() return ((pd().Quest or {}).Done or {})[q[1]] == true or q[1] == "taiji_hooking_art_v2" and vb() > v0 end
 	if not ac then
 		local a, m = qr:Accept(q[1])
 		if a ~= true then
@@ -1425,6 +1453,15 @@ local function ug(f, q, ac)
 			end
 		end
 	end
+	local bi2
+	if q[1] == "taiji_hooking_art_v2" then
+		local bo2, be2
+		bo2, be2, bi2 = ub()
+		if not bo2 then
+			f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: {be2}`}
+			return true
+		end
+	end
 	local cp, m = qr:Complete(q[1])
 	if cp ~= true then
 		f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: {m or "Complete Refused"}`}
@@ -1435,6 +1472,18 @@ local function ug(f, q, ac)
 	if not dn() then
 		f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: Not Completed`}
 		return true
+	end
+	if q[1] == "taiji_hooking_art_v2" then
+		f.qx[q[1]] = true
+		local d2 = pd()
+		for sl, x in ((d2.Rods or {})[d2.RodEquip] or {}).BookSlots or {} do
+			if not bi2 and x == "taiji_hooking_art" then bi2 = tonumber(tostring(sl):match("%d+")) end
+		end
+		local x = bi2 and rv.EquipmentsController.EquipMoveset:Fire("taiji_hooking_art_v2", bi2)
+		if bi2 and x ~= "Success" then
+			f.nq = {Title = tt, Text = `Got {q[4]}, Equip V2 Failed: {x or "No Response"}`}
+			return true
+		end
 	end
 	f.nq = {Title = tt, Text = `{iu and "Unlocked" or "Got"} {q[4]}`}
 	return true
@@ -1554,7 +1603,19 @@ local function ss(f)
 	end
 	local fo = s.id and md("Data", "Catalog").Fish.GetById(s.id)
 	local bf = fo and fo.kind == "Boss"
-	local re = s.rl and f.st == "Running" and rl(f, s, ks, bf and 900 or 180) or not (s.cr or s.rr) and f.st == "Running" and "Bite Timeout"
+	local zq, zk = not bp and f.qa() and qp(f), ks
+	local zs = zq and ((pd().Quest or {}).Current or {}).Id == zq[1] and (zq[1] == "zen_staff_rod" and fo and fo.rarity == "Legendary" and ic() == "island_fossil" and "taiji_hooking_art_v2" or zq[1] == "taiji_hooking_art_v2" and "taiji_hooking_art")
+	if zs then
+		zk = {}
+		for _, x in ks do
+			if x[2] == zs then table.insert(zk, x) end
+		end
+		if #zk == 0 then
+			zk = ks
+			qw(f, `z{zs}`, `Rod Quest Waiting: Equip {zs == "taiji_hooking_art" and "Taiji Hooking Art" or "Taiji Hooking Art V2"}`)
+		end
+	end
+	local re = s.rl and f.st == "Running" and rl(f, s, zk, bf and 900 or 180) or not (s.cr or s.rr) and f.st == "Running" and "Bite Timeout"
 	if bf and not (s.cr and s.cr[1]) then f.bl = os.clock() + 180 end
 	if f.st ~= "Running" or re then
 		if s.cr and s.cr[1] and not s.cr[2] then task.wait(0.75); fc.FishLootConfirm:Fire() end
@@ -2249,7 +2310,7 @@ local gi = (function()
 	return ok and type(r) == "string" and r or nil
 end)()
 do
-	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-GADH-RBMY", 1790930292, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-KBTT-8A6K", 1791017979, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
@@ -2440,8 +2501,8 @@ local function fs()
 	function f.ab() return L.Flags.ab == true end
 	function f.bk() return bi[L.Flags.sb] or "truck" end
 	function f.iw()
-		local j, id, g, b = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR
-		return g and not g.dn and (g.bz or g.rq and not f.bu) or b and not b.dn and (b.bz or b.rq and not f.bu) or j and not j.dn and (j.bz or id and ic() ~= id) or false
+		local j, id, g, b, t = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR, ge.__FmT
+		return g and not g.dn and (g.bz or g.rq and not f.bu) or b and not b.dn and (b.bz or b.rq and not f.bu) or j and not j.dn and (j.bz or id and ic() ~= id) or t and not t.dn and t.bz or false
 	end
 	ge.__FmF = f
 	task.spawn(function()
@@ -2498,6 +2559,106 @@ local function is()
 	it:Set(false)
 end
 
+local nz, nl, nj = {
+	{"Fish Merchant - Starter Island", "npc_fish_seller", "island_starter"},
+	{"Rod Merchant - Starter Island", "npc_rod_shop", "island_starter"},
+	{"Boat Merchant - Starter Island", "npc_car_merchant", "island_starter"},
+	{"Skill Master", "npc_gacha_book", "island_starter"},
+	{"Auras Dealer", "npc_gacha_aura", "island_starter"},
+	{"Jungle Island Guide", "npc_unlock_island_2", "island_jungle"},
+	{"Fish Merchant - Jungle Island", "npc_fish_seller", "island_jungle"},
+	{"Rod Merchant - Jungle Island", "npc_rod_shop", "island_jungle"},
+	{"Boat Merchant - Jungle Island", "npc_car_merchant", "island_jungle"},
+	{"Desert Island Guide", "npc_unlock_island_3", "island_desert"},
+	{"Fish Merchant - Desert Island", "npc_fish_seller", "island_desert"},
+	{"Rod Merchant - Desert Island", "npc_rod_shop", "island_desert"},
+	{"Boat Merchant - Desert Island", "npc_car_merchant", "island_desert"},
+	{"White Tiger Guardian", "npc_white_tiger", "island_desert"},
+	{"Snow Island Guide", "npc_unlock_island_4", "island_snow"},
+	{"Fish Merchant - Snow Island", "npc_fish_seller", "island_snow"},
+	{"Rod Merchant - Snow Island", "npc_rod_shop", "island_snow"},
+	{"Boat Merchant - Snow Island", "npc_car_merchant", "island_snow"},
+	{"Phoenix Guardian", "npc_phoenix", "island_snow"},
+	{"Taiji Master", "npc_taiji_hooking_art_v2", "island_snow"},
+	{"Volcanic Island Guide", "npc_unlock_island_5", "island_volcano"},
+	{"Fish Merchant - Volcanic Island", "npc_fish_seller", "island_volcano"},
+	{"Boat Merchant - Volcanic Island", "npc_car_merchant", "island_volcano"},
+	{"Crimson Bead Craftsman", "npc_crimson_bead_rod", "island_volcano"},
+	{"Bamboo Rod Craftsman", "npc_bamboo_rod", "island_volcano"},
+	{"Azure Dragon Guardian", "npc_azure_dragon", "island_volcano"},
+	{"Fossil Island Guide", "npc_unlock_island_6", "island_fossil"},
+	{"Fish Merchant - Fossil Island", "npc_fish_seller", "island_fossil"},
+	{"Heaven Piercer Craftsman", "npc_heaven_piercer_turtle_rod", "island_fossil"},
+	{"Zen Staff Craftsman", "npc_zen_staff_rod", "island_fossil"},
+	{"Dread Fish Craftsman", "npc_dread_fish_rod", "island_fossil"},
+	{"Supreme King Guardian", "npc_supreme_king", "island_fossil"},
+}, {}, {}
+for _, v in nz do
+	table.insert(nl, v[1])
+	nj[v[1]] = v
+end
+
+local function ne(v)
+	local w = workspace:FindFirstChild("World")
+	local fo = w and w:FindFirstChild("Islands") and w.Islands:FindFirstChild(v[3])
+	if not fo then return nil end
+	for _, x in game:GetService("CollectionService"):GetTagged("Interactive") do
+		if x:GetAttribute("InteractiveId") == v[2] and x:IsDescendantOf(fo) then
+			return x:IsA("Model") and x:GetPivot().Position or x:IsA("BasePart") and x.Position or nil
+		end
+	end
+	return nil
+end
+
+local function nw(j)
+	local v, n = nj[L.Flags.sv], 0
+	if not v then j.why = "Teleport Failed: No NPC Selected"; return end
+	while j.st == "Running" do
+		local fm = ge.__FmF
+		if not (fm and not fm.dn and fm.bz or ge.__FmG and not ge.__FmG.dn and ge.__FmG.bz) then
+			j.bz = true
+			local ok, e = ti(j, v[3], bi[L.Flags.sb] or "truck")
+			local c, r = lc()
+			local np = ok and r and ne(v)
+			if ok and r and not np then
+				local g = rg(v[3])
+				sq(g and Vector3.new(g.X, 2, g.Z) or r.Position, 10)
+				np = ne(v)
+			end
+			if ok and not r then ok, e = nil, "No Character" end
+			if ok and not np then ok, e = nil, "NPC Not Found" end
+			if ok and j.st == "Running" then
+				local sp = ap(c, np, r.Position)
+				ok, e = (v[2] == "npc_zen_staff_rod" and gf or go)(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+			end
+			j.bz = false
+			if ok and j.st == "Running" then j.ar = true; return end
+			if e == "NPC Not Found" then j.why = `Teleport Failed: {e}`; return end
+			n = j.st == "Running" and n + 1 or n
+			if n >= 3 then j.why = `Teleport Failed: {e or "Move Failed"}`; return end
+		end
+		task.wait(1)
+	end
+end
+
+local nk
+local function ny()
+	local o = ge.__FmT
+	if o then
+		o.st = "Stopped"
+		local dl = os.clock() + 5
+		repeat task.wait(0.1) until o.dn or os.clock() > dl
+	end
+	local j = {st = "Running", ar = false}
+	ge.__FmT = j
+	local ok, e = cx(nw, j)
+	if not ok then j.why = `Teleport Failed: {e}` end
+	j.dn = true
+	if ge.__FmT ~= j or not (j.why or j.ar) then return end
+	if j.why then gw:Notify({Title = "Teleport", Text = j.why}) end
+	nk:Set(false)
+end
+
 local ga, gm = {"Skill Master", "Ocean Chest", "Dragon Chest", "Aura"}, {["Ocean Chest"] = "crate_ocean_chest", ["Dragon Chest"] = "crate_dragon_chest"}
 
 local function gl(j)
@@ -2530,7 +2691,7 @@ local function gl(j)
 		end
 		local fm = ge.__FmF
 		j.rq = true
-		while j.st == "Running" and (fm and not fm.dn and (fm.bz or fm.bu) or ge.__FmR and not ge.__FmR.dn and ge.__FmR.bz or ge.__FmI and not ge.__FmI.dn) do task.wait(0.5) end
+		while j.st == "Running" and (fm and not fm.dn and (fm.bz or fm.bu) or ge.__FmR and not ge.__FmR.dn and ge.__FmR.bz or ge.__FmI and not ge.__FmI.dn or ge.__FmT and not ge.__FmT.dn) do task.wait(0.5) end
 		if j.st ~= "Running" then return end
 		j.bz, j.rq = true, false
 		local _, rt = lc()
@@ -2677,7 +2838,7 @@ local function rj(j)
 		end
 		local fm = ge.__FmF
 		j.rq = true
-		while j.st == "Running" and (fm and not fm.dn and (fm.bz or fm.bu) or ge.__FmG and not ge.__FmG.dn and ge.__FmG.bz or ge.__FmI and not ge.__FmI.dn) do task.wait(0.5) end
+		while j.st == "Running" and (fm and not fm.dn and (fm.bz or fm.bu) or ge.__FmG and not ge.__FmG.dn and ge.__FmG.bz or ge.__FmI and not ge.__FmI.dn or ge.__FmT and not ge.__FmT.dn) do task.wait(0.5) end
 		if j.st ~= "Running" then return end
 		j.bz, j.rq = true, false
 		local _, rt = lc()
@@ -2775,6 +2936,7 @@ tq:Dropdown({Name = "Select Rod", Options = rz, Flag = "rd"})
 rk = tq:Toggle({Name = "Auto Buy Rod", Flag = "rb", Callback = function(v)
 	if v then
 		if it then it:Set(false) end
+		if nk then nk:Set(false) end
 		rh()
 	elseif ge.__FmR then ge.__FmR.st = "Stopped" end
 end})
@@ -2785,8 +2947,18 @@ tl:Dropdown({Name = "Select Island", Options = iz, Flag = "si"})
 it = tl:Toggle({Name = "Auto Island", Flag = "ai", Callback = function(v)
 	if v then
 		if rk then rk:Set(false) end
+		if nk then nk:Set(false) end
 		is()
 	elseif ge.__FmI then ge.__FmI.st = "Stopped" end
+end})
+tl:Section({Name = "NPC"})
+tl:Dropdown({Name = "Select NPC", Options = nl, Flag = "sv"})
+nk = tl:Toggle({Name = "Teleport To NPC", Flag = "tv", Callback = function(v)
+	if v then
+		if it then it:Set(false) end
+		if rk then rk:Set(false) end
+		ny()
+	elseif ge.__FmT then ge.__FmT.st = "Stopped" end
 end})
 
 local ez, eo = {cs = {}, o = {}, w = {}}, nil
@@ -3141,6 +3313,7 @@ local function iq()
 		heaven_piercer_turtle_rod = {RequiredFish = 5, RequiredCoin = 5000000},
 		zen_staff_rod = {RequiredFish = 5, RequiredCoin = 5000000},
 		dread_fish_rod = {RequiredFish = 1, RequiredCoin = 10000000},
+		taiji_hooking_art_v2 = {RequiredKills = 100, RequiredCoin = 1000000},
 	}
 	local function rd()
 		local q = qm[L.Flags.qs]
@@ -3166,6 +3339,10 @@ local function iq()
 			ro("Bamboo Fragments", md("Shared", "getItemCount")(d, "bamboo_fragment"), gv("RequiredBamboo"), "10% drop while fishing on Jungle Island")
 		elseif id == "zen_staff_rod" then
 			ro("Final Blows With Taiji Hooking Art V2", ac and pr.CurrentFish or 0, gv("RequiredFish"), `Legendary fish from Fossil Island{na and `, {na:lower()}` or ""}`)
+		elseif id == "taiji_hooking_art_v2" then
+			ro("Final Blows With Taiji Hooking Art", ac and pr.CurrentKills or 0, gv("RequiredKills"), `Any fish, any island{na and `, {na:lower()}` or ""}`)
+			local bk = ((d.Inventory or {}).Books or {}).taiji_hooking_art or 0
+			table.insert(ln, {`Taiji Hooking Art Books: {bk}`, bk >= 1, "One book is turned into V2; the hub unequips it before completing"})
 		elseif q[6] then
 			local c = 0
 			for _ in select(2, qc(q, d, {RequiredFish = gv("RequiredFish")})) do c += 1 end
