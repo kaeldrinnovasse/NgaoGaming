@@ -858,7 +858,7 @@ local function gb(f, k)
 	local om = cf:FindFirstChild(nm)
 	local ct = md("Data", "Catalog", "Car")
 	local function pc() return ct[k] and ct[k].price or 0 end
-	local function ok(x) return x and x:FindFirstChild("Main") and x:FindFirstChild("DSeat") and x:GetAttribute("Speed") == bv(k) and (not pm.on or pc() > 0 or (x.Main.Position - r.Position).Magnitude < 100) end
+	local function ok(x) return x and x:FindFirstChild("Main") and x:FindFirstChild("DSeat") and x:GetAttribute("Speed") == bv(k) and ((x.Main.Position - r.Position) * Vector3.new(1, 0, 1)).Magnitude < 500 and (not pm.on or pc() > 0 or (x.Main.Position - r.Position).Magnitude < 100) end
 	if ok(om) then return om end
 	if pc() > (pd().Coin or 0) then k = "truck" end
 	if ok(om) then return om end
@@ -1029,10 +1029,11 @@ local function dv(f, m, id, pt)
 	local cp = rg(id)
 	if not (h and ds and ap and ao) then return nil, "Bad Boat" end
 	if not cp then return nil, "No Island Region" end
-	local sp, y, cc = m:GetAttribute("Speed") or 30, ap.Position.Y, {}
+	local sp, y, cc, sx = m:GetAttribute("Speed") or 30, ap.Position.Y, {}, {}
 	for _, x in {m, lp.Character} do
 		for _, p in x:GetDescendants() do
 			if p:IsA("BasePart") then cc[p] = p.CanCollide end
+			if p:IsA("Seat") or p:IsA("VehicleSeat") then table.insert(sx, p) end
 		end
 	end
 	local w = workspace:FindFirstChild("World")
@@ -1042,6 +1043,14 @@ local function dv(f, m, id, pt)
 	local hd, hl = (to - tp).Unit, math.max(mn.Size.X, mn.Size.Z) / 2 + 3
 	cn = game:GetService("RunService").Stepped:Connect(function(_, dt)
 		local ok, e = pcall(function()
+			for _, x in sx do
+				local c = x.Occupant and x.Occupant.Parent
+				if c and c ~= lp.Character then
+					for _, p in c:GetDescendants() do
+						if p:IsA("BasePart") and cc[p] == nil then cc[p] = p.CanCollide end
+					end
+				end
+			end
 			for p in cc do
 				if p.CanCollide then p.CanCollide = false end
 			end
@@ -1094,8 +1103,180 @@ local function dv(f, m, id, pt)
 	return true, sh
 end
 
+local wz = {island_starter = Vector3.new(-37.4, 11.1, 305.9), island_jungle = Vector3.new(-1161.1, 10.8, -61.9), island_desert = Vector3.new(-44.1, 10.1, -935.4), island_snow = Vector3.new(1171.7, 9.4, -266.5), island_volcano = Vector3.new(1772.5, 9.2, 1069.3), island_fossil = Vector3.new(-543.2, 10.6, 2172.3)}
+
+local function wm(id)
+	for _, x in game:GetService("CollectionService"):GetTagged("Interactive") do
+		if x:GetAttribute("InteractiveId") == "npc_car_merchant" and x:GetAttribute("IslandId") == id then return x:IsA("Model") and x:GetPivot().Position or x:IsA("BasePart") and x.Position or wz[id] end
+	end
+	return wz[id]
+end
+
+local wv
+if getgenv and getgenv().__FmW then pcall(getgenv().__FmW.Destroy, getgenv().__FmW) end
+pcall(function()
+	local pg, lt = lp:WaitForChild("PlayerGui"), rv.LoadingController
+	local x = pg:WaitForChild("Loading", 10):Clone()
+	local fr = x.Frame
+	x.Name, x.Enabled, x.ResetOnSpawn, x.DisplayOrder = hs:GenerateGUID(false), false, false, 1000
+	fr.BackgroundTransparency, fr.Background.Gradient.ImageTransparency, fr.Background.Rectangle.BackgroundTransparency, fr.ImageLabel.ImageTransparency = 0, 0, 0, 0
+	fr.tips.Position, fr.Bar.Position = lt._originalTipsPos, lt._originalBarPos
+	fr.Bar.MasteryText.Text = "Teleporting..."
+	x.Parent = pg
+	wv = x
+end)
+if getgenv then getgenv().__FmW = wv end
+
+local wg, wk, wp, wo = 0, nil, 0, {}
+local wt = {"Tips: Cast your bobber near ripple spots to catch rare fish!", "Tips: Different rods provide unique luck and strength boosts.", "Tips: Keep an eye on the tension bar to avoid snapping your line!", "Tips: Upgrade your bait at the bait shop to attract bigger fish.", "Tips: Perfect catches grant extra experience and rare materials.", "Tips: Check the weather! Some mythical fish only appear in storms.", "Tips: Visit the fish merchant to convert your catches into Coins & Gems.", "Tips: Explore distant islands once you discover their fast travel points.", "Tips: Rare auras and rod skins can be equipped to show off your style.", "Tips: Complete daily quests for bonus rewards and crates.", "Tips: Fill out your fish Index to track every species you've caught!"}
+
+local function wc(v, ok)
+	if not wv then return end
+	wg += 1
+	local g, fr, ts, lt = wg, wv.Frame, game:GetService("TweenService"), rv.LoadingController
+	local b, bg = fr.Bar, fr.Background
+	pcall(function()
+		if v then
+			if wk then wk:Disconnect() end
+			for _, x in wo do x:Cancel() end
+			fr.BackgroundTransparency, bg.Gradient.ImageTransparency, bg.Rectangle.BackgroundTransparency, fr.ImageLabel.ImageTransparency = 0, 0, 0, 0
+			b.Position, fr.tips.Position = UDim2.new(lt._originalBarPos.X.Scale, lt._originalBarPos.X.Offset, 1.25, 0), UDim2.new(lt._originalTipsPos.X.Scale, lt._originalTipsPos.X.Offset, 1.35, 0)
+			b.Fill.Size, b.MasteryText.Text, wp, wv.Enabled = UDim2.fromScale(0, 1), "Loading game...", 0, true
+			local cp, tp = 0, 0
+			wk = game:GetService("RunService").RenderStepped:Connect(function(dt)
+				tp = wp
+				if tp > cp then cp = math.min(cp + math.max((tp - cp) * math.clamp(dt * 10, 0, 1), 5e-4), tp) end
+				local t = os.clock()
+				b.Fill.Size, b.Fish.Position, b.Fish.Rotation = UDim2.fromScale(cp, 1), UDim2.new(cp, 0, 0.5, math.sin(t * 10) * 3), math.sin(t * 12) * 10
+			end)
+			wo = {ts:Create(b.Shine, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {ImageTransparency = 0.25})}
+			wo[1]:Play()
+			ts:Create(b, TweenInfo.new(0.65, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = lt._originalBarPos}):Play()
+			task.delay(0.08, function() ts:Create(fr.tips, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = lt._originalTipsPos}):Play() end)
+			local ti3, op = math.random(1, #wt), lt._originalTipsPos
+			fr.tips.Text = wt[ti3]
+			task.spawn(function()
+				while true do
+					task.wait(2.5)
+					if wg ~= g then return end
+					ti3 = ti3 % #wt + 1
+					local x = ts:Create(fr.tips, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(op.X.Scale, op.X.Offset, op.Y.Scale - 0.035, op.Y.Offset)})
+					x:Play()
+					x.Completed:Wait()
+					if wg ~= g then return end
+					fr.tips.Text, fr.tips.Position = wt[ti3], UDim2.new(op.X.Scale, op.X.Offset, op.Y.Scale + 0.035, op.Y.Offset)
+					ts:Create(fr.tips, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = op}):Play()
+				end
+			end)
+			task.spawn(function()
+				for k, x in {"Starting up...", "Building interface...", "Loading your data...", "Preparing gameplay..."} do
+					task.wait(1)
+					if wg ~= g then return end
+					wp, b.MasteryText.Text = k * 0.22, x
+				end
+			end)
+			return
+		end
+		if ok then wp = 1 end
+		b.MasteryText.Text = ok and "Ready!" or "Teleport Failed"
+		task.spawn(function()
+			task.wait(ok and 0.4 or 1)
+			if wg ~= g then return end
+			ts:Create(fr.tips, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Position = UDim2.new(lt._originalTipsPos.X.Scale, lt._originalTipsPos.X.Offset, 1.35, 0)}):Play()
+			task.delay(0.06, function() ts:Create(b, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Position = UDim2.new(lt._originalBarPos.X.Scale, lt._originalBarPos.X.Offset, 1.25, 0)}):Play() end)
+			local q = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			ts:Create(bg.Gradient, q, {ImageTransparency = 1}):Play()
+			ts:Create(bg.Rectangle, q, {BackgroundTransparency = 1}):Play()
+			ts:Create(fr.ImageLabel, q, {ImageTransparency = 1}):Play()
+			ts:Create(fr, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
+			task.wait(1.5)
+			if wg ~= g then return end
+			if wk then wk:Disconnect() end
+			for _, x in wo do x:Cancel() end
+			wv.Enabled = false
+		end)
+	end)
+end
+
+local function wy(f, id, mp, h, o)
+	if cj then cj:Stop() end
+	local nc
+	local cn = lp.CharacterAdded:Connect(function(x) nc = x end)
+	pcall(function() h.Parent.HumanoidRootPart.Died.Volume = 0 end)
+	h.Health = 0
+	local dl = os.clock() + 10
+	repeat task.wait(0.1) until nc or os.clock() > dl or f.st ~= "Running"
+	cn:Disconnect()
+	local r = nc and nc:WaitForChild("HumanoidRootPart", 5)
+	if not r then return nil, f.st == "Running" and "Warp Failed: No Respawn" or nil end
+	local sp, cf, ok = md("Shared", "Lib", "SpawnPointDialogue"), CFrame.new(mp + Vector3.new(4, 3, 0)), false
+	o.hb = game:GetService("RunService").Heartbeat:Connect(function()
+		if r.Parent then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, cf end
+	end)
+	dl = os.clock() + 4.5
+	while not ok and os.clock() < dl and f.st == "Running" do
+		local b, dn = {}, false
+		task.spawn(function() sp.CreateAction(true, b, b).on_select(function(x) ok, dn = x == true, true end) end)
+		local d2 = os.clock() + 3
+		repeat task.wait() until dn or os.clock() > d2
+		if not ok then task.wait(0.1) end
+	end
+	o.hb:Disconnect()
+	if f.st ~= "Running" then return nil end
+	if not ok then return nil, "Warp Failed: Spawn Not Set" end
+	local bc, tk = md("Controllers", "BackpackController"), false
+	for _ = 1, 10 do
+		task.wait(1)
+		if f.st ~= "Running" then return nil end
+		local s, v = pcall(function() return bc.TeleportToSpawn:Fire() end)
+		tk = s and v == true
+		if tk then break end
+	end
+	if not tk then return nil, "Warp Failed: Respawn Refused" end
+	dl = os.clock() + 8
+	repeat task.wait(0.2) until ic() == id and lc() or os.clock() > dl
+	if ic() ~= id then return nil, "Warp Failed: Not On Island" end
+	return true
+end
+
+local function wx(f, id)
+	if not ul(id) then return nil end
+	local mp = wm(id)
+	if not mp then return nil, "Warp Failed: No Boat Merchant" end
+	local ok, e, n, sg, hp = nil, nil, 0, game:GetService("StarterGui"), true
+	wc(true)
+	pcall(function()
+		hp = sg:GetCoreGuiEnabled(Enum.CoreGuiType.Health)
+		sg:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+	end)
+	while f.st == "Running" do
+		local dl, h = os.clock() + 8, nil
+		repeat
+			local _, _, x = lc()
+			h = x
+			if not h then task.wait(0.2) end
+		until h or os.clock() > dl or f.st ~= "Running"
+		if not h then continue end
+		local o: {hb: RBXScriptConnection?} = {}
+		local s
+		s, ok, e = pcall(wy, f, id, mp, h, o)
+		if o.hb then o.hb:Disconnect() end
+		if not s then ok, e = nil, `Warp Failed: {ok}` end
+		if ok or f.st ~= "Running" then break end
+		n += 1
+		f.nq = {Title = "Teleport", Text = `Warp Retry {n}: {e or "Unknown"}`}
+		task.wait(1)
+	end
+	pcall(function() sg:SetCoreGuiEnabled(Enum.CoreGuiType.Health, hp) end)
+	wc(false, ok)
+	return ok, e
+end
+
 local function ti(f, id, k)
 	if ic() == id then return true end
+	local w, we = wx(f, id)
+	if w or f.st ~= "Running" then return w end
+	if we then f.nq = {Title = "Teleport", Text = `{we}, Sailing`} end
 	local m, e = gb(f, k)
 	if not m then return nil, e end
 	local g
@@ -1274,6 +1455,11 @@ local function bo(f)
 		return q
 	end
 	if not (f.hm or f.bb or sw or h.SeatPart) and ic() ~= "" then f.hm = {r.CFrame, ic()} end
+	if id and ic() ~= id and wx(f, id) then
+		_, r, h = lc()
+		if not r then return nil, "No Character" end
+	end
+	if f.st ~= "Running" then return nil end
 	local d = (r.Position - q) * Vector3.new(1, 0, 1)
 	local m, e = gb(f, f.bk())
 	if not m then return nil, e end
