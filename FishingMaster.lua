@@ -1103,6 +1103,7 @@ local function dv(f, m, id, pt)
 	return true, sh
 end
 
+local wb = {on = true}
 local wz = {island_starter = Vector3.new(-37.4, 11.1, 305.9), island_jungle = Vector3.new(-1161.1, 10.8, -61.9), island_desert = Vector3.new(-44.1, 10.1, -935.4), island_snow = Vector3.new(1171.7, 9.4, -266.5), island_volcano = Vector3.new(1772.5, 9.2, 1069.3), island_fossil = Vector3.new(-543.2, 10.6, 2172.3)}
 
 local function wm(id)
@@ -1240,7 +1241,7 @@ local function wy(f, id, mp, h, o)
 end
 
 local function wx(f, id)
-	if not ul(id) then return nil end
+	if not (wb.on and ul(id)) then return nil end
 	local mp = wm(id)
 	if not mp then return nil, "Warp Failed: No Boat Merchant" end
 	local ok, e, sg, hp = nil, nil, game:GetService("StarterGui"), true
@@ -3321,6 +3322,7 @@ local ts = gw:Tab({Name = "Setting"})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Player Mode (Beta)", Flag = "pm", Callback = function(v) pm.on = v == true end})
+ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb.on = v == true end})
 ts:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = zp()
 	gw:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e})
