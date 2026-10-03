@@ -1916,7 +1916,7 @@ function L:Window(o)
 	o = o or {}
 	if type(o) ~= "table" then error("Window Failed: Bad Options") end
 	if o.Key ~= nil and o.Key ~= false and typeof(o.Key) ~= "EnumItem" then error("Window Failed: Bad Key") end
-	if o.Config ~= nil and (type(o.Config) ~= "string" or not o.Config:match("^[%w _%-]+$")) then error("Window Failed: Bad Config") end
+	if o.Config ~= nil and (type(o.Config) ~= "string" or (o.Config .. "/"):gsub("[%w _%-]+/", "") ~= "") then error("Window Failed: Bad Config") end
 	if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
 
 	local W, cs, tb, cur, lk, ct = {}, {}, {}, nil, false, -1
@@ -2021,7 +2021,12 @@ function L:Window(o)
 		pn = false
 		local ok, e = pcall(function()
 			if not isfolder("Avenoric") then makefolder("Avenoric") end
-			if not isfolder("Avenoric/Configs") then makefolder("Avenoric/Configs") end
+			local fp = "Avenoric/Configs"
+			if not isfolder(fp) then makefolder(fp) end
+			for x in o.Config:gmatch("([^/]+)/") do
+				fp ..= `/{x}`
+				if not isfolder(fp) then makefolder(fp) end
+			end
 			writefile(cp, hs:JSONEncode(dt))
 		end)
 		if not ok then toast({Title = "Config Save Failed", Text = tostring(e), Time = 6, Err = true}) end
@@ -2495,7 +2500,7 @@ local gi = (function()
 	return ok and type(r) == "string" and r or nil
 end)()
 do
-	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-KBTT-8A6K", 1791017979, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-L5MH-XQG9", 1791104351, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
