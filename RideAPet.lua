@@ -10,7 +10,7 @@ local ae = sd:WaitForChild("ActiveEggs")
 local gr = rs:WaitForChild("Remotes"):WaitForChild("Game")
 local ep, pr, hc, ci = gr:WaitForChild("EggPickup"), gr:WaitForChild("EggPlaced"), gr:WaitForChild("Hatch"), gr:WaitForChild("ClaimIndexReward")
 local rg = rs:WaitForChild("Assets"):FindFirstChild("RarityGradients")
-local bl, pf, by, st = {}, nil, false, "Ready"
+local bl, pf, pq, pm, by, st = {}, nil, 0, nil, false, "Ready"
 
 local ed, ix
 do
@@ -112,21 +112,40 @@ local function nr(n, h)
 	return b
 end
 
+local lq = {}
+local function wl(m)
+	table.insert(lq, os.date("%H:%M:%S") .. " " .. m)
+	if #lq > 300 then table.remove(lq, 1) end
+	pcall(function()
+		if not isfolder("Avenoric") then makefolder("Avenoric") end
+		if not isfolder("Avenoric/RideAPet") then makefolder("Avenoric/RideAPet") end
+		writefile("Avenoric/RideAPet/Log.txt", table.concat(lq, "\n"))
+	end)
+end
+
 local function gb(e, h)
+	local n, t0, r, nf, nx = e:GetAttribute("Egg"), os.clock(), nil, 0, 0
+	local cn = ep.OnClientEvent:Connect(function(a, b, c)
+		if r then return end
+		local k = tostring(a)
+		if k == "Refused" and c == e.Name and tostring(b):find("too far", 1, true) then nf += 1 return end
+		if c == e.Name or k == "BasketFull" then r = {a, b} end
+	end)
 	tp(h, e:GetAttribute("Position"))
-	task.wait(0.1)
-	for _ = 1, 6 do
-		local r = cw(function() ep:FireServer(e.Name) end, function(a, _, c) return c == e.Name or a == "BasketFull" end, 3)
-		if not r then bl[e.Name] = true return nil, "Grab Failed: No Reply" end
-		if r[1] == "PickedUp" then return true end
-		if r[1] == "BasketFull" then return nil, "Basket Full" end
-		if not tostring(r[2]):find("too far", 1, true) then
-			bl[e.Name] = true
-			return nil, "Grab Failed: " .. tostring(r[2])
+	repeat
+		if os.clock() >= nx then
+			nx = os.clock() + 0.25
+			ep:FireServer(e.Name)
 		end
-		task.wait(0.4)
-	end
-	return nil, "Grab Failed: Too Far"
+		task.wait()
+	until r or os.clock() - t0 > 6
+	cn:Disconnect()
+	wl(string.format("Grab %s: %s after %.2fs, %d too far", tostring(n), r and tostring(r[1]) .. " " .. tostring(r[2]) or "no answer", os.clock() - t0, nf))
+	if not r then return nil, nf > 0 and "Grab Failed: Too Far" or "Grab Failed: No Reply" end
+	if r[1] == "PickedUp" then return true end
+	if r[1] == "BasketFull" then return nil, "Basket Full" end
+	bl[e.Name] = true
+	return nil, "Grab Failed: " .. tostring(r[2])
 end
 
 local function dv(h)
@@ -162,20 +181,29 @@ local function pn(hm)
 	local pt = gp()
 	if not pt or not pt:FindFirstChild("Baseplate") or not pt:FindFirstChild("Eggs") then return nil, "Plant Failed: No Plot" end
 	local n = #pt.Eggs:GetChildren()
-	if pf and n >= pf then return nil, "Plot Full At " .. pf end
+	if pm and n >= pm then return nil, "Plot Full At " .. pm end
+	if pf and n >= pf and os.clock() - pq < 60 then return nil, "Plot Full At " .. pf end
 	pf = nil
-	for _, t in lp.Backpack:GetChildren() do
-		if t:IsA("Tool") and t:HasTag("Egg") then
+	local ts = {}
+	for _, c in {lp.Character, lp:FindFirstChildOfClass("Backpack")} do
+		for _, t in c and c:GetChildren() or {} do
+			if t:IsA("Tool") and t:HasTag("Egg") then table.insert(ts, t) end
+		end
+	end
+	for _, t in ts do
+		if t.Parent then
 			local p = sp(pt)
 			if not p then return nil, "Plant Failed: No Space" end
-			hm:EquipTool(t)
-			task.wait(0.2)
+			if t.Parent ~= lp.Character then
+				hm:EquipTool(t)
+				task.wait(0.2)
+			end
 			pr:FireServer({PlantPosition = p})
 			local dl = os.clock() + 2
 			repeat task.wait(0.1) until not t.Parent or os.clock() > dl
 			if t.Parent then
 				hm:UnequipTools()
-				pf = #pt.Eggs:GetChildren()
+				pf, pq = #pt.Eggs:GetChildren(), os.clock()
 				return nil, "Plant Failed: No Reply"
 			end
 		end
@@ -183,11 +211,11 @@ local function pn(hm)
 	return true
 end
 
-local function jb(n)
+local function jx(e)
 	local h, hm = hr()
 	if not h or not hm or hm.Health <= 0 then return nil, "Grab Failed: No Character" end
-	local e = nr(n, h)
-	if not e then return nil, "Grab Failed: No " .. n end
+	if not e.Parent then return nil, "Grab Failed: Egg Gone" end
+	local n = e:GetAttribute("Egg")
 	local ok, er = gb(e, h)
 	if er == "Basket Full" then
 		local d, de = dv(h)
@@ -201,7 +229,15 @@ local function jb(n)
 	return true, p and "Got " .. n or "Got " .. n .. " | " .. pe
 end
 
-local sq, fh, le = 0, {}, nil
+local function jb(n)
+	local h = hr()
+	if not h then return nil, "Grab Failed: No Character" end
+	local e = nr(n, h)
+	if not e then return nil, "Grab Failed: No " .. n end
+	return jx(e)
+end
+
+local sq, fh, le, se, ao = 0, {}, nil, {}, false
 local function lk(f, ...)
 	while by do task.wait(0.1) end
 	by = true
@@ -214,6 +250,7 @@ local function rn(n)
 	task.spawn(function()
 		local ok, a, b = lk(jb, n)
 		st = not ok and "Grab Failed: " .. tostring(a) or b
+		wl("Click " .. n .. ": " .. tostring(st))
 		sq += 1
 	end)
 end
@@ -252,6 +289,49 @@ local function ah()
 	end
 end
 
+local function ag()
+	local h = hr()
+	if not ao or not h or not next(se) then return end
+	local m, b, bk, bd = cm(), nil, 0, 0
+	for _, e in ae:GetChildren() do
+		local n = e:GetAttribute("Egg")
+		if se[n] and el(e, m) then
+			local k, d = ed[n] and ed[n].lk or 0, (e:GetAttribute("Position") - h.Position).Magnitude
+			if not b or k > bk or k == bk and d < bd then b, bk, bd = e, k, d end
+		end
+	end
+	if b then lk(jx, b) end
+end
+
+local function eh()
+	for _, c in {lp.Character, lp:FindFirstChildOfClass("Backpack")} do
+		for _, t in c and c:GetChildren() or {} do
+			if t:IsA("Tool") and t:HasTag("Egg") then return true end
+		end
+	end
+	return false
+end
+
+local function pj()
+	local h, hm = hr()
+	local pt = gp()
+	local b = pt and pt:FindFirstChild("Baseplate")
+	if not h or not hm or hm.Health <= 0 then return nil, "Plant Failed: No Character" end
+	if not b then return nil, "Plant Failed: No Plot" end
+	tp(h, b.Position + Vector3.new(0, b.Size.Y / 2, 0))
+	task.wait(0.2)
+	return pn(hm)
+end
+
+local function au()
+	local pt = gp()
+	local f = pt and pt:FindFirstChild("Eggs")
+	if not f or not eh() then return end
+	local n = #f:GetChildren()
+	if pm and n >= pm or pf and n >= pf and os.clock() - pq < 60 then return end
+	lk(pj)
+end
+
 local function ks()
 	local t = {}
 	for _, c in {lp:FindFirstChildOfClass("Backpack"), lp.Character} do
@@ -274,9 +354,25 @@ local function eb()
 	if not pb then return nil, "Equip Failed: No Place Best Button" end
 	tp(h, b.Position + Vector3.new(0, b.Size.Y / 2, 0))
 	task.wait(0.3)
+	local function sg()
+		local t = {ks()}
+		local f = pt:FindFirstChild("Pets")
+		for _, v in f and f:GetChildren() or {} do table.insert(t, v.Name .. tostring(v:GetAttribute("PetKey"))) end
+		for _, x in lp.Character and lp.Character:GetChildren() or {} do
+			if x:IsA("Tool") then table.insert(t, "h" .. x.Name) end
+		end
+		table.sort(t)
+		return table.concat(t, ",")
+	end
 	firesignal(pb.Activated)
-	task.wait(3)
-	return true
+	local t0, q, lc = os.clock(), sg(), os.clock()
+	while os.clock() - t0 < 15 do
+		task.wait(0.1)
+		local v = sg()
+		if v ~= q then q, lc = v, os.clock() end
+		if os.clock() - lc >= 1 and os.clock() - t0 >= 0.6 then return true end
+	end
+	return nil, "Equip Failed: Place Best Timeout"
 end
 
 local cb = 0
@@ -372,7 +468,7 @@ function L:Window(o)
 	o = o or {}
 	if type(o) ~= "table" then error("Window Failed: Bad Options") end
 	if o.Key ~= nil and o.Key ~= false and typeof(o.Key) ~= "EnumItem" then error("Window Failed: Bad Key") end
-	if o.Config ~= nil and (type(o.Config) ~= "string" or not o.Config:match("^[%w _%-]+$")) then error("Window Failed: Bad Config") end
+	if o.Config ~= nil and (type(o.Config) ~= "string" or (o.Config .. "/"):gsub("[%w _%-]+/", "") ~= "") then error("Window Failed: Bad Config") end
 	if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
 
 	local W, cs, tb, cur, lk, ct = {}, {}, {}, nil, false, -1
@@ -476,7 +572,12 @@ function L:Window(o)
 		pn = false
 		local ok, e = pcall(function()
 			if not isfolder("Avenoric") then makefolder("Avenoric") end
-			if not isfolder("Avenoric/Configs") then makefolder("Avenoric/Configs") end
+			local fp = "Avenoric/Configs"
+			if not isfolder(fp) then makefolder(fp) end
+			for x in o.Config:gmatch("([^/]+)/") do
+				fp ..= `/{x}`
+				if not isfolder(fp) then makefolder(fp) end
+			end
 			writefile(cp, hs:JSONEncode(dt))
 		end)
 		if not ok then toast({Title = "Config Save Failed", Text = tostring(e), Time = 6, Err = true}) end
@@ -978,7 +1079,7 @@ local gi = (function()
 end)()
 
 do
-	local kf, ky, ex, kl = "Avenoric/RideAPet/Key.txt", "NGAO-ZVSZ-AB7S", 1791049559, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
+	local kf, ky, ex, kl = "Avenoric/RideAPet/Key.txt", "NGAO-L6KU-E3WH", 1791122113, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__RapD then pcall(function() ge.__RapD:Destroy() end) end
@@ -1114,7 +1215,14 @@ end
 
 if ge.__RapG then pcall(ge.__RapG) end
 ge.__RapE = nil
-local gw = L:Window({Title = "Ngao-Gaming Hub | Ride A Pet", Config = "RideAPet", Icon = gi})
+local gcn = `RideAPet/{lp.Name}`
+local gce = isfile and isfolder and makefolder and readfile and writefile and select(2, pcall(function()
+	if isfile(`Avenoric/Configs/{gcn}.json`) or not isfile("Avenoric/Configs/RideAPet.json") then return end
+	if not isfolder("Avenoric/Configs/RideAPet") then makefolder("Avenoric/Configs/RideAPet") end
+	writefile(`Avenoric/Configs/{gcn}.json`, readfile("Avenoric/Configs/RideAPet.json"))
+end))
+local gw = L:Window({Title = "Ngao-Gaming Hub | Ride A Pet", Config = gcn, Icon = gi})
+if gce then gw:Notify({Title = "Config", Text = `Config Copy Failed: {gce}`}) end
 local gt = gw:Tab({Name = "Eggs"})
 local ls, it = {}, {}
 for n, d in ed do
@@ -1125,13 +1233,40 @@ for _, n in ls do
 	local d = ed[n]
 	table.insert(it, {Id = n, Name = (n:gsub(" Egg$", "")), Image = type(d.im) == "string" and d.im or "", Gradient = rg and type(d.ra) == "string" and rg:FindFirstChild(d.ra) or nil})
 end
+gt:Dropdown({Name = "Select Egg", Options = ls, Default = {}, Multi = true, Flag = "se", Callback = function(v)
+	local t = {}
+	for _, n in v do t[n] = true end
+	se = t
+end})
+gt:Toggle({Name = "Auto Egg", Flag = "ag", Callback = function(v) ao = v end})
 local gg = gt:Grid({Items = it, Callback = rn})
+
+if ge.__RapM then ge.__RapM:Disconnect() end
+ge.__RapM = rs:WaitForChild("Remotes"):WaitForChild("Reusable"):WaitForChild("GameMessage").OnClientEvent:Connect(function(m)
+	local x = type(m) == "string" and tonumber(m:match("^Max %d+/(%d+) Eggs In Plot"))
+	if x then pm = x end
+end)
+
+if ge.__RapA then ge.__RapA:Disconnect() end
+ge.__RapA = lp.Idled:Connect(function()
+	local vu = game:GetService("VirtualUser")
+	vu:CaptureController()
+	vu:ClickButton2(Vector2.new())
+end)
+
+task.spawn(function()
+	while ge.__AvW == gw do
+		pcall(ag)
+		task.wait(0.25)
+	end
+end)
 
 task.spawn(function()
 	while ge.__AvW == gw do
 		pcall(ah)
 		pcall(ap)
 		pcall(ic)
+		pcall(au)
 		task.wait(1)
 	end
 end)
