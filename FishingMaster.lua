@@ -214,7 +214,7 @@ local function mo(p, s, fk)
 	return j
 end
 
-local pm, wk, ap = {on = false}, nil, nil
+local ap
 
 local function gf(f, p, fk)
 	for _ = 1, 4 do
@@ -236,10 +236,7 @@ local function gf(f, p, fk)
 	return nil, "Move Timeout"
 end
 
-local function go(f, p, fk)
-	if pm.on and wk then return wk(f, p) end
-	return gf(f, p, fk)
-end
+local go = gf
 
 local function gd(c, p)
 	local rp = RaycastParams.new()
@@ -319,7 +316,7 @@ end
 
 local function ic() return rv.IslandRegionController:GetCurrentIslandId() end
 
-local function rs(ok, id)
+local function rs(id)
 	local c, r = lc()
 	local w = workspace:FindFirstChild("World")
 	local il = w and w:FindFirstChild("Islands")
@@ -335,7 +332,7 @@ local function rs(ok, id)
 			for i = 0, 7 do
 				local b = math.rad(i * 45)
 				if not workspace:Raycast(Vector3.new(g.X + math.sin(b) * 12, 103, g.Z + math.cos(b) * 12), Vector3.new(0, -100, 0), ip) and tg({Position = g}) then
-					if not ok or ok(g) then table.insert(o, g + Vector3.new(0, 3, 0)) end
+					table.insert(o, g + Vector3.new(0, 3, 0))
 					break
 				end
 			end
@@ -356,152 +353,7 @@ local function rg(id)
 	return nil
 end
 
-local hs, vg, vd = game:GetService("HttpService"), {}, {{1, 0}, {0, 1}, {1, 1}, {1, -1}}
-
-local function vk(id)
-	local w = workspace:FindFirstChild("World")
-	local fo = w and w:FindFirstChild("Islands") and w.Islands:FindFirstChild(id)
-	if not fo then return nil end
-	local rb
-	for _, x in game:GetService("CollectionService"):GetTagged("IslandRegion") do
-		if x:IsA("BasePart") and x:GetAttribute("islandId") == id then
-			local c, rr = x.Position, x.Size.X * 0.3
-			rb = {c.X - x.Size.X / 2, c.X + x.Size.X / 2, c.Z - x.Size.X / 2, c.Z + x.Size.X / 2}
-			for k = 0, 8 do
-				local a = k * math.pi / 4
-				sq(Vector3.new(c.X + (k > 0 and math.cos(a) * rr or 0), 10, c.Z + (k > 0 and math.sin(a) * rr or 0)), 10)
-			end
-		end
-	end
-	local n, x0, x1, z0, z1, y1 = 0, math.huge, -math.huge, math.huge, -math.huge, 0
-	for _, p in fo:GetDescendants() do
-		if p:IsA("BasePart") and p.CanCollide and p.Size.Magnitude < 2000 then
-			local s = p.Size.Magnitude / 2
-			n, x0, x1, z0, z1, y1 = n + 1, math.min(x0, p.Position.X - s), math.max(x1, p.Position.X + s), math.min(z0, p.Position.Z - s), math.max(z1, p.Position.Z + s), math.max(y1, p.Position.Y + s)
-		end
-	end
-	if n == 0 then return nil end
-	if rb then x0, x1, z0, z1 = math.max(x0, rb[1]), math.min(x1, rb[2]), math.max(z0, rb[3]), math.min(z1, rb[4]) end
-	return n, math.floor(x0 / 2) * 2, math.ceil(x1 / 2) * 2, math.floor(z0 / 2) * 2, math.ceil(z1 / 2) * 2, math.ceil(y1) + 5
-end
-
-local function vs(id, sg, x0, x1, z0, z1, y1)
-	local ex = {}
-	for _, p in ps:GetPlayers() do if p.Character then table.insert(ex, p.Character) end end
-	for _, n in {"Cars", "Nametags"} do
-		local x = workspace:FindFirstChild(n)
-		if x then table.insert(ex, x) end
-	end
-	local rp, k, st = RaycastParams.new(), 0, 2
-	rp.FilterType, rp.FilterDescendantsInstances, rp.RespectCanCollide = Enum.RaycastFilterType.Exclude, ex, true
-	local function rc(o, d)
-		k += 1
-		if k >= 800 then k = 0; task.wait() end
-		return workspace:Raycast(o, d, rp)
-	end
-	local nx, nz, cl, ls = math.floor((x1 - x0) / st), math.floor((z1 - z0) / st), {}, {}
-	for i = 0, nx do
-		for q = 0, nz do
-			local x, z, y, l, py = x0 + i * st, z0 + q * st, y1, {}, nil
-			while #l < 4 and y > -30 do
-				local h = rc(Vector3.new(x, y, z), Vector3.new(0, -30 - y, 0))
-				if not h then break end
-				local sy, hd = h.Position.Y, 6
-				if not py or rc(Vector3.new(x, sy + 0.1, z), Vector3.new(0, py - sy + 1, 0)) then
-					if h.Normal.Y < 0.5 or sy < 1.5 then
-						hd = 0
-					else
-						for _, o in {{0, 0}, {0.8, 0.8}, {-0.8, 0.8}, {0.8, -0.8}, {-0.8, -0.8}} do
-							local u = rc(Vector3.new(x + o[1], sy + 0.1, z + o[2]), Vector3.new(0, 6, 0))
-							if u then hd = math.min(hd, u.Position.Y - sy) end
-						end
-					end
-					table.insert(l, {math.floor(sy * 100) / 100, math.floor(h.Normal.Y * 1000) / 1000, math.floor(hd * 10) / 10})
-					py = sy
-				end
-				y = sy - 0.1
-			end
-			if #l > 0 then
-				local c = i * (nz + 1) + q
-				cl[c], ls[c] = {i, q, l, {}}, l
-			end
-		end
-	end
-	for _, v in cl do
-		local i, q, l = v[1], v[2], v[3]
-		for di, d in vd do
-			local ni, nq = i + d[1], q + d[2]
-			local b = ni >= 0 and ni <= nx and nq >= 0 and nq <= nz and ls[ni * (nz + 1) + nq]
-			for a, la in l do
-				for bi, lb in b or {} do
-					if la[2] >= 0.5 and la[3] >= 5.1 and la[1] >= 1.5 and lb[2] >= 0.5 and lb[3] >= 5.1 and lb[1] >= 1.5 and math.abs(la[1] - lb[1]) <= 8 then
-						local hy, fr = math.max(la[1], lb[1]), 1
-						local pa, pb = Vector3.new(x0 + i * st, 0, z0 + q * st), Vector3.new(x0 + ni * st, 0, z0 + nq * st)
-						local sv = Vector3.new(pa.Z - pb.Z, 0, pb.X - pa.X).Unit * 0.9
-						for _, hh in {{0.6, 0}, {2, 0}, {3.5, 0}, {2, 1}, {2, -1}, {3.5, 1}, {3.5, -1}} do
-							local o, e = pa + Vector3.new(0, hy + hh[1], 0) + sv * hh[2], pb + Vector3.new(0, hy + hh[1], 0) + sv * hh[2]
-							if rc(o, e - o) or rc(e, o - e) then fr = 0; break end
-						end
-						table.insert(v[4], {di, a, bi, fr})
-					end
-				end
-			end
-		end
-	end
-	local ar = {}
-	for _, v in cl do table.insert(ar, v) end
-	return {v = 3, id = id, n = sg, x0 = x0, z0 = z0, st = st, nx = nx, nz = nz, c = ar}
-end
-
-local function vb(d)
-	local X, Y, Z, I, Q, A, M, C, K, nz = {}, {}, {}, {}, {}, {}, {}, {}, {}, d.nz
-	for _, v in d.c do
-		local i, q, ci = v[1], v[2], v[1] * (d.nz + 1) + v[2]
-		for a, x in v[3] do
-			if x[2] >= 0.5 and x[3] >= 5.1 and x[1] >= 1.5 then
-				local n = #X + 1
-				X[n], Y[n], Z[n], I[n], Q[n], A[n] = d.x0 + i * d.st, x[1], d.z0 + q * d.st, i, q, {}
-				K[ci] = K[ci] or {}
-				K[ci][a] = n
-				C[ci] = C[ci] or {}
-				table.insert(C[ci], n)
-			end
-		end
-	end
-	for _, v in d.c do
-		local i, q = v[1], v[2]
-		local ku = K[i * (nz + 1) + q]
-		for _, e in ku and v[4] or {} do
-			local dd = vd[e[1]]
-			local kw = K[(i + dd[1]) * (nz + 1) + q + dd[2]]
-			local u, w = ku[e[2]], kw and kw[e[3]]
-			if e[4] == 1 and u and w and math.abs(Y[w] - Y[u]) <= 8 then A[u][w], A[w][u] = Y[w] - Y[u], Y[u] - Y[w] end
-		end
-	end
-	local function hk(u, i, q)
-		for w in A[u] do
-			if I[w] == i and Q[w] == q then return true end
-		end
-		return false
-	end
-	local bd = {}
-	for u = 1, #X do
-		for w in A[u] do
-			local dx, dz = I[w] - I[u], Q[w] - Q[u]
-			if dx ~= 0 and dz ~= 0 and not (hk(u, I[u] + dx, Q[u]) and hk(u, I[u], Q[u] + dz) and hk(w, I[w] - dx, Q[w]) and hk(w, I[w], Q[w] - dz)) then table.insert(bd, {u, w}) end
-		end
-	end
-	for _, x in bd do A[x[1]][x[2]], A[x[2]][x[1]] = nil, nil end
-	for u = 1, #X do
-		local s, n = {}, 0
-		for w in A[u] do
-			local c = I[w] * 100000 + Q[w]
-			if not s[c] then s[c], n = true, n + 1 end
-		end
-		M[u] = 8 - n
-	end
-	return {X = X, Y = Y, Z = Z, I = I, Q = Q, A = A, M = M, C = C, x0 = d.x0, z0 = d.z0, st = d.st, nz = nz, nx = d.nx}
-end
+local hs = game:GetService("HttpService")
 
 local function vi(p)
 	local id = ic()
@@ -512,333 +364,9 @@ local function vi(p)
 	return ""
 end
 
-local function vc(g)
-	local P, n = {}, 0
-	for u = 1, #g.X do
-		if not P[u] then
-			n += 1
-			P[u] = n
-			local q = {u}
-			while #q > 0 do
-				local v = table.remove(q)
-				for w, dy in g.A[v] do
-					if not P[w] and dy <= 6 and dy >= -6 then
-						P[w] = n
-						table.insert(q, w)
-					end
-				end
-			end
-		end
-	end
-	local S, mc = {}, 1
-	for _, c in P do S[c] = (S[c] or 0) + 1 end
-	for c, v in S do
-		if v > (S[mc] or 0) then mc = c end
-	end
-	g.P, g.S, g.MC = P, S, mc
-end
-
-local function vq(id)
-	while vg[id] == false do task.wait(0.5) end
-	if vg[id] then return vg[id] end
-	vg[id] = false
-	local ok, g, e = pcall(function()
-		local sg, x0, x1, z0, z1, y1 = vk(id)
-		if not sg then return nil, "Nav Failed: No Island" end
-		local fp, d = `Avenoric/Nav/{id}.json`, nil
-		local o1, s = pcall(readfile, fp)
-		if o1 and type(s) == "string" then
-			local o2, x = pcall(hs.JSONDecode, hs, s)
-			if o2 and type(x) == "table" and x.v == 3 and x.pv == game.PlaceVersion and type(x.n) == "number" and x.n >= sg then d = x end
-		end
-		if not d then
-			d = vs(id, sg, x0, x1, z0, z1, y1)
-			d.n, d.pv = math.min(sg, vk(id) or 0), game.PlaceVersion
-			pcall(makefolder, "Avenoric")
-			pcall(makefolder, "Avenoric/Nav")
-			pcall(writefile, fp, hs:JSONEncode(d))
-		end
-		local gr = vb(d)
-		vc(gr)
-		return gr
-	end)
-	vg[id] = ok and g or nil
-	if not ok then return nil, `Nav Failed: {g}` end
-	return g, e
-end
-
-local function vn(g, p, cp)
-	local i0, q0, b, bd = math.round((p.X - g.x0) / g.st), math.round((p.Z - g.z0) / g.st), nil, math.huge
-	for rr = 0, 40, 8 do
-		for i = i0 - rr - 8, i0 + rr + 8 do
-			for q = q0 - rr - 8, q0 + rr + 8 do
-				for _, n in g.C[i * (g.nz + 1) + q] or {} do
-					if not cp or g.P[n] == cp then
-						local d = (g.X[n] - p.X) ^ 2 + (g.Z[n] - p.Z) ^ 2 + 4 * (g.Y[n] - p.Y) ^ 2
-						if d < bd then b, bd = n, d end
-					end
-				end
-			end
-		end
-		if b then return b, math.sqrt(bd) end
-	end
-	return nil
-end
-
-local function vh(g, p)
-	local a = vn(g, p)
-	local sw = rv.Swimming and rv.Swimming:IsSwimming()
-	if not a or sw or g.S[g.P[a]] < 500 then a = vn(g, p, g.MC) or a end
-	return a
-end
-
-local function va(g, a, b, bn)
-	local X, Y, Z, A, M = g.X, g.Y, g.Z, g.A, g.M
-	local bx, by, bz = X[b], Y[b], Z[b]
-	local G, P, cl, hp, hv, hn, it = {[a] = 0}, {}, {}, {}, {}, 0, 0
-	local function hh(u) return math.sqrt((X[u] - bx) ^ 2 + (Y[u] - by) ^ 2 + (Z[u] - bz) ^ 2) end
-	local function pu(n, v)
-		hn += 1
-		local i = hn
-		hp[i], hv[i] = n, v
-		while i > 1 do
-			local p = i // 2
-			if hv[p] <= hv[i] then break end
-			hp[p], hp[i], hv[p], hv[i] = hp[i], hp[p], hv[i], hv[p]
-			i = p
-		end
-	end
-	local function po()
-		local n = hp[1]
-		hp[1], hv[1] = hp[hn], hv[hn]
-		hp[hn], hv[hn] = nil, nil
-		hn -= 1
-		local i = 1
-		while true do
-			local l, r, s = i * 2, i * 2 + 1, i
-			if l <= hn and hv[l] < hv[s] then s = l end
-			if r <= hn and hv[r] < hv[s] then s = r end
-			if s == i then break end
-			hp[s], hp[i], hv[s], hv[i] = hp[i], hp[s], hv[i], hv[s]
-			i = s
-		end
-		return n
-	end
-	pu(a, hh(a))
-	while hn > 0 do
-		local u = po()
-		if u == b then
-			local r = {u}
-			while P[u] do
-				u = P[u]
-				table.insert(r, 1, u)
-			end
-			return r
-		end
-		if not cl[u] then
-			cl[u], it = true, it + 1
-			if it % 4000 == 0 then task.wait() end
-			for w, dy in A[u] do
-				if dy <= 6 and not cl[w] and not (bn and bn[w] and w ~= b) then
-					local ng = G[u] + math.sqrt((X[w] - X[u]) ^ 2 + (Z[w] - Z[u]) ^ 2) + (dy > 1.2 and 4 or 0) + (dy < -3 and 1 or 0) + 0.35 * M[w]
-					if ng < (G[w] or math.huge) then
-						G[w], P[w] = ng, u
-						pu(w, ng + hh(w))
-					end
-				end
-			end
-		end
-	end
-	return nil
-end
-
-local function vl(g, u, w)
-	local X, Z, A, I, Q = g.X, g.Z, g.A, g.I, g.Q
-	local dx, dz = X[w] - X[u], Z[w] - Z[u]
-	local n, c = math.max(1, math.floor(math.sqrt(dx * dx + dz * dz) / 0.5)), u
-	for k = 1, n do
-		local ci, cq = math.round((X[u] + dx * k / n - g.x0) / g.st), math.round((Z[u] + dz * k / n - g.z0) / g.st)
-		if ci ~= I[c] or cq ~= Q[c] then
-			local b, bd = nil, math.huge
-			for v, dy in A[c] do
-				if I[v] == ci and Q[v] == cq and math.abs(dy) < bd then b, bd = v, math.abs(dy) end
-			end
-			if not b or A[c][b] > 1.2 or g.M[b] > 3 then return false end
-			c = b
-		end
-	end
-	return c == w
-end
-
-local function vz(g, p, bn)
-	local i0, q0 = math.round((p.X - g.x0) / g.st), math.round((p.Z - g.z0) / g.st)
-	for i = i0 - 2, i0 + 2 do
-		for q = q0 - 2, q0 + 2 do
-			for _, n in g.C[i * (g.nz + 1) + q] or {} do
-				if (g.X[n] - p.X) ^ 2 + (g.Z[n] - p.Z) ^ 2 <= 6.25 and math.abs(g.Y[n] + 3 - p.Y) <= 4 then bn[n] = true end
-			end
-		end
-	end
-end
-
-local function vr(g, p0, p1, bn)
-	local a = vh(g, p0)
-	if not a then return nil, "Nav Failed: Off Map" end
-	local b = vn(g, p1, g.P[a])
-	if not b then return nil, "Nav Failed: No Route" end
-	local r = va(g, a, b, bn)
-	if not r then return nil, "Nav Failed: No Route" end
-	local o, i = {r[1]}, 1
-	while i < #r do
-		local j = i + 1
-		if g.A[r[i]][r[j]] <= 1.2 then
-			local k = j
-			while k + 1 <= #r and g.A[r[k]][r[k + 1]] <= 1.2 and vl(g, r[i], r[k + 1]) do k += 1 end
-			j = k
-		end
-		table.insert(o, r[j])
-		i = j
-	end
-	local w = {}
-	for k, u in o do table.insert(w, {g.X[u], g.Y[u], g.Z[u], k > 1 and (g.A[o[k - 1]][u] or 0) > 1.2}) end
-	return w
-end
-
-local function vf(p)
-	local _, r = lc()
-	local id = r and vi(r.Position) or ""
-	local g = id ~= "" and vq(id)
-	if not (g and r) then return true end
-	local a = vh(g, r.Position - Vector3.new(0, 3, 0))
-	local b = a and vn(g, p, g.P[a])
-	return b ~= nil and ((Vector3.new(g.X[b], 0, g.Z[b]) - p) * Vector3.new(1, 0, 1)).Magnitude <= 3
-end
-
 ap = function(c, np, p)
 	local u = Vector3.new(p.X, np.Y, p.Z) - np
-	u = u.Magnitude > 0.1 and u.Unit or Vector3.xAxis
-	local sp = gd(c, np + u * 6)
-	if not pm.on then return sp end
-	local _, r = lc()
-	local id = r and vi(r.Position) or ""
-	local g = id ~= "" and vq(id)
-	local a = g and vh(g, r.Position - Vector3.new(0, 3, 0))
-	if not a then return sp end
-	local b, bd = sp, math.huge
-	for k = 0, 15 do
-		local q = gd(c, np + CFrame.Angles(0, (k % 2 == 0 and 1 or -1) * math.ceil(k / 2) * math.pi / 8, 0):VectorToWorldSpace(u) * 6 - Vector3.new(0, 18, 0))
-		local n = vn(g, q, g.P[a])
-		local d, dy = n and ((Vector3.new(g.X[n], 0, g.Z[n]) - q) * Vector3.new(1, 0, 1)).Magnitude, math.abs(q.Y - np.Y)
-		if d and d <= 2 and dy <= 4 and math.abs(g.Y[n] + 3 - q.Y) <= 2 then return q end
-		if d and d + dy < bd then b, bd = q, d + dy end
-	end
-	return b
-end
-
-local vy = {j = false}
-getgenv().__FmJ = vy
-task.spawn(function()
-	local vm = game:GetService("VirtualInputManager")
-	while getgenv().__FmJ == vy do
-		if vy.j then
-			vy.j = false
-			pcall(function()
-				vm:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-				task.wait(0.15)
-				vm:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
-			end)
-		end
-		task.wait()
-	end
-end)
-
-local function vj() vy.j = true end
-
-wk = function(f, p)
-	local _, r0 = lc()
-	local id = r0 and vi(r0.Position) or ""
-	local g = id ~= "" and vq(id)
-	if not g then return gf(f, p) end
-	if cj then cj:Stop() end
-	local tg, rsv = nil, game:GetService("RunService")
-	local ok, a, b = pcall(function()
-		rsv:BindToRenderStep("AvNvMv", Enum.RenderPriority.Character.Value + 1, function()
-			local _, r, h = lc()
-			if not (tg and r) then return end
-			local d = (tg - r.Position) * Vector3.new(1, 0, 1)
-			h:Move(d.Magnitude > 0.3 and d.Unit or Vector3.zero)
-		end)
-		local bn = {}
-		for _ = 1, 4 do
-			local c, r = lc()
-			if not c then return nil, "No Character" end
-			if f.st ~= "Running" then return nil end
-			if ((r.Position - p) * Vector3.new(1, 0, 1)).Magnitude <= 2 then return true end
-			if rv.Swimming and rv.Swimming:IsSwimming() then
-				local n = vh(g, r.Position - Vector3.new(0, 3, 0))
-				if not n then return nil, "Nav Failed: Off Map" end
-				tg = nil
-				local tp = Vector3.new(g.X[n], g.Y[n] + 3.2, g.Z[n])
-				local mj, me = mo(tp, 30)
-				if not mj then return nil, me end
-				local dl2 = os.clock() + (tp - r.Position).Magnitude / 30 + 4
-				repeat task.wait() until mj.st == "Arrived" or mj.dn or f.st ~= "Running" or os.clock() > dl2
-				local mw = mj.why
-				mj:Stop()
-				if mw then return nil, mw end
-				task.wait(0.3)
-				c, r = lc()
-				if not r then return nil, "No Character" end
-			end
-			local w, we = vr(g, r.Position - Vector3.new(0, 3, 0), p, bn)
-			if not w then return nil, we end
-			local fd = ((Vector3.new(w[#w][1], 0, w[#w][3]) - p) * Vector3.new(1, 0, 1)).Magnitude + math.abs(w[#w][2] + 3 - p.Y)
-			if fd > 30 then return nil, "Nav Failed: Unreachable" end
-			if fd > 0.5 and fd <= 5 then table.insert(w, {p.X, p.Y - 3, p.Z, false}) end
-			local pe = Vector3.new(w[#w][1], w[#w][2] + 3, w[#w][3])
-			local i, lt, bd, js, sj, sk = 2, os.clock(), math.huge, 0, 0, false
-			local dl = os.clock() + #w * 3 + 20
-			while i <= #w and f.st == "Running" do
-				local _, rt = lc()
-				if not rt then return nil, "No Character" end
-				local x = w[i]
-				tg = Vector3.new(x[1], x[2], x[3])
-				local d = ((tg - rt.Position) * Vector3.new(1, 0, 1)).Magnitude
-				if x[4] and d < 3.5 and rt.Position.Y - 3 < x[2] - 1 and os.clock() - js > 0.6 and sj < 3 then vj(); js, sj = os.clock(), sj + 1 end
-				if d < (i == #w and 1.5 or 2) and rt.Position.Y - 3 > x[2] - 1.5 and rt.Position.Y - 3 < x[2] + 3 then
-					i, lt, bd, sj = i + 1, os.clock(), math.huge, 0
-				else
-					if d < bd - 0.5 then lt, bd = os.clock(), d end
-					if os.clock() - lt > 0.7 and os.clock() - js > 0.7 and sj < 3 then vj(); js, sj = os.clock(), sj + 1 end
-					if os.clock() - lt > 2.5 then
-						local u = (tg - rt.Position) * Vector3.new(1, 0, 1)
-						vz(g, rt.Position + (u.Magnitude > 0.1 and u.Unit * 1.5 or Vector3.zero), bn)
-						sk = true
-						break
-					end
-					if os.clock() > dl or rv.Swimming and rv.Swimming:IsSwimming() then sk = true; break end
-				end
-				task.wait()
-			end
-			tg = nil
-			if f.st ~= "Running" then return nil end
-			if not sk then
-				local _, rt = lc()
-				if rt and ((rt.Position - pe) * Vector3.new(1, 0, 1)).Magnitude <= 2.5 and math.abs(rt.Position.Y - pe.Y) <= 3 then
-					if fd > 5 then return gf(f, p) end
-					return true
-				end
-			end
-		end
-		return nil, "Nav Failed: Stuck"
-	end)
-	tg = nil
-	pcall(function() rsv:UnbindFromRenderStep("AvNvMv") end)
-	local _, _, h = lc()
-	if h then h:Move(Vector3.zero) end
-	if not ok then return nil, `Nav Failed: {a}` end
-	if not a and b and b ~= "No Character" and f.st == "Running" then return gf(f, p) end
-	return a, b
+	return gd(c, np + (u.Magnitude > 0.1 and u.Unit or Vector3.xAxis) * 6)
 end
 
 local function bv(k)
@@ -858,7 +386,7 @@ local function gb(f, k)
 	local om = cf:FindFirstChild(nm)
 	local ct = md("Data", "Catalog", "Car")
 	local function pc() return ct[k] and ct[k].price or 0 end
-	local function ok(x) return x and x:FindFirstChild("Main") and x:FindFirstChild("DSeat") and x:GetAttribute("Speed") == bv(k) and ((x.Main.Position - r.Position) * Vector3.new(1, 0, 1)).Magnitude < 500 and (not pm.on or pc() > 0 or (x.Main.Position - r.Position).Magnitude < 100) end
+	local function ok(x) return x and x:FindFirstChild("Main") and x:FindFirstChild("DSeat") and x:GetAttribute("Speed") == bv(k) and ((x.Main.Position - r.Position) * Vector3.new(1, 0, 1)).Magnitude < 500 end
 	if ok(om) then return om end
 	if pc() > (pd().Coin or 0) then k = "truck" end
 	if ok(om) then return om end
@@ -885,21 +413,7 @@ local function sb(f, m)
 	if not pp then return nil, "No Boat Seat" end
 	if ds.Occupant == h then return true end
 	local q = (r.Position - ds.Position) * Vector3.new(1, 0, 1)
-	local g, e
-	if pm.on then
-		local id = vi(ds.Position)
-		local gr = id ~= "" and vq(id)
-		local n = gr and vh(gr, ds.Position)
-		if n and ((Vector3.new(gr.X[n], 0, gr.Z[n]) - ds.Position) * Vector3.new(1, 0, 1)).Magnitude < 80 then wk(f, Vector3.new(gr.X[n], gr.Y[n] + 3, gr.Z[n])) end
-		if f.st ~= "Running" then return nil end
-		local _, r2 = lc()
-		if not r2 then return nil, "No Character" end
-		q = (r2.Position - ds.Position) * Vector3.new(1, 0, 1)
-		g, e = true, nil
-		if (r2.Position - ds.Position).Magnitude > 8 then g, e = gf(f, ds.Position + Vector3.new(0, 1.5, 0) + (q.Magnitude > 0.1 and q.Unit or Vector3.xAxis) * 3) end
-	else
-		g, e = go(f, Vector3.new(ds.Position.X, r.Position.Y, ds.Position.Z) + (q.Magnitude > 0.1 and q.Unit or Vector3.xAxis) * 3)
-	end
+	local g, e = go(f, Vector3.new(ds.Position.X, r.Position.Y, ds.Position.Z) + (q.Magnitude > 0.1 and q.Unit or Vector3.xAxis) * 3)
 	if not g then return nil, e end
 	if cj then cj:Stop() end
 	local dl, lc2 = os.clock() + 20, false
@@ -917,112 +431,7 @@ local function sb(f, m)
 	return true
 end
 
-local function dp(f, m, id, pt)
-	local _, _, h = lc()
-	local mn, ds = m:FindFirstChild("Main"), m:FindFirstChild("DSeat")
-	local cp, cs = rg(id), game:GetService("CollectionService")
-	if not (h and mn and ds and ds:IsA("VehicleSeat")) then return nil, "Bad Boat" end
-	if not cp then return nil, "No Island Region" end
-	local w = workspace:FindFirstChild("World")
-	local il, rp = w and w:FindFirstChild("Islands"), RaycastParams.new()
-	rp.FilterType, rp.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
-	local s0, to, wq, si, e0 = Vector3.new(mn.Position.X, 0, mn.Position.Z), pt and Vector3.new(pt.X, 0, pt.Z) or Vector3.new(cp.X, 0, cp.Z), {}, vi(mn.Position), nil
-	for _, x in cs:GetTagged("IslandRegion") do
-		if x:IsA("BasePart") and si ~= id and x:GetAttribute("islandId") == si then
-			local c = Vector3.new(x.Position.X, 0, x.Position.Z)
-			local q = s0 - c
-			if q.Magnitude > 1 and (to - s0):Dot(c - s0) > 0 then e0 = c + q.Unit * math.max(q.Magnitude, x.Size.X / 2 * 0.7 + 60) end
-		end
-	end
-	local sb = e0 or s0
-	for _, x in cs:GetTagged("IslandRegion") do
-		local xi = x:GetAttribute("islandId")
-		if x:IsA("BasePart") and xi ~= id and (e0 or xi ~= si) then
-			local c, rr, d = Vector3.new(x.Position.X, 0, x.Position.Z), x.Size.X / 2 * 0.7, to - sb
-			local t = math.clamp((c - sb):Dot(d) / math.max(d:Dot(d), 1), 0, 1)
-			local pc = sb + d * t
-			if (c - pc).Magnitude < rr then
-				local of = (pc - c).Magnitude > 1 and (pc - c).Unit or Vector3.new(-d.Z, 0, d.X).Unit
-				table.insert(wq, {t, c + of * (rr + 60)})
-			end
-		end
-	end
-	table.sort(wq, function(a, b) return a[1] < b[1] end)
-	local ws = {e0}
-	for _, x in wq do table.insert(ws, x[2]) end
-	table.insert(ws, to)
-	local th, st, er, dn, sh, hl = 0, 0, nil, false, nil, math.max(mn.Size.X, mn.Size.Z) / 2 + 3
-	local cn = game:GetService("RunService").Stepped:Connect(function() ds.ThrottleFloat, ds.SteerFloat = th, st end)
-	local ln = 0
-	for k, x in ws do ln += (x - (k > 1 and ws[k - 1] or s0)).Magnitude end
-	local wi, lb, lt, dl, ru, nr = 1, math.huge, os.clock(), os.clock() + ln / 15 + 60, 0, 0
-	local function fw(v, a, l)
-		local u = CFrame.Angles(0, a, 0):VectorToWorldSpace(v)
-		return workspace:Raycast(Vector3.new(mn.Position.X, 5, mn.Position.Z), u * l, rp)
-	end
-	while f.st == "Running" do
-		task.wait(0.1)
-		if ds.Occupant ~= h then er = "Left Boat"; break end
-		local p = Vector3.new(mn.Position.X, 0, mn.Position.Z)
-		local on = ic() == id or vi(mn.Position) == id
-		if on and not pt and wi == #ws then
-			local mp, mx = ns("npc_car_merchant", mn.Position)
-			if mp and mx:GetAttribute("IslandId") == id then
-				local nq = Vector3.new(mp.X, 0, mp.Z)
-				if (nq - ws[wi]).Magnitude > 1 then ws[wi], lb = nq, math.huge end
-			end
-		end
-		local d = ws[wi] - p
-		if wi < #ws and d.Magnitude < 40 then
-			wi, lb = wi + 1, math.huge
-			continue
-		end
-		local lv = Vector3.new(mn.CFrame.LookVector.X, 0, mn.CFrame.LookVector.Z).Unit
-		if pt and d.Magnitude < 5 then dn = true; break end
-		if not pt and on and wi == #ws then
-			local fr = il and workspace:Raycast(Vector3.new(p.X, 103, p.Z) + lv * hl, Vector3.new(0, -100, 0), rp)
-			if fr or d.Magnitude < 18 then sh, dn = fr and fr.Position, true; break end
-		end
-		if d.Magnitude < lb - 1 then lb, lt = d.Magnitude, os.clock() end
-		if os.clock() < ru then
-			continue
-		end
-		if os.clock() - lt > 4 then
-			nr += 1
-			if nr > 4 then er = "Boat Stuck"; break end
-			th, st, ru, lt = -1, (nr % 2 == 0 and 1 or -1), os.clock() + 1.5, os.clock() + 1.5
-			continue
-		end
-		local du = d.Unit
-		local e = math.atan2(lv:Cross(du).Y, lv:Dot(du))
-		st, th = math.clamp(-e / math.rad(25), -1, 1), math.abs(e) > math.rad(70) and 0.4 or (d.Magnitude < 60 and wi == #ws) and 0.6 or 1
-		if not (on and wi == #ws) and fw(lv, 0, 30) then
-			local lf, rt = fw(lv, math.rad(40), 30) or fw(lv, math.rad(80), 20), fw(lv, math.rad(-40), 30) or fw(lv, math.rad(-80), 20)
-			st, th = (not lf and rt) and -1 or (lf and not rt) and 1 or (e > 0 and -1 or 1), 0.5
-		end
-		if os.clock() > dl then er = "Boat Timeout"; break end
-	end
-	th, st = 0, 0
-	task.wait(0.8)
-	cn:Disconnect()
-	ds.ThrottleFloat, ds.SteerFloat = 0, 0
-	local dd = os.clock() + 3
-	while ds.Occupant == h and os.clock() < dd do
-		h.Sit, h.Jump = false, true
-		task.wait(0.2)
-	end
-	local _, r = lc()
-	local hj = pt and r and mo(r.Position, 30)
-	task.wait(pt and 1 or 0.3)
-	if er or not dn then
-		if hj then hj:Stop() end
-		return nil, er
-	end
-	return true, sh
-end
-
 local function dv(f, m, id, pt)
-	if pm.on then return dp(f, m, id, pt) end
 	local _, _, h = lc()
 	local mn, ds = m:FindFirstChild("Main"), m:FindFirstChild("DSeat")
 	local ap, ao = mn and mn:FindFirstChild("AlignPosition"), mn and mn:FindFirstChild("AlignOrientation")
@@ -1104,6 +513,7 @@ local function dv(f, m, id, pt)
 end
 
 local wb = {on = true}
+local zy = {on = false, rq = false, nt = 0, fr = {}, wl = {}}
 local wz = {island_starter = Vector3.new(-37.4, 11.1, 305.9), island_jungle = Vector3.new(-1161.1, 10.8, -61.9), island_desert = Vector3.new(-44.1, 10.1, -935.4), island_snow = Vector3.new(1171.7, 9.4, -266.5), island_volcano = Vector3.new(1772.5, 9.2, 1069.3), island_fossil = Vector3.new(-543.2, 10.6, 2172.3)}
 
 local function wm(id)
@@ -1292,6 +702,61 @@ local function ti(f, id, k)
 	task.wait(0.5)
 	if ic() ~= id then return nil, "Not On Island" end
 	return true
+end
+
+local function zm(p, wi)
+	if zy.wl[p.UserId] then return true end
+	local hm = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
+	local an = hm and hm:FindFirstChildOfClass("Animator")
+	for _, t in an and an:GetPlayingAnimationTracks() or {} do
+		if t.WeightCurrent > 0.05 and t.Animation and wi[t.Animation.AnimationId] then
+			zy.wl[p.UserId] = true
+			return true
+		end
+	end
+	return false
+end
+
+local function zw()
+	local c, r = lc()
+	local id = r and vi(r.Position) or ""
+	local am = c and c:FindFirstChild("Animate")
+	if not am then return false end
+	local wi, nr, cs = {}, false, game:GetService("CollectionService")
+	for _, n in {"walk", "run"} do
+		for _, x in am:FindFirstChild(n) and am[n]:GetChildren() or {} do
+			if x:IsA("Animation") then wi[x.AnimationId] = true end
+		end
+	end
+	for _, p in game:GetService("Players"):GetPlayers() do
+		local h = p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+		if h then
+			if zy.fr[p.UserId] == nil then
+				local ok, v = pcall(lp.IsFriendsWith, lp, p.UserId)
+				zy.fr[p.UserId] = ok and v == true
+			end
+			for _, x in zy.fr[p.UserId] == false and zm(p, wi) and id ~= "" and cs:GetTagged("IslandRegion") or {} do
+				if x:IsA("BasePart") and x:GetAttribute("islandId") == id and (x.Position - h.Position).Magnitude < x.Size.X / 2 then nr = true end
+			end
+		end
+	end
+	return nr
+end
+
+local function zh()
+	zy.nt = os.clock() + 30
+	local ok, r = pcall(function() return hs:JSONDecode((game :: any):HttpGet(`https://games.roblox.com/v1/games/{game.PlaceId}/servers/Public?sortOrder=Asc&limit=100`)) end)
+	if not ok or type(r) ~= "table" or type(r.data) ~= "table" then return nil, "Hop Failed: Server List" end
+	local o = {}
+	for _, s in r.data do
+		if type(s) == "table" and type(s.id) == "string" and s.id ~= game.JobId and tonumber(s.playing) and tonumber(s.maxPlayers) and s.playing < s.maxPlayers then table.insert(o, s.id) end
+	end
+	if #o == 0 then return nil, "Hop Failed: No Server" end
+	local tp = game:GetService("TeleportService")
+	local tk, e = pcall(tp.TeleportToPlaceInstance, tp, game.PlaceId, o[math.random(1, math.min(5, #o))], lp)
+	if not tk then return nil, `Hop Failed: {e}` end
+	task.wait(15)
+	return nil, "Hop Failed: Teleport Timeout"
 end
 
 local function sa()
@@ -1744,7 +1209,7 @@ local function ss(f)
 	if not h then return nil, "No Character" end
 	if not bp and (f.rp or rv.Swimming and rv.Swimming:IsSwimming() or not tg(h)) then
 		f.rp = false
-		local g = if pm.on then rs(vf, vi(h.Position)) else rs(nil, vi(h.Position))
+		local g = rs(vi(h.Position))
 		if not g and vi(h.Position) == "" then
 			local nb, nd = nil, math.huge
 			for _, x in game:GetService("CollectionService"):GetTagged("IslandRegion") do
@@ -1756,10 +1221,6 @@ local function ss(f)
 				local ok, e = ti(f, nb, f.bk())
 				return nil, not ok and (e or "Move Failed") or nil
 			end
-		end
-		if not g and pm.on then
-			f.rp = true
-			return nil, "No Reachable Spot"
 		end
 		if not g then return "Auto Fish Failed: No Open Water" end
 		local q = tg({Position = g})
@@ -1832,6 +1293,12 @@ local function rn(f)
 	while f.st == "Running" do
 		if f.iw() then
 			task.wait(0.5)
+			continue
+		end
+		if zy.on and zy.rq and not (f.bu or f.bb or f.hm) then
+			zy.rq = false
+			local _, e = zh()
+			f.nq = {Title = "Safe", Text = e}
 			continue
 		end
 		f.bz = true
@@ -2500,7 +1967,7 @@ local gi = (function()
 	return ok and type(r) == "string" and r or nil
 end)()
 do
-	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-L5MH-XQG9", 1791104351, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-BWAN-QQFN", 1791126364, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
@@ -3326,8 +2793,25 @@ end
 local ts = gw:Tab({Name = "Setting"})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
-ts:Toggle({Name = "Player Mode (Beta)", Flag = "pm", Callback = function(v) pm.on = v == true end})
 ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb.on = v == true end})
+ts:Toggle({Name = "Safe", Flag = "zy", Callback = function(v) zy.on = v == true end})
+local zl = {}
+ge.__FmZ = zl
+task.spawn(function()
+	while ge.__FmZ == zl do
+		task.wait(0.5)
+		local f = ge.__FmF
+		if not zy.on or os.clock() < zy.nt or not zw() then
+			zy.rq = false
+		elseif f and not f.dn and f.st == "Running" then
+			zy.rq = true
+		else
+			gw:Notify({Title = "Safe", Text = "Player On Island, Hopping"})
+			local _, e = zh()
+			gw:Notify({Title = "Safe", Text = e})
+		end
+	end
+end)
 ts:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = zp()
 	gw:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e})
