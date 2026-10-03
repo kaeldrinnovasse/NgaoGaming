@@ -9,10 +9,11 @@ local sd = rs:WaitForChild("ServerData")
 local ae = sd:WaitForChild("ActiveEggs")
 local gr = rs:WaitForChild("Remotes"):WaitForChild("Game")
 local ep, pr, hc, ci = gr:WaitForChild("EggPickup"), gr:WaitForChild("EggPlaced"), gr:WaitForChild("Hatch"), gr:WaitForChild("ClaimIndexReward")
+local ul = gr:WaitForChild("Plot"):WaitForChild("Upgrades")
 local rg = rs:WaitForChild("Assets"):FindFirstChild("RarityGradients")
 local bl, pf, pq, pm, by, st = {}, nil, 0, nil, false, "Ready"
 
-local ed, ix
+local ed, ix, hl
 do
 	local dn
 	task.spawn(function()
@@ -24,6 +25,8 @@ do
 				if type(d) == "table" then ed[n] = {lk = tonumber(d.Luck) or 0, im = d.Image, ra = d.Rarity, pm = d.Premium == true, rk = d.ReleaseKey} end
 			end
 		end
+		local o3, hk = pcall(require, gd:WaitForChild("HatchLuck"))
+		if o3 and type(hk) == "table" and type(hk.GetPrice) == "function" and type(hk.GetPaidUpgrades) == "function" then hl = hk end
 		local o1, ir = pcall(require, gd:WaitForChild("IndexRewards"))
 		local o2, pt = pcall(require, gd:WaitForChild("Pets"))
 		if o1 and o2 and type(ir) == "table" and type(ir.Stages) == "table" and type(pt) == "table" then
@@ -237,7 +240,7 @@ local function jb(n)
 	return jx(e)
 end
 
-local sq, fh, le, se, ao = 0, {}, nil, {}, false
+local sq, fh, le, se, ao, ol, lc = 0, {}, nil, {}, false, false, 0
 local function lk(f, ...)
 	while by do task.wait(0.1) end
 	by = true
@@ -330,6 +333,22 @@ local function au()
 	local n = #f:GetChildren()
 	if pm and n >= pm or pf and n >= pf and os.clock() - pq < 60 then return end
 	lk(pj)
+end
+
+local function lu()
+	if not ol or not hl or os.clock() < lc or lp:GetAttribute("Setting_LuckMultiplier") == false then return end
+	local sv = lp:FindFirstChild("SavedData")
+	local hv, cs = sv and sv:FindFirstChild("HatchUpgrades"), sv and sv:FindFirstChild("Cash")
+	if not hv or not cs then return end
+	local fu, uu = sv:FindFirstChild("FreeHatchUpgrades"), sv:FindFirstChild("UsedFreeHatchUpgrades")
+	local fr = fu and fu.Value > 0
+	if not fr and cs.Value < hl.GetPrice(hl.GetPaidUpgrades(hv.Value, uu and uu.Value or 0)) then return end
+	local v0 = hv.Value
+	ul:FireServer(fr and "MaxFree" or "Max")
+	local dl = os.clock() + 3
+	repeat task.wait(0.1) until hv.Value ~= v0 or os.clock() > dl
+	lc = os.clock() + (hv.Value ~= v0 and 2 or 30)
+	wl(string.format("Luck %s: %d -> %d", fr and "MaxFree" or "Max", v0, hv.Value))
 end
 
 local function ks()
@@ -1239,6 +1258,7 @@ gt:Dropdown({Name = "Select Egg", Options = ls, Default = {}, Multi = true, Flag
 	se = t
 end})
 gt:Toggle({Name = "Auto Egg", Flag = "ag", Callback = function(v) ao = v end})
+gt:Toggle({Name = "Auto Luck", Flag = "al", Callback = function(v) ol, lc = v, 0 end})
 local gg = gt:Grid({Items = it, Callback = rn})
 
 if ge.__RapM then ge.__RapM:Disconnect() end
@@ -1267,6 +1287,7 @@ task.spawn(function()
 		pcall(ap)
 		pcall(ic)
 		pcall(au)
+		pcall(lu)
 		task.wait(1)
 	end
 end)
