@@ -57,11 +57,10 @@ local function fp(s)
 	rv.FishingController.FishFirstPull:Fire()
 end
 
-local function rl(f, s, ks, lt)
-	local fc, mv, sq, nc, dl = rv.FishingController, rv.RodController.Moveset, 0, 0, os.clock() + lt
+local function rl(f, s, ks)
+	local fc, mv, sq, nc = rv.FishingController, rv.RodController.Moveset, 0, 0
 	while f.st == "Running" and not s.cr and not s.rr do
 		local t = os.clock()
-		if t > dl then return "Reel Timeout" end
 		if s.q and t >= s.q[2] then fc.FishQTEResponse:Fire(qk[s.q[1]]); s.q = nil end
 		if not lp:GetAttribute("IsUsingSkill") then
 			for _, x in ks do
@@ -899,7 +898,7 @@ end
 local function bo(f)
 	local ev = rv.EventController and rv.EventController._active_events
 	if type(ev) ~= "table" or next(ev) == nil then f.s.bc = false end
-	if f.s.bc then return nil end
+	if f.s.bc or (tonumber(pd().LastBossKillSlot) or 0) >= workspace:GetServerTimeNow() // 2400 * 2400 then return nil end
 	if os.clock() < (f.bl or 0) then return nil end
 	local x = br(f)
 	if not x then return nil end
@@ -1332,7 +1331,7 @@ local function ss(f)
 			qw(f, `z{zs}`, `Rod Quest Waiting: Equip {zs == "taiji_hooking_art" and "Taiji Hooking Art" or "Taiji Hooking Art V2"}`)
 		end
 	end
-	local re = s.rl and f.st == "Running" and rl(f, s, zk, bf and 900 or 180) or not (s.cr or s.rr) and f.st == "Running" and "Bite Timeout"
+	local re = s.rl and f.st == "Running" and rl(f, s, zk) or not (s.cr or s.rr) and f.st == "Running" and "Bite Timeout"
 	if bf and not (s.cr and s.cr[1]) then f.bl = os.clock() + 180 end
 	if f.st ~= "Running" or re then
 		if s.cr and s.cr[1] and not s.cr[2] then task.wait(0.75); fc.FishLootConfirm:Fire() end
