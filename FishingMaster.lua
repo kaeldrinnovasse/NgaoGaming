@@ -2038,7 +2038,7 @@ local gi = (function()
 	return ok and type(r) == "string" and r or nil
 end)()
 do
-	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-BWAN-QQFN", 1791126364, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-27BD-V8DS", 1791212256, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
