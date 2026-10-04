@@ -2232,8 +2232,8 @@ local function fs()
 	function f.dq() return L.Flags.dq == true end
 	function f.bk() return bi[L.Flags.sb] or "truck" end
 	function f.iw()
-		local j, id, g, b, t = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR, ge.__FmT
-		return g and not g.dn and (g.bz or g.rq and not f.bu) or b and not b.dn and (b.bz or b.rq and not f.bu) or j and not j.dn and (j.bz or id and ic() ~= id) or t and not t.dn and t.bz or false
+		local j, id, g, b, t, u = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR, ge.__FmT, ge.__FmU
+		return g and not g.dn and (g.bz or g.rq and not f.bu) or b and not b.dn and (b.bz or b.rq and not f.bu) or j and not j.dn and (j.bz or id and ic() ~= id) or t and not t.dn and t.bz or u and not u.dn and (u.bz or u.rq and not f.bu) or false
 	end
 	ge.__FmF = f
 	task.spawn(function()
@@ -2541,6 +2541,72 @@ local function ml(j)
 	end
 end
 
+local function xu(j)
+	local uc, uo, ct = rv.UnitController, md("Shared", "Units", "UnitCore"), md("Data", "Catalog")
+	while j.st == "Running" do
+		local d, rr, q = pd(), {}, {}
+		for _, r in L.Flags.ur or {} do rr[r] = true end
+		for id, u in type(d.Units) == "table" and type(d.Units.Owned) == "table" and d.Units.Owned or {} do
+			if type(u) == "table" and rr[u.Rarity] and not uo.IsEquipped(d.Units, id) then table.insert(q, id) end
+		end
+		if #q > 0 then
+			local fm = ge.__FmF
+			j.rq = true
+			while j.st == "Running" and fm and not fm.dn and (fm.bz or fm.bu) do task.wait(0.5) end
+			if j.st ~= "Running" then return end
+			j.bz, j.rq = true, false
+			local t = {}
+			for _, id in q do
+				if j.st ~= "Running" then break end
+				local u = (pd().Units.Owned or {})[id]
+				if u and not uo.IsEquipped(pd().Units, id) then
+					local ok, e = uc:RemoveUnit(id)
+					if ok ~= true and e ~= "fishing_locked" then
+						j.bz = false
+						j.why = `Auto Delete Unit Failed: {e or "No Response"}`
+						return
+					end
+					if ok ~= true then break end
+					local x = ct.Unit.GetById(u.UnitId)
+					table.insert(t, `{x and x.name or u.UnitId} ({u.Rarity})`)
+					task.wait(0.5)
+				end
+			end
+			j.bz = false
+			if #t > 0 then j.nt = {Title = "Unit", Text = `Deleted {table.concat(t, ", ")}`} end
+		end
+		task.wait(5)
+	end
+end
+
+local xk
+local function xy()
+	local o = ge.__FmU
+	if o then
+		o.st = "Stopped"
+		local dl = os.clock() + 5
+		repeat task.wait(0.1) until o.dn or os.clock() > dl
+	end
+	local j = {st = "Running", dn = false, nt = false, bz = false, rq = false}
+	ge.__FmU = j
+	task.spawn(function()
+		while not j.dn do
+			local x = j.nt
+			if x then
+				j.nt = false
+				gw:Notify(x)
+			end
+			task.wait(0.5)
+		end
+	end)
+	local ok, e = cx(xu, j)
+	if not ok then j.why = `Auto Delete Unit Failed: {e}` end
+	j.dn = true
+	if ge.__FmU ~= j or not j.why then return end
+	gw:Notify({Title = "Unit", Text = j.why})
+	xk:Set(false)
+end
+
 local mk
 local function mg()
 	local o = ge.__FmM
@@ -2727,6 +2793,11 @@ tq:Section({Name = "Skill Market"})
 tq:Dropdown({Name = "Select Skills", Options = mz, Default = {}, Multi = true, Flag = "mm"})
 mk = tq:Toggle({Name = "Auto Buy Skill Market", Flag = "ma", Callback = function(v)
 	if v then mg() elseif ge.__FmM then ge.__FmM.st = "Stopped" end
+end})
+tq:Section({Name = "Unit"})
+tq:Dropdown({Name = "Delete Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical"}, Default = {}, Multi = true, Flag = "ur"})
+xk = tq:Toggle({Name = "Auto Delete Unit", Flag = "ua", Callback = function(v)
+	if v then xy() elseif ge.__FmU then ge.__FmU.st = "Stopped" end
 end})
 tq:Section({Name = "Rod"})
 tq:Dropdown({Name = "Select Rod", Options = rz, Flag = "rd"})
@@ -2935,6 +3006,19 @@ ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb.on = v == true end})
 ts:Toggle({Name = "Safe", Flag = "zy", Callback = function(v) zy.on = v == true end})
+local jr = false
+pcall(function() ge.__FmJ:Disconnect() end)
+ge.__FmJ = (game:GetService("GuiService") :: any).ErrorMessageChanged:Connect(function(m)
+	if jr or type(m) ~= "string" or m == "" then return end
+	jr = true
+	task.spawn(function()
+		local tp = game:GetService("TeleportService")
+		while true do
+			pcall(tp.Teleport, tp, game.PlaceId, lp)
+			task.wait(10)
+		end
+	end)
+end)
 local zl = {}
 ge.__FmZ = zl
 task.spawn(function()
