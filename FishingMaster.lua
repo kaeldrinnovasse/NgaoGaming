@@ -863,7 +863,7 @@ local function bw(f)
 	ip.FilterType, ip.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
 	local d = (r.Position - np) * Vector3.new(1, 0, 1)
 	local u, pt = d.Magnitude > 1 and d.Unit or Vector3.xAxis, nil
-	for k = 10, 300, 5 do
+	for k = 10, math.max(300, d.Magnitude), 5 do
 		local q = np + u * k
 		if not workspace:Raycast(Vector3.new(q.X, 103, q.Z), Vector3.new(0, -100, 0), ip) then
 			pt = q
@@ -897,9 +897,9 @@ local function hz(f, y)
 end
 
 local function bo(f)
-	local ev, dk = rv.EventController and rv.EventController._active_events, pd()
+	local ev = rv.EventController and rv.EventController._active_events
 	if type(ev) ~= "table" or next(ev) == nil then f.s.bc = false end
-	if f.s.bc or dk and dk.LastBossKillSlot == math.floor(workspace:GetServerTimeNow() / 2400) * 2400 then return nil end
+	if f.s.bc then return nil end
 	if os.clock() < (f.bl or 0) then return nil end
 	local x = br(f)
 	if not x then return nil end
@@ -1157,6 +1157,72 @@ local function uq(f, q)
 	return true, not ok and e or not hk and f.st == "Running" and (he or "Return Failed") or nil
 end
 
+local function dy(f)
+	local d, du = pd(), md("Shared", "Lib", "DailyQuestUtil")
+	local dq = d.DailyQuest
+	if type(dq) ~= "table" or type(dq.Active) ~= "table" then return nil end
+	local a = dq.Active
+	if a.Template ~= "" then
+		if not du.IsSkillGachaQuest(a) or f.qw.dp then return nil end
+		local sc = rv.SkillGachaController
+		local q = sc.GetQuote:Fire(1)
+		if type(q) ~= "table" or not q.ok then return nil, `Daily Quest Pull Failed: {type(q) == "table" and q.reason or "No Quote"}` end
+		if (d.Coin or 0) < q.coin_cost then
+			if not f.qw.dc then f.qw.dc, f.nq = true, {Title = "Daily Quest", Text = "Daily Quest Waiting: Not Enough Coin"} end
+			return nil
+		end
+		f.qw.dc = nil
+		sc._requestId = (tonumber(sc._requestId) or 0) + 1
+		local r, p0 = sc.Pull:Fire("Coin", 1, sc._requestId), a.Progress or 0
+		if type(r) ~= "table" or not r.ok then return nil, `Daily Quest Pull Failed: {type(r) == "table" and r.reason or "No Response"}` end
+		local function mv()
+			local x = pd().DailyQuest.Active
+			return x.Template == "" or (x.Progress or 0) > p0
+		end
+		local dl = os.clock() + 5
+		repeat task.wait(0.2) until mv() or os.clock() > dl
+		if not mv() then f.qw.dp, f.nq = true, {Title = "Daily Quest", Text = "Daily Quest Failed: Pull Not Counted"} end
+		return true
+	end
+	if os.clock() < (f.dx or 0) or (((d.Quest or {}).Current or {}).Id or "") ~= "" then return nil end
+	if du.AcceptsLeft(dq, md("Shared", "Lib", "DailyRewardUtil").get_now()) <= 0 then
+		if not f.qw.dd then f.qw.dd, f.nq = true, {Title = "Daily Quest", Text = "Daily Quest Done For Today"} end
+		return nil
+	end
+	local id = f.fi() or ic()
+	if id == "" or not ul(id) then return nil end
+	local ok, e = ti(f, id, f.bk())
+	if not ok then return true, e or f.st == "Running" and "Move Failed" or nil end
+	local w = workspace:FindFirstChild("World")
+	local fo = w and w:FindFirstChild("Islands") and w.Islands:FindFirstChild(id)
+	local function nf()
+		for _, x in game:GetService("CollectionService"):GetTagged("Interactive") do
+			if fo and x:GetAttribute("InteractiveId") == "npc_daily_quest" and x:IsDescendantOf(fo) then return x:IsA("Model") and x:GetPivot().Position or x:IsA("BasePart") and x.Position or nil end
+		end
+		return nil
+	end
+	local np, g = nf(), rg(id)
+	if not np and g then
+		sq(Vector3.new(g.X, 2, g.Z), 10)
+		np = nf()
+	end
+	if not np then
+		f.dx = os.clock() + 60
+		return true, "Daily Quest Failed: No Quest NPC"
+	end
+	local c, rt = lc()
+	if not rt then return nil, "No Character" end
+	local sp = ap(c, np, rt.Position)
+	ok, e = go(f, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+	if not ok then return true, e or f.st == "Running" and "Move Failed" or nil end
+	if f.st ~= "Running" then return true end
+	local ak, m = rv.QuestController:AcceptDaily()
+	f.rp = true
+	if ak ~= true then f.dx = os.clock() + 60 end
+	f.nq = {Title = "Daily Quest", Text = ak == true and `Daily Quest: {m}` or `Daily Quest Failed: {m ~= "" and m or "Accept Refused"}`}
+	return true
+end
+
 local function ss(f)
 	local s, fc = f.s, rv.FishingController
 	local ks = sk()
@@ -1181,10 +1247,15 @@ local function ss(f)
 			local u, ue = uq(f, q or nil)
 			if u or ue then return nil, ue end
 		end
+		if f.dq() then
+			local u, ue = dy(f)
+			if u or ue then return nil, ue end
+		end
 	end
 	local rq = not bp and f.qa() and qp(f)
 	local rc = rq and rq[8] and (pd().Quest or {}).Current
-	local fi = not bp and (rc and rc.Id == rq[1] and rq[8] or f.fi())
+	local da = not bp and f.dq() and (pd().DailyQuest or {}).Active
+	local fi = not bp and (rc and rc.Id == rq[1] and rq[8] or da and da.Template ~= "" and da.IslandId ~= "" and da.IslandId or f.fi())
 	if fi and ic() ~= fi then
 		if not ul(fi) then return "Auto Fish Failed: Island Locked" end
 		local ok, e = ti(f, fi, f.bk())
@@ -2099,7 +2170,7 @@ do
 		if ch ~= "k" then error("Key Gate Closed", 0) end
 	end
 end
-local gw = L:Window({Title = "Ngao-Gaming Hub | Fishing Master", Config = "FishingMaster", Icon = gi})
+local gw = L:Window({Title = "Ngao-Gaming Hub | Fishing Master", Config = `FishingMaster/{lp.Name}`, Icon = gi})
 local gt, ft = gw:Tab({Name = "General"}), nil
 
 local function cx(fn, ...)
@@ -2123,7 +2194,10 @@ local function fb(f)
 		FishCatchResult = function(ok, _, _, _, _, sp) s.cr = {ok, sp} end,
 		FishReset = function(r) s.rr = r end,
 	} do table.insert(f.cs, fc[n].OnClientEvent:Connect(cb)) end
-	table.insert(f.cs, rv.BossRegionController.BossSpawnClaimed.OnClientEvent:Connect(function(v) if v == true then s.bc = true end end))
+	table.insert(f.cs, rv.BossRegionController.BossSpawnClaimed.OnClientEvent:Connect(function(v) s.bc = v == true end))
+	table.insert(f.cs, md("Data", "Packets", "DailyQuestPackets").Completed.OnClientEvent:Connect(function(g, c)
+		if f.dq() then f.nq = {Title = "Daily Quest", Text = `Daily Quest Done: +{g} Gem, +{c} Coin`} end
+	end))
 	table.insert(f.cs, rv.RodController.ReplicatedSkillCooldown.OnClientEvent:Connect(function(t)
 		if typeof(t) ~= "table" then return end
 		for k, v in t do
@@ -2156,6 +2230,7 @@ local function fs()
 	function f.sr() return L.Flags.sr or {} end
 	function f.fi() return ix[L.Flags.fi] end
 	function f.ab() return L.Flags.ab == true end
+	function f.dq() return L.Flags.dq == true end
 	function f.bk() return bi[L.Flags.sb] or "truck" end
 	function f.iw()
 		local j, id, g, b, t = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR, ge.__FmT
@@ -2222,29 +2297,37 @@ local nz, nl, nj = {
 	{"Boat Merchant - Starter Island", "npc_car_merchant", "island_starter"},
 	{"Skill Master", "npc_gacha_book", "island_starter"},
 	{"Auras Dealer", "npc_gacha_aura", "island_starter"},
+	{"Unit Summoner", "npc_gacha_unit", "island_starter"},
+	{"Skill Market", "npc_premium_skill", "island_starter"},
+	{"Daily Quests - Starter Island", "npc_daily_quest", "island_starter"},
 	{"Jungle Island Guide", "npc_unlock_island_2", "island_jungle"},
 	{"Fish Merchant - Jungle Island", "npc_fish_seller", "island_jungle"},
 	{"Rod Merchant - Jungle Island", "npc_rod_shop", "island_jungle"},
 	{"Boat Merchant - Jungle Island", "npc_car_merchant", "island_jungle"},
+	{"Daily Quests - Jungle Island", "npc_daily_quest", "island_jungle"},
 	{"Desert Island Guide", "npc_unlock_island_3", "island_desert"},
 	{"Fish Merchant - Desert Island", "npc_fish_seller", "island_desert"},
 	{"Rod Merchant - Desert Island", "npc_rod_shop", "island_desert"},
 	{"Boat Merchant - Desert Island", "npc_car_merchant", "island_desert"},
+	{"Daily Quests - Desert Island", "npc_daily_quest", "island_desert"},
 	{"White Tiger Guardian", "npc_white_tiger", "island_desert"},
 	{"Snow Island Guide", "npc_unlock_island_4", "island_snow"},
 	{"Fish Merchant - Snow Island", "npc_fish_seller", "island_snow"},
 	{"Rod Merchant - Snow Island", "npc_rod_shop", "island_snow"},
 	{"Boat Merchant - Snow Island", "npc_car_merchant", "island_snow"},
+	{"Daily Quests - Snow Island", "npc_daily_quest", "island_snow"},
 	{"Phoenix Guardian", "npc_phoenix", "island_snow"},
 	{"Taiji Master", "npc_taiji_hooking_art_v2", "island_snow"},
 	{"Volcanic Island Guide", "npc_unlock_island_5", "island_volcano"},
 	{"Fish Merchant - Volcanic Island", "npc_fish_seller", "island_volcano"},
 	{"Boat Merchant - Volcanic Island", "npc_car_merchant", "island_volcano"},
+	{"Daily Quests - Volcanic Island", "npc_daily_quest", "island_volcano"},
 	{"Crimson Bead Craftsman", "npc_crimson_bead_rod", "island_volcano"},
 	{"Bamboo Rod Craftsman", "npc_bamboo_rod", "island_volcano"},
 	{"Azure Dragon Guardian", "npc_azure_dragon", "island_volcano"},
 	{"Fossil Island Guide", "npc_unlock_island_6", "island_fossil"},
 	{"Fish Merchant - Fossil Island", "npc_fish_seller", "island_fossil"},
+	{"Daily Quests - Fossil Island", "npc_daily_quest", "island_fossil"},
 	{"Heaven Piercer Craftsman", "npc_heaven_piercer_turtle_rod", "island_fossil"},
 	{"Zen Staff Craftsman", "npc_zen_staff_rod", "island_fossil"},
 	{"Dread Fish Craftsman", "npc_dread_fish_rod", "island_fossil"},
@@ -2316,7 +2399,7 @@ local function ny()
 	nk:Set(false)
 end
 
-local ga, gm = {"Skill Master", "Ocean Chest", "Dragon Chest", "Aura"}, {["Ocean Chest"] = "crate_ocean_chest", ["Dragon Chest"] = "crate_dragon_chest"}
+local ga, gm = {"Skill Master", "Ocean Chest", "Dragon Chest", "Aura", "Unit"}, {["Ocean Chest"] = "crate_ocean_chest", ["Dragon Chest"] = "crate_dragon_chest"}
 
 local function gl(j)
 	local sc = rv.SkillGachaController
@@ -2327,14 +2410,15 @@ local function gl(j)
 			j.why = "Auto Roll Failed: No Chest"
 			return
 		end
-		local ag = L.Flags.gk == "Aura" and md("Data", "Config", "AuraGachaConfig").Pull
-		local nm, ni = cc and cc.DisplayName or ag and "Aura" or "Skill Master", cr or ag and "npc_gacha_aura" or "npc_gacha_book"
+		local ag, ut = L.Flags.gk == "Aura" and md("Data", "Config", "AuraGachaConfig").Pull, L.Flags.gk == "Unit" and rv.UnitGachaController
+		local nm = cc and cc.DisplayName or ag and "Aura" or ut and "Unit" or "Skill Master"
 		local function ca()
 			local d = pd()
 			if cc then return (((d.CrateGacha or {}).Credits or {})[cr] or 0) >= k or ((cc.Currency == "Coin" and d.Coin or d.Gem) or 0) >= (cc.Prices[k] or math.huge) end
 			if ag then return ((d.AuraGacha or {}).Credits or 0) >= k or (d.Gem or 0) >= math.ceil(ag.CostGem * k * (ag.BulkDiscount[k] or 1)) end
-			local q = sc.GetQuote:Fire(k)
+			local q = (ut or sc).GetQuote:Fire(k)
 			if type(q) ~= "table" or not q.ok then return nil, type(q) == "table" and q.reason or "No Quote" end
+			if ut and (q.storage_available or 0) < k then return nil, "Storage Full" end
 			return (d.Coin or 0) >= q.coin_cost
 		end
 		local af, ae = ca()
@@ -2348,61 +2432,37 @@ local function gl(j)
 		end
 		local fm = ge.__FmF
 		j.rq = true
-		while j.st == "Running" and (fm and not fm.dn and (fm.bz or fm.bu) or ge.__FmR and not ge.__FmR.dn and ge.__FmR.bz or ge.__FmI and not ge.__FmI.dn or ge.__FmT and not ge.__FmT.dn) do task.wait(0.5) end
+		while j.st == "Running" and fm and not fm.dn and (fm.bz or fm.bu) do task.wait(0.5) end
 		if j.st ~= "Running" then return end
 		j.bz, j.rq = true, false
-		local _, rt = lc()
-		if not rt then
-			j.why = "Auto Roll Failed: No Character"
-			return
-		end
-		local o, oi, bk = rt.CFrame, ic(), bi[L.Flags.sb] or "truck"
-		local w, we = ti(j, "island_starter", bk)
-		local r, np
-		if w then
-			local c, r2 = lc()
-			np = r2 and ns(ni, r2.Position)
-			if r2 and not np then
-				local g = rg("island_starter")
-				if g then sq(Vector3.new(g.X, 2, g.Z), 10) end
-				np = ns(ni, r2.Position)
+		local r
+		while j.st == "Running" do
+			local rc = ut or not (cc or ag) and sc
+			if rc then rc._requestId = (tonumber(rc._requestId) or 0) + 1 end
+			r = cc and rv.CrateGachaController.OpenPacket:Fire(cr, k) or ag and rv.AuraGachaController.Pull:Fire(k) or ut and ut.Pull:Fire(k, ut._requestId) or not (cc or ag or ut) and sc.Pull:Fire("Coin", k, sc._requestId)
+			for _ = 1, ut and type(r) == "table" and r.reason == "pending" and 5 or 0 do
+				task.wait(3)
+				local x = ut.Recover:Fire(ut._requestId)
+				if type(x) == "table" and x.reason ~= "pending" and x.reason ~= "none" then r = x; break end
 			end
-			if not r2 then w, we = nil, "No Character" elseif not np then w, we = nil, `No {nm}` else
-				local sp = ap(c, np, r2.Position)
-				w, we = go(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
-			end
-		end
-		while w and j.st == "Running" do
-			r = cc and rv.CrateGachaController.OpenPacket:Fire(cr, k) or ag and rv.AuraGachaController.Pull:Fire(k) or not (cc or ag) and sc.Pull:Fire("Coin", k)
 			if type(r) ~= "table" or not r.ok then break end
 			local ct, t = md("Data", "Catalog"), {}
 			for _, x in r.results or {} do
-				local sv = cc and ct.RodSkin.GetById(x.rod_skin_id) or ag and ct.Aura.GetById(x.aura_id) or not (cc or ag) and ct.Skill.GetById(x.skill_id)
-				table.insert(t, `{sv and sv.name or x.rod_skin_id or x.aura_id or x.skill_id} ({x.rarity})`)
+				local sv = cc and ct.RodSkin.GetById(x.rod_skin_id) or ag and ct.Aura.GetById(x.aura_id) or ut and ct.Unit.GetById(x.unit_id) or not (cc or ag or ut) and ct.Skill.GetById(x.skill_id)
+				table.insert(t, `{sv and sv.name or x.rod_skin_id or x.aura_id or x.unit_id or x.skill_id} ({x.rarity})`)
 			end
 			j.nt = {Title = nm, Text = table.concat(t, ", ")}
 			task.wait(1)
 			if not ca() then break end
 		end
-		local hk, he = true, nil
-		if j.st == "Running" and oi ~= "" and ic() ~= oi then hk, he = ti(j, oi, bk) end
-		if hk and j.st == "Running" and ic() == oi then hk, he = go(j, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
 		j.bz = false
 		if j.st ~= "Running" then return end
-		if not w then
-			j.why = `Auto Roll Failed: {we or "Move Failed"}`
-			return
-		end
 		if type(r) ~= "table" then
 			j.why = "Auto Roll Failed: No Response"
 			return
 		end
 		if not r.ok and r.reason ~= "insufficient_coin" and r.reason ~= "insufficient_gem" then
 			j.why = `Auto Roll Failed: {r.reason}`
-			return
-		end
-		if not hk then
-			j.why = `Auto Roll Failed: Return Failed: {he or "Move Failed"}`
 			return
 		end
 		task.wait(1)
@@ -2435,6 +2495,79 @@ local function gg()
 	if ge.__FmG ~= j or not j.why then return end
 	gw:Notify({Title = "Auto Roll", Text = j.why})
 	gs:Set(false)
+end
+
+local mz, mi = {}, {}
+pcall(function()
+	local ct, t = md("Data", "Catalog"), {}
+	for id, v in md("Data", "Config", "SkillMarketConfig").Listings do
+		local x = ct.Skill.GetById(id)
+		table.insert(t, {x and x.name or id, id, v.price or 0})
+	end
+	table.sort(t, function(a, b) return a[3] < b[3] or a[3] == b[3] and a[1] < b[1] end)
+	for _, x in t do
+		table.insert(mz, x[1])
+		mi[x[1]] = x[2]
+	end
+end)
+
+local function ml(j)
+	local rp, mc = game:GetService("ReplicatedStorage"), rv.SkillMarketController
+	local cf, ba, en, sx = md("Data", "Config", "SkillMarketConfig"), md("Utils", "skillBookAvailability"), md("Data", "Config", "EntitlementConfig"), {}
+	while j.st == "Running" do
+		local st, ea = rp:GetAttribute("SkillMarketStock"), rp:GetAttribute("SkillMarketEndsAt")
+		local sl, kl = type(ea) == "number" and ea - cf.IntervalSeconds or 0, type(st) == "string" and st:split(",") or {}
+		for _, nm in L.Flags.mm or {} do
+			if j.st ~= "Running" then return end
+			local id, d = mi[nm], pd()
+			local sm = type(d.SkillMarket) == "table" and d.SkillMarket or {}
+			if id and table.find(kl, id) and not sx[`{sl}{id}`] and not (sm.SlotStart == sl and (sm.Bought or {})[id]) and (d.Gem or 0) >= (cf.Price(id) or math.huge) and ba.GetCounts(d, id).owned < en.BookStackCap(d) then
+				local r = mc.BuyDirect:Fire(id)
+				if type(r) ~= "table" then
+					j.why = "Auto Buy Skill Market Failed: No Response"
+					return
+				end
+				if r.reason == "ok" then
+					j.nt = {Title = "Skill Market", Text = `Bought {nm}`}
+				elseif r.reason == "bought" or r.reason == "out_of_stock" or r.reason == "full" then
+					sx[`{sl}{id}`] = true
+				elseif r.reason ~= "insufficient" and r.reason ~= "busy" then
+					j.why = `Auto Buy Skill Market Failed: {r.reason}`
+					return
+				end
+				task.wait(1)
+			end
+		end
+		task.wait(5)
+	end
+end
+
+local mk
+local function mg()
+	local o = ge.__FmM
+	if o then
+		o.st = "Stopped"
+		local dl = os.clock() + 5
+		repeat task.wait(0.1) until o.dn or os.clock() > dl
+	end
+	local j = {st = "Running", dn = false, nt = false}
+	ge.__FmM = j
+	task.spawn(function()
+		while not j.dn do
+			local x = j.nt
+			if x then
+				j.nt = false
+				gw:Notify(x)
+			end
+			task.wait(0.5)
+		end
+	end)
+	local ok, e = cx(ml, j)
+	if not ok then j.why = `Auto Buy Skill Market Failed: {e}` end
+	j.dn = true
+	if ge.__FmM ~= j or not j.why then return end
+	gw:Notify({Title = "Skill Market", Text = j.why})
+	mk:Set(false)
 end
 
 local rz, ri = {}, {}
@@ -2569,6 +2702,7 @@ gt:Section({Name = "Quest"})
 gt:Dropdown({Name = "Select Rod Quest", Options = qz, Flag = "qs"})
 gt:Toggle({Name = "Auto Rod Quest", Flag = "qa"})
 gt:Toggle({Name = "Auto Unlock Island", Flag = "au"})
+gt:Toggle({Name = "Auto Daily Quest", Flag = "dq"})
 
 gt:Section({Name = "Sell"})
 gt:Dropdown({Name = "Sell Rarity", Options = ra, Default = {}, Multi = true, Flag = "sr"})
@@ -2580,6 +2714,8 @@ local iql = tz:Label({Text = qtx})
 local rtx = `Rq{game:GetService("HttpService"):GenerateGUID(false)}`
 tz:Section({Name = "Rod Quest"})
 local rql = tz:Label({Text = rtx})
+tz:Section({Name = "Skill Market"})
+local kql = tz:Label({Text = "Loading..."})
 
 local tq = gw:Tab({Name = "Shop"})
 tq:Section({Name = "Gacha"})
@@ -2587,6 +2723,11 @@ tq:Dropdown({Name = "Select Gacha", Options = ga, Default = "Skill Master", Flag
 tq:Dropdown({Name = "Select Roll", Options = {"x1", "x10"}, Default = "x1", Flag = "gr"})
 gs = tq:Toggle({Name = "Auto Roll", Flag = "gs", Callback = function(v)
 	if v then gg() elseif ge.__FmG then ge.__FmG.st = "Stopped" end
+end})
+tq:Section({Name = "Skill Market"})
+tq:Dropdown({Name = "Select Skills", Options = mz, Default = {}, Multi = true, Flag = "mm"})
+mk = tq:Toggle({Name = "Auto Buy Skill Market", Flag = "ma", Callback = function(v)
+	if v then mg() elseif ge.__FmM then ge.__FmM.st = "Stopped" end
 end})
 tq:Section({Name = "Rod"})
 tq:Dropdown({Name = "Select Rod", Options = rz, Flag = "rd"})
@@ -2829,6 +2970,30 @@ local function nt()
 			local s = p and p:WaitForChild("Surface", 10)
 			local l = s and s:WaitForChild("Label", 10)
 			if not l or ge.__FmN ~= cs then return end
+			if m.Name == lp.Name then
+				local o = `@{lp.Name}`
+				if l.Text ~= o then l.Text = o end
+				if l:FindFirstChild("Rb") then l.Rb:Destroy() end
+				local lo = l
+				lo.TextTransparency, lo.TextStrokeTransparency = 1, 1
+				for _, n in {"TextTransparency", "TextStrokeTransparency"} do
+					table.insert(cs, lo:GetPropertyChangedSignal(n):Connect(function() if lo[n] ~= 1 then lo[n] = 1 end end))
+				end
+				local fd = l:FindFirstChild("Fade")
+				if fd and fd:IsA("GuiObject") then
+					fd.Visible = false
+					table.insert(cs, fd:GetPropertyChangedSignal("Visible"):Connect(function() if fd.Visible then fd.Visible = false end end))
+				end
+				if s:FindFirstChild("Rx") then s.Rx:Destroy() end
+				local tp = game:GetService("ReplicatedStorage"):FindFirstChild("Assets")
+				for _, n in {"UIs", "Prefabs", "Nametag", "PlrName", "Surface", "Label"} do tp = tp and tp:FindFirstChild(n) end
+				local cl = (tp and tp:IsA("TextLabel") and tp or l):Clone()
+				for _, x in cl:GetChildren() do
+					if x.Name == "Rb" then x:Destroy() elseif x.Name == "Fade" and x:IsA("GuiObject") then x.Visible = true end
+				end
+				cl.Name, cl.TextTransparency, cl.TextStrokeTransparency, cl.Parent = "Rx", 0, 0, s
+				l = cl
+			end
 			l.Text = tx
 			table.insert(cs, l:GetPropertyChangedSignal("Text"):Connect(function() if l.Text ~= tx then l.Text = tx end end))
 			local g = l:FindFirstChild("Rb") or Instance.new("UIGradient")
@@ -3073,6 +3238,14 @@ local function iq()
 		end
 		return {q[4], ln, cq and cq.Id == q[1]}
 	end
+	local function kd()
+		local st, ct, t = game:GetService("ReplicatedStorage"):GetAttribute("SkillMarketStock"), md("Data", "Catalog"), {}
+		for id in (type(st) == "string" and st or ""):gmatch("[^,]+") do
+			local x = ct.Skill.GetById(id)
+			table.insert(t, x and x.name or id)
+		end
+		return #t > 0 and table.concat(t, "\n") or "No Stock"
+	end
 	while ge.__FmQ == tk do
 		local ok, r = cx(dt)
 		if ok and r then
@@ -3087,6 +3260,8 @@ local function iq()
 		end
 		local ok2, r2 = cx(rd)
 		if ok2 then rql:Set(rs(r2)) end
+		local ok3, r3 = cx(kd)
+		if ok3 then kql:Set(r3) end
 		task.wait(1)
 	end
 end
