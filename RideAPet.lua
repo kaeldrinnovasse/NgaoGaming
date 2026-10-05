@@ -1098,7 +1098,7 @@ local gi = (function()
 end)()
 
 do
-	local kf, ky, ex, kl = "Avenoric/RideAPet/Key.txt", "NGAO-L6KU-E3WH", 1791122113, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
+	local kf, ky, ex, kl = "Avenoric/RideAPet/Key.txt", "NGAO-QUVY-TTSH", 1791303726, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__RapD then pcall(function() ge.__RapD:Destroy() end) end
