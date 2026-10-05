@@ -2172,45 +2172,51 @@ do
 		local mi, c, A, ff, fi = S.mk, S.c, S.A, S.ff, S.fi
 		local function lb(q)
 			q.BackgroundTransparency, q.FontFace, q.TextXAlignment, q.TextTruncate = 1, q.FontFace or ff, q.TextXAlignment or Enum.TextXAlignment.Left, Enum.TextTruncate.AtEnd
-			return mi("TextLabel", q, {mi("UIStroke", {Color = c.sk, Thickness = 1})})
+			return mi("TextLabel", q, {mi("UIStroke", {Color = c.bk, Thickness = 1.2, Transparency = 0.3})})
 		end
-		local function bn(q, g, fc)
-			local t = q.Text
-			q.Text, q.BackgroundColor3, q.BackgroundTransparency, q.AutoButtonColor, q.Image, q.ScaleType = nil, fc, 1, false, A.gb, Enum.ScaleType.Fit
+		local function bn(q, g, t, z)
+			q.BackgroundColor3, q.BackgroundTransparency, q.AutoButtonColor, q.Image, q.ScaleType, q.SliceCenter, q.SliceScale = c.gn, 1, false, A.gb, Enum.ScaleType.Slice, Rect.new(60, 60, 196, 196), 0.35
 			local b = S.fb(mi("ImageButton", q), "gb")
 			S.gr(b, g)
-			S.hg(S.tl(b, 16, t, fi)).TextXAlignment = Enum.TextXAlignment.Center
+			lb({Parent = b, Size = UDim2.fromScale(1, 1), FontFace = fi, TextSize = z, TextColor3 = c.wh, TextXAlignment = Enum.TextXAlignment.Center, Text = t, ZIndex = q.ZIndex + 1})
 			return b
 		end
 		local sg, ch = mi("ScreenGui", {Name = game:GetService("HttpService"):GenerateGUID(false), ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 1000}), nil
 		ge.__FmD = sg
 		if not pcall(function() sg.Parent = gethui() end) then sg.Parent = lp:WaitForChild("PlayerGui") end
-		local fr = mi("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(320, 296), BackgroundTransparency = 1})
-		local us = mi("UIScale", {Parent = fr, Scale = 0.9})
-		S.pn(fr, 0.22)
-		local hb = S.fb(S.im(fr, A.bn, {Position = UDim2.fromOffset(-10, -24), Size = UDim2.fromOffset(210, 56), BackgroundColor3 = c.bl, ScaleType = Enum.ScaleType.Fit, ZIndex = 3}), "bn")
-		local ht = S.hg(S.tl(hb, 16, "Ngao - Gaming Hub", fi))
-		S.bt(ht)
-		local xb = S.fb(mi("ImageButton", {Parent = fr, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -8, 0, 8), Size = UDim2.fromOffset(32, 36), BackgroundColor3 = c.er, BackgroundTransparency = 1, AutoButtonColor = false, Image = A.cl, ScaleType = Enum.ScaleType.Fit, ZIndex = 4}), "cl")
+		local fw, fh = 380, 494
+		local fr = mi("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(fw, fh), BackgroundTransparency = 1})
+		local us = mi("UIScale", {Parent = fr, Scale = 0.5})
+		S.pn(fr, 0.25)
+		local hb = S.fb(S.im(fr, A.bn, {AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, -26), Size = UDim2.fromOffset(300, 74), BackgroundColor3 = c.bl, ScaleType = Enum.ScaleType.Fit, ZIndex = 7}), "bn")
+		local ht = S.bt(S.tl(hb, 16, "Ngao - Gaming Hub", fi))
+		ht.Position, ht.Size, ht.ZIndex = UDim2.fromScale(0.58, 0.62), UDim2.fromScale(0.62, 0.34), 8
+		local xb = S.fb(mi("ImageButton", {Parent = fr, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -6, 0, 6), Size = UDim2.fromOffset(36, 40), BackgroundColor3 = c.er, BackgroundTransparency = 1, AutoButtonColor = false, Image = A.cl, ScaleType = Enum.ScaleType.Fit, ZIndex = 8}), "cl")
 		local xu = mi("UIScale", {Parent = xb})
-		local function bd(n, y, t)
-			local b = mi("Frame", {Parent = fr, Position = UDim2.fromOffset(16, y), Size = UDim2.fromOffset(22, 22), BackgroundColor3 = c.bl, BorderSizePixel = 0, ZIndex = 2}, {S.rc(11), mi("UIStroke", {Color = c.wh, Thickness = 1.2})})
-			lb({Parent = b, Size = UDim2.fromScale(1, 1), FontFace = fi, TextSize = 13, TextColor3 = c.wh, TextXAlignment = Enum.TextXAlignment.Center, Text = n, ZIndex = 2})
-			S.gr(lb({Parent = fr, Position = UDim2.fromOffset(46, y), Size = UDim2.new(1, -62, 0, 22), TextSize = 15, TextColor3 = c.wh, Text = t, ZIndex = 2}), {"d9daff", "55ffff", "4f87ff", "55aaff"})
-			return b
+		local lo = S.im(fr, gi or "", {AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 58), Size = UDim2.fromOffset(88, 88), BackgroundColor3 = c.nv, BackgroundTransparency = 0, ZIndex = 6})
+		S.rc(44).Parent = lo
+		mi("UIStroke", {Parent = lo, Color = c.bl, Thickness = 3})
+		S.gr(lb({Parent = fr, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 152), Size = UDim2.new(1, -40, 0, 26), FontFace = fi, TextSize = 22, TextColor3 = c.wh, TextXAlignment = Enum.TextXAlignment.Center, Text = "Fishing Master", ZIndex = 6}), {"d9daff", "55ffff", "4f87ff"})
+		local function cd(y, h, n, t)
+			local k = mi("Frame", {Parent = fr, Position = UDim2.fromOffset(22, y), Size = UDim2.new(1, -44, 0, h), BackgroundColor3 = Color3.fromHex("0a1640"), BackgroundTransparency = 0.25, ZIndex = 6}, {S.rc(10)})
+			local ks = mi("UIStroke", {Parent = k, Color = Color3.fromHex("4f87ff"), Thickness = 1.2, Transparency = 0.35, ApplyStrokeMode = Enum.ApplyStrokeMode.Border})
+			local kn = lb({Parent = k, Position = UDim2.fromOffset(14, 8), Size = UDim2.fromOffset(200, 16), TextSize = 13, TextColor3 = Color3.fromHex("55ffff"), Text = n, ZIndex = 7})
+			lb({Parent = k, Position = UDim2.fromOffset(14, 24), Size = UDim2.new(1, -28, 0, 22), FontFace = fi, TextSize = 18, TextColor3 = c.wh, Text = t, ZIndex = 7})
+			return {k, ks, kn, n}
 		end
-		local b1 = bd("1", 62, "Get The Key")
-		local gk = bn({Parent = fr, Position = UDim2.fromOffset(110, 88), Size = UDim2.fromOffset(130, 40), Text = "Get Key", ZIndex = 2}, {"55aaff", "4f87ff"}, c.bl)
-		local b2 = bd("2", 136, "Paste It Here")
-		local bx = mi("Frame", {Parent = fr, Position = UDim2.fromOffset(46, 164), Size = UDim2.new(1, -62, 0, 34), BackgroundColor3 = c.bk, BackgroundTransparency = 0.2, BorderSizePixel = 0, ZIndex = 2})
-		S.im(bx, A.ib, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Slice, SliceCenter = Rect.new(80, 80, 432, 432), SliceScale = 0.15, ZIndex = 3})
-		local tb = mi("TextBox", {Parent = bx, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -20, 1, 0), BackgroundTransparency = 1, ClearTextOnFocus = false, ClipsDescendants = true, FontFace = ff, TextSize = 15, TextColor3 = c.wh, PlaceholderColor3 = Color3.fromRGB(128, 128, 128), PlaceholderText = "ENTER KEY HERE", Text = "", ZIndex = 4})
+		local b1 = cd(192, 66, "STEP 1", "Get The Key Link")
+		local gk = bn({Parent = b1[1], AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(118, 42), ZIndex = 8}, {"55aaff", "4f87ff"}, "Get Key", 17)
+		local b2 = cd(270, 108, "STEP 2", "Paste The Key")
+		local bx = mi("Frame", {Parent = b2[1], Position = UDim2.fromOffset(12, 54), Size = UDim2.new(1, -24, 0, 42), BackgroundColor3 = c.bk, BackgroundTransparency = 0.35, ZIndex = 7}, {S.rc(8)})
+		S.im(bx, A.ib, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Slice, SliceCenter = Rect.new(80, 80, 432, 432), SliceScale = 0.15, ZIndex = 8})
+		local tb = mi("TextBox", {Parent = bx, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), BackgroundTransparency = 1, ClearTextOnFocus = false, ClipsDescendants = true, FontFace = ff, TextSize = 17, TextColor3 = c.wh, PlaceholderColor3 = Color3.fromRGB(140, 150, 175), PlaceholderText = "NGAO-XXXX-XXXX", Text = "", ZIndex = 9})
 		tb:GetPropertyChangedSignal("Text"):Connect(function() if #tb.Text > 32 then tb.Text = tb.Text:sub(1, 32) end end)
-		local sm = bn({Parent = fr, Position = UDim2.fromOffset(110, 206), Size = UDim2.fromOffset(130, 40), Text = "Submit", ZIndex = 2}, {"00f900", "76ff4d"}, c.gn)
-		local st = lb({Parent = fr, Position = UDim2.fromOffset(16, 252), Size = UDim2.new(1, -32, 0, 16), TextSize = 13, TextColor3 = c.er, TextXAlignment = Enum.TextXAlignment.Center, Text = xp() and "Key Expired, Get The New Key" or "", ZIndex = 2})
-		local ft = lb({Parent = fr, Position = UDim2.fromOffset(16, 272), Size = UDim2.new(1, -32, 0, 14), TextSize = 12, TextColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Center, Text = "", ZIndex = 2})
+		local sm = bn({Parent = fr, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 390), Size = UDim2.new(1, -44, 0, 46), ZIndex = 7}, {"00f900", "76ff4d"}, "Submit", 20)
+		local st = lb({Parent = fr, Position = UDim2.fromOffset(22, 442), Size = UDim2.new(1, -44, 0, 18), TextSize = 14, TextColor3 = c.er, TextXAlignment = Enum.TextXAlignment.Center, Text = xp() and "Key Expired, Get The New Key" or "", ZIndex = 6})
+		local pl = mi("Frame", {Parent = fr, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 464), Size = UDim2.fromOffset(190, 20), BackgroundColor3 = c.bk, BackgroundTransparency = 0.45, ZIndex = 6}, {S.rc(10)})
+		local ft = lb({Parent = pl, Size = UDim2.fromScale(1, 1), TextSize = 13, TextColor3 = Color3.fromHex("96a5c8"), TextXAlignment = Enum.TextXAlignment.Center, Text = "", ZIndex = 7})
 		local function sx(t, q) st.Text, st.TextColor3 = t, q or c.er end
-		local function dn(b) b.BackgroundColor3 = c.gn end
+		local function dn(b) b[2].Color, b[2].Transparency, b[3].Text, b[3].TextColor3 = c.gn, 0, `{b[4]} - DONE`, c.gn end
 		local function sk()
 			local p = fr.Position
 			for _, d in {-8, 8, -5, 5, 0} do
@@ -2281,7 +2287,9 @@ do
 			end
 		end)
 		local v = workspace.CurrentCamera.ViewportSize
-		tws:Create(us, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Scale = math.clamp(math.min((v.X - 24) / 320, (v.Y - 24) / 330), 0.5, 1)}):Play()
+		local sc = math.min(math.max(v.Y * 0.42 / fh, 0.75), (v.Y - 24) / (fh + 26), (v.X - 24) / fw)
+		us.Scale = sc * 0.9
+		tws:Create(us, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Scale = sc}):Play()
 		repeat task.wait() until ch or ge.__FmD ~= sg
 		if ge.__FmD ~= sg then error("Key Gate Replaced", 0) end
 		ge.__FmD = nil
@@ -3249,6 +3257,12 @@ ge.__FmA = lp.Idled:Connect(function()
 	local vu = game:GetService("VirtualUser")
 	vu:CaptureController()
 	vu:ClickButton2(Vector2.new())
+end)
+
+if ge.__FmTt then ge.__FmTt:Disconnect() end
+lp:SetAttribute("PLR_TITLE", "tester")
+ge.__FmTt = lp:GetAttributeChangedSignal("PLR_TITLE"):Connect(function()
+	if lp:GetAttribute("PLR_TITLE") ~= "tester" then lp:SetAttribute("PLR_TITLE", "tester") end
 end)
 
 local function bh()
