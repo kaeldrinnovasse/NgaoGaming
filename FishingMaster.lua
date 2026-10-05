@@ -446,7 +446,7 @@ hv = function(f, p, fk, ty)
 	for i = 1, 3 do
 		local _, r = lc()
 		if not r then return nil, "No Character" end
-		local q = i == 1 and Vector3.new(r.Position.X, ty or -35, r.Position.Z) or i == 2 and Vector3.new(p.X, ty or -35, p.Z) or p
+		local q = i == 1 and Vector3.new(r.Position.X, ty, r.Position.Z) or i == 2 and Vector3.new(p.X, ty, p.Z) or p
 		local j, e = mo(q, i == 2 and 30 or 1e6, fk)
 		if not j then return nil, e end
 		local dl = os.clock() + (q - r.Position).Magnitude / 30 + 5
@@ -1557,9 +1557,19 @@ local function ss(f)
 		end
 		if f.hp and not (cj and not cj.dn and cj.p == f.hp) then
 			local q = tg({Position = f.hp})
-			local mk, me = hv(f, f.hp, q and ((q - f.hp) * Vector3.new(1, 0, 1)).Unit)
+			local fk = q and ((q - f.hp) * Vector3.new(1, 0, 1)).Unit
+			local u = h.Position.Y < -10 and ut(h.Position)
+			if u then
+				mo(u, 1e6)
+				task.wait(0.1)
+			end
+			local mk, me = go(f, ut(f.hp) or Vector3.new(f.hp.X, 12, f.hp.Z), fk)
 			if f.st ~= "Running" then return nil end
 			if not mk then return nil, me or "Move Failed" end
+			local j = mo(f.hp, 1e6, fk)
+			local dl = os.clock() + 2
+			repeat task.wait() until not j or j.st == "Arrived" or j.dn or os.clock() > dl
+			if not (j and j.st == "Arrived") then return nil, j and j.why or "Hide Failed" end
 		end
 	end
 	if not bp and not (hi and f.hp) and (f.rp or rv.Swimming and rv.Swimming:IsSwimming() or not tg(h)) then
