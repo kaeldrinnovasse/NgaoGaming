@@ -187,6 +187,7 @@ end
 local function nx(j)
 	local c, _, h = lc()
 	if not c then return end
+	if j.s >= 1e5 and j.oc and c ~= j.oc then error("Respawn", 0) end
 	if c ~= j.c then ac(j, c, h) end
 	if j.pd then
 		j.pd, j.pl = false, {}
@@ -208,6 +209,7 @@ local function hx(j, dt)
 		j.st = "Respawn"
 		return
 	end
+	if j.s >= 1e5 and j.oc and c ~= j.oc then error("Respawn", 0) end
 	if c ~= j.c then ac(j, c, h) end
 	local d = j.p - r.Position
 	local ar, fd = d.Magnitude <= j.s * dt, Vector3.new(d.X, 0, d.Z)
@@ -232,12 +234,18 @@ end
 
 local function mo(p, s, fk)
 	if typeof(p) ~= "Vector3" or p.Magnitude ~= p.Magnitude or p.Magnitude == math.huge then return nil, "Move Failed: Bad Point" end
+	if typeof(fk) == "Vector3" and not (fk.Magnitude > 1e-3) then fk = nil end
 	if cj then
 		cj.nl = true
 		cj:Stop()
 	end
 	local c, r, h = lc()
-	local j = {st = "Moving", p = p, s = s, cc = {}, ss = {}, pl = {}, lk = r and Vector3.new(r.CFrame.LookVector.X, 0, r.CFrame.LookVector.Z).Unit or -Vector3.zAxis}
+	if s < 1e5 and p.Y < -10 then p = ut(p) or Vector3.new(p.X, 12, p.Z) end
+	if r and s < 1e5 and r.Position.Y < -10 then
+		local u = ut(r.Position)
+		if u then pz(r, CFrame.new(u) * r.CFrame.Rotation) end
+	end
+	local j = {st = "Moving", p = p, s = s, oc = c, cc = {}, ss = {}, pl = {}, lk = r and Vector3.new(r.CFrame.LookVector.X, 0, r.CFrame.LookVector.Z).Unit or -Vector3.zAxis}
 	j.fk = fk or j.lk
 	function j.Stop(x) cz(x or j, "Stopped") end
 	if c then ac(j, c, h) end
@@ -299,6 +307,16 @@ local function lk(sr, kp)
 	return hl, nil
 end
 
+local function zb(sr, kp)
+	local d, ct, st, n = pd(), md("Data", "Catalog"), {}, 0
+	for _, r in sr do st[r] = true end
+	for u, x in d.Inventory.Fishes do
+		local fi = ct.Fish.GetById(x.fishId)
+		if x.locked ~= true and not kp[u] and fi and st[fi.rarity] and (not x.isHuge or st.Huge) then n += 1 end
+	end
+	return n
+end
+
 local function uk(hl)
 	local d, sc = pd(), rv.SellController
 	for _, u in hl do
@@ -318,6 +336,10 @@ local function tr(f)
 	if not h then return nil, "No Character" end
 	local o, sw = h.CFrame, rv.Swimming and rv.Swimming:IsSwimming()
 	local np = ns("npc_fish_seller", o.Position)
+	if not np then
+		sq(o.Position, 5)
+		np = ns("npc_fish_seller", o.Position)
+	end
 	if not np then return "Auto Fish Failed: No Fish Seller" end
 	local hl, e = lk(f.sr(), f.kp())
 	if e then
@@ -337,7 +359,7 @@ local function tr(f)
 		if s ~= 1 then break end
 	end
 	local uo, ue = uk(hl)
-	if f.st == "Running" and not sw then mv(f, hd and f.hp or o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit, math.min(sp.Y, 10)) end
+	if f.st == "Running" and not sw then mv(f, hd and f.hp and f.hi == rv.IslandRegionController:GetCurrentIslandId() and f.hp or o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit, math.min(sp.Y, 10)) end
 	if sw then f.rp = true end
 	if f.st ~= "Running" then return nil, nil end
 	if not uo then return nil, ue end
@@ -359,17 +381,23 @@ end
 
 local function ic() return rv.IslandRegionController:GetCurrentIslandId() end
 
-local function rs(id)
+local function rs(id, wd)
 	local c, r = lc()
 	local w = workspace:FindFirstChild("World")
 	local il = w and w:FindFirstChild("Islands")
 	local fo = il and il:FindFirstChild(id or ic())
 	if not (c and fo) then return nil end
-	local ip, o, rd = RaycastParams.new(), {}, Random.new()
+	local ip, o, rd, ct, rr, k = RaycastParams.new(), {}, Random.new(), r.Position, 150, 150
 	ip.FilterType, ip.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
-	for _ = 1, 150 do
-		local a, d = rd:NextNumber(0, math.pi * 2), rd:NextNumber(10, 150)
-		local h = workspace:Raycast(Vector3.new(r.Position.X + math.sin(a) * d, 150, r.Position.Z + math.cos(a) * d), Vector3.new(0, -200, 0), ip)
+	if wd then
+		for _, x in game:GetService("CollectionService"):GetTagged("IslandRegion") do
+			if x:IsA("BasePart") and x:GetAttribute("islandId") == fo.Name then ct, rr, k = x.Position, x.Size.X / 2, 400 end
+		end
+	end
+	for i = 1, k do
+		if i % 50 == 0 then task.wait() end
+		local a, d = rd:NextNumber(0, math.pi * 2), rd:NextNumber(10, rr)
+		local h = workspace:Raycast(Vector3.new(ct.X + math.sin(a) * d, 150, ct.Z + math.cos(a) * d), Vector3.new(0, -200, 0), ip)
 		if h and h.Instance:IsDescendantOf(fo) and h.Position.Y > 3.5 and h.Position.Y < 20 then
 			local g = h.Position
 			for i = 0, 7 do
@@ -458,9 +486,10 @@ hv = function(f, p, fk, ty)
 	return true
 end
 
-ap = function(c, np, p)
+ap = function(c, np, p, d)
+	if d == 0 then return np end
 	local u = Vector3.new(p.X, np.Y, p.Z) - np
-	return gd(c, np + (u.Magnitude > 0.1 and u.Unit or Vector3.xAxis) * 6)
+	return gd(c, np + (u.Magnitude > 0.1 and u.Unit or Vector3.xAxis) * (d or 6))
 end
 
 aq = function(c, np, p)
@@ -477,7 +506,7 @@ aq = function(c, np, p)
 			if h and math.abs(h.Position.Y + 3 - np.Y) <= 6 then return h.Position + Vector3.new(0, 3, 0) end
 		end
 	end
-	return ap(c, np, p)
+	return ap(c, np, p, 0)
 end
 
 local function an(f, c, np, p)
@@ -1104,6 +1133,13 @@ local function bo(f)
 		if not ok then return nil, e end
 		return q
 	end
+	if not (f.hm or f.bb or sw or h.SeatPart) and ic() ~= "" and f.ao() and zb(f.sr(), f.kp()) > 0 then
+		local hd, sf = tr(f)
+		zx(`[Boss] Sell Before Boss: {hd or sf or "Done"}`)
+		if f.st ~= "Running" then return nil end
+		_, r, h = lc()
+		if not r then return nil, "No Character" end
+	end
 	if not (f.hm or f.bb or sw or h.SeatPart) and ic() ~= "" then f.hm = {r.CFrame, ic()} end
 	if f.bg ~= x then
 		f.bg = x
@@ -1574,7 +1610,7 @@ local function ss(f)
 	end
 	if not bp and not (hi and f.hp) and (f.rp or rv.Swimming and rv.Swimming:IsSwimming() or not tg(h)) then
 		f.rp = false
-		local g = rs(vi(h.Position))
+		local g = rs(vi(h.Position)) or vi(h.Position) ~= "" and rs(vi(h.Position), true)
 		if not g and vi(h.Position) == "" then
 			local nb, nd = nil, math.huge
 			for _, x in game:GetService("CollectionService"):GetTagged("IslandRegion") do
@@ -1629,9 +1665,9 @@ local function ss(f)
 		end
 	end
 	local up = hi and f.hp and s.rl and f.st == "Running" and cj and not cj.dn and cj.p == f.hp and cj.fk
-	if up then mo(Vector3.new(f.hp.X, 1000, f.hp.Z), 1e6, up) end
+	local uj = up and mo(Vector3.new(f.hp.X, 1000, f.hp.Z), 1e6, up)
 	local re = s.rl and f.st == "Running" and rl(f, s, zk) or not (s.cr or s.rr) and f.st == "Running" and "Bite Timeout"
-	if up then mo(f.hp, 1e6, up) end
+	if uj and not uj.dn then mo(f.hp, 1e6, up) end
 	if bf and not (s.cr and s.cr[1]) then
 		f.bl = os.clock() + 180
 		zx(`[Boss] Fight Ended Without Catch ({s.rr or "No Reset"}), Lockout 180 s`)
@@ -2613,7 +2649,7 @@ local function fb(f)
 	end, f)
 	for _, c in f.cs do c:Disconnect() end
 	local _, hr = lc()
-	local hq = f.hp and hr and hr.Position.Y > -10 and ut(hr.Position)
+	local hq = (f.hp or f.hf()) and hr and hr.Position.Y > -10 and ut(hr.Position)
 	if hq and (hr.Position.Y < hq.Y - 4 or hr.Position.Y > 500) then
 		mo(hq, 1e6)
 		task.wait(0.1)
@@ -2796,7 +2832,7 @@ local function nw(j)
 			if ok and not r then ok, e = nil, "No Character" end
 			if ok and not np then ok, e = nil, "NPC Not Found" end
 			if ok and j.st == "Running" then
-				local sp = ap(c, np, r.Position)
+				local sp = ap(c, np, r.Position, 0)
 				ok, e = (v[2] == "npc_zen_staff_rod" and gf or go)(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
 			end
 			j.bz = false
