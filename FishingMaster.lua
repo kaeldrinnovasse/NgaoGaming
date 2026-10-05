@@ -254,7 +254,7 @@ local function mo(p, s, fk)
 	return j
 end
 
-local ap, hv
+local ap, hv, aq
 
 local function gf(f, p, fk)
 	for _ = 1, 4 do
@@ -325,10 +325,10 @@ local function tr(f)
 		return nil, ue or e
 	end
 	local hd = f.hf and f.hf() and not f.bu
-	local mv, sp = hd and hv or go, hd and Vector3.new(np.X, math.max(6, np.Y - 18), np.Z) or ap(c, np, o.Position)
+	local mv, sp = hd and hv or go, hd and Vector3.new(np.X, math.max(6, np.Y - 18), np.Z) or aq(c, np, o.Position)
 	local w, we, s
 	for _ = 1, 3 do
-		w, we = mv(f, sp, hd and Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit or Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit, sp.Y)
+		w, we = mv(f, sp, hd and Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit or Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit, math.min(sp.Y, 10))
 		if hd and not w and f.st == "Running" then zx(`[Hidden] Sell Move Failed: {we or "Unknown"}`) end
 		if not w or f.st ~= "Running" then break end
 		task.wait(0.5)
@@ -337,7 +337,7 @@ local function tr(f)
 		if s ~= 1 then break end
 	end
 	local uo, ue = uk(hl)
-	if f.st == "Running" and not sw then mv(f, hd and f.hp or o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit, sp.Y) end
+	if f.st == "Running" and not sw then mv(f, hd and f.hp or o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit, math.min(sp.Y, 10)) end
 	if sw then f.rp = true end
 	if f.st ~= "Running" then return nil, nil end
 	if not uo then return nil, ue end
@@ -461,6 +461,32 @@ end
 ap = function(c, np, p)
 	local u = Vector3.new(p.X, np.Y, p.Z) - np
 	return gd(c, np + (u.Magnitude > 0.1 and u.Unit or Vector3.xAxis) * 6)
+end
+
+aq = function(c, np, p)
+	local w = workspace:FindFirstChild("World")
+	local il, ip = w and w:FindFirstChild("Islands"), RaycastParams.new()
+	if il then
+		ip.FilterType, ip.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
+		local u = Vector3.new(p.X - np.X, 0, p.Z - np.Z)
+		local a0 = u.Magnitude > 0.1 and math.atan2(u.X, u.Z) or 0
+		for i = 0, 15 do
+			local a = a0 + math.rad((i % 2 == 0 and 1 or -1) * math.ceil(i / 2) * 22.5)
+			local q = np + Vector3.new(math.sin(a), 0, math.cos(a)) * 18
+			local h = workspace:Raycast(q + Vector3.new(0, 20, 0), Vector3.new(0, -60, 0), ip)
+			if h and math.abs(h.Position.Y + 3 - np.Y) <= 6 then return h.Position + Vector3.new(0, 3, 0) end
+		end
+	end
+	return ap(c, np, p)
+end
+
+local function an(f, c, np, p)
+	if f.hf() then
+		local sp = Vector3.new(np.X, math.max(6, np.Y - 18), np.Z)
+		return hv(f, sp, nil, math.min(sp.Y, 10))
+	end
+	local sp = aq(c, np, p)
+	return go(f, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
 end
 
 local function bv(k)
@@ -1289,8 +1315,7 @@ local function ug(f, q, ac)
 	if not rt then return nil, "No Character" end
 	local np = gn(q)
 	if not np then return nil, "No Island Guide" end
-	local sp = ap(c, np, rt.Position)
-	ok, e = (q[1] == "zen_staff_rod" and gf or go)(f, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+	ok, e = an(f, c, np, rt.Position)
 	if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
 	if f.st ~= "Running" then return nil end
 	local qr, iu = rv.QuestController, q[1]:find("^unlock_island_") ~= nil
@@ -1381,7 +1406,7 @@ local function uq(f, q)
 	local ok, e = ug(f, q, ci == q[1])
 	local hk, he = true, nil
 	if f.st == "Running" and oi ~= "" and ic() ~= oi then hk, he = ti(f, oi, f.bk()) end
-	if hk and f.st == "Running" and ic() == oi then hk, he = go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
+	if hk and f.st == "Running" and ic() == oi and not f.hf() then hk, he = go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
 	f.rp = f.rp or not hk
 	return true, not ok and e or not hk and f.st == "Running" and (he or "Return Failed") or nil
 end
@@ -1441,8 +1466,7 @@ local function dy(f)
 	end
 	local c, rt = lc()
 	if not rt then return nil, "No Character" end
-	local sp = ap(c, np, rt.Position)
-	ok, e = go(f, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+	ok, e = an(f, c, np, rt.Position)
 	if not ok then return true, e or f.st == "Running" and "Move Failed" or nil end
 	if f.st ~= "Running" then return true end
 	local ak, m = rv.QuestController:AcceptDaily()
