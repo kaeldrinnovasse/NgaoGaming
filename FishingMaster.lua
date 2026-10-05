@@ -11,6 +11,43 @@ local qk = {Right = "D", Left = "A", Up = "W"}
 
 local function pd() return rv.PlayerDataV2Controller:Fetch() end
 
+local function zx(t, nw)
+	local fp, g = `Avenoric/Configs/FishingMaster/{lp.Name}_Log.txt`, getgenv().__FmLg
+	if not g then
+		g = {ls = {}, dt = false}
+		getgenv().__FmLg = g
+		pcall(function()
+			for l in (isfile(fp) and readfile(fp) or ""):gmatch("[^\n]+") do table.insert(g.ls, l) end
+		end)
+	end
+	local m = (tostring(t):gsub("%s*\n%s*", " <- "))
+	local la = g.ls[#g.ls] or ""
+	local lm, n = la:match("^[^|]+| (.-) x(%d+)$")
+	local ts = os.date("%Y-%m-%d %H:%M:%S")
+	if (lm or la:match("^[^|]+| (.*)$")) == m then
+		g.ls[#g.ls] = `{ts} | {m} x{(tonumber(n) or 1) + 1}`
+	else
+		table.insert(g.ls, `{ts} | {m}`)
+	end
+	while #g.ls > 1000 do table.remove(g.ls, 1) end
+	local function wr()
+		g.dt = false
+		pcall(function()
+			for _, x in {"Avenoric", "Avenoric/Configs", "Avenoric/Configs/FishingMaster"} do
+				if not isfolder(x) then makefolder(x) end
+			end
+			writefile(fp, table.concat(g.ls, "\n") .. "\n")
+		end)
+	end
+	if nw then
+		wr()
+		return
+	end
+	if g.dt then return end
+	g.dt = true
+	task.delay(2, wr)
+end
+
 local function sk()
 	local d, o = pd(), {}
 	local r = d and d.Rods and d.Rods[d.RodEquip]
@@ -118,7 +155,7 @@ local function sq(p, t)
 	return dn
 end
 
-local fz, cj = {Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll}, nil
+local fz, cj, ut = {Enum.HumanoidStateType.Freefall, Enum.HumanoidStateType.FallingDown, Enum.HumanoidStateType.Ragdoll}, nil, nil
 
 local function lc()
 	local c = lp.Character
@@ -187,6 +224,7 @@ local function cz(j, st, why)
 	pcall(function()
 		local _, r = lc()
 		if r then r.AssemblyLinearVelocity, r.AssemblyAngularVelocity = Vector3.zero, Vector3.zero end
+		if r and not j.nl and r.Position.Y < -10 then pz(r, CFrame.new(ut(r.Position) or Vector3.new(r.Position.X, 12, r.Position.Z)) * r.CFrame.Rotation) end
 	end)
 	j.st, j.why = st, why
 	if cj == j then cj = nil end
@@ -194,7 +232,10 @@ end
 
 local function mo(p, s, fk)
 	if typeof(p) ~= "Vector3" or p.Magnitude ~= p.Magnitude or p.Magnitude == math.huge then return nil, "Move Failed: Bad Point" end
-	if cj then cj:Stop() end
+	if cj then
+		cj.nl = true
+		cj:Stop()
+	end
 	local c, r, h = lc()
 	local j = {st = "Moving", p = p, s = s, cc = {}, ss = {}, pl = {}, lk = r and Vector3.new(r.CFrame.LookVector.X, 0, r.CFrame.LookVector.Z).Unit or -Vector3.zAxis}
 	j.fk = fk or j.lk
@@ -213,7 +254,7 @@ local function mo(p, s, fk)
 	return j
 end
 
-local ap
+local ap, hv
 
 local function gf(f, p, fk)
 	for _ = 1, 4 do
@@ -283,17 +324,20 @@ local function tr(f)
 		local _, ue = uk(hl)
 		return nil, ue or e
 	end
-	local sp = ap(c, np, o.Position)
+	local hd = f.hf and f.hf() and not f.bu
+	local mv, sp = hd and hv or go, hd and Vector3.new(np.X, math.max(6, np.Y - 18), np.Z) or ap(c, np, o.Position)
 	local w, we, s
 	for _ = 1, 3 do
-		w, we = go(f, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+		w, we = mv(f, sp, hd and Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit or Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit, sp.Y)
+		if hd and not w and f.st == "Running" then zx(`[Hidden] Sell Move Failed: {we or "Unknown"}`) end
 		if not w or f.st ~= "Running" then break end
 		task.wait(0.5)
 		s = rv.SellController:SellAll()
+		zx(`[Sell] SellAll Answer {tostring(s)}`)
 		if s ~= 1 then break end
 	end
 	local uo, ue = uk(hl)
-	if f.st == "Running" and not sw then go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
+	if f.st == "Running" and not sw then mv(f, hd and f.hp or o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit, sp.Y) end
 	if sw then f.rp = true end
 	if f.st ~= "Running" then return nil, nil end
 	if not uo then return nil, ue end
@@ -361,6 +405,57 @@ local function vi(p)
 		if x:IsA("BasePart") and (x.Position - p).Magnitude < x.Size.X / 2 then return x:GetAttribute("islandId") end
 	end
 	return ""
+end
+
+local function uh(id)
+	local c, r = lc()
+	local w = workspace:FindFirstChild("World")
+	local il = w and w:FindFirstChild("Islands")
+	local fo = il and il:FindFirstChild(id)
+	if not (c and fo) then return nil end
+	local ct, rr = r.Position, 250
+	for _, x in game:GetService("CollectionService"):GetTagged("IslandRegion") do
+		if x:IsA("BasePart") and x:GetAttribute("islandId") == id then ct, rr = x.Position, x.Size.X / 2 end
+	end
+	local ip, o, rd = RaycastParams.new(), {}, Random.new()
+	ip.FilterType, ip.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
+	for _ = 1, 400 do
+		local a, d = rd:NextNumber(0, math.pi * 2), math.sqrt(rd:NextNumber()) * rr
+		local h = workspace:Raycast(Vector3.new(ct.X + math.sin(a) * d, 500, ct.Z + math.cos(a) * d), Vector3.new(0, -520, 0), ip)
+		if h and h.Instance:IsDescendantOf(fo) and h.Position.Y > 3.5 then table.insert(o, h.Position) end
+	end
+	table.sort(o, function(a, b) return a.Y > b.Y end)
+	for i, g in o do
+		if i % 20 == 0 then task.wait() end
+		local q = Vector3.new(g.X, -35, g.Z)
+		if tg({Position = q}) then return q, g.Y end
+	end
+	return nil
+end
+
+ut = function(p)
+	local w = workspace:FindFirstChild("World")
+	local il, ip = w and w:FindFirstChild("Islands"), RaycastParams.new()
+	if not il then return nil end
+	ip.FilterType, ip.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
+	local h = workspace:Raycast(Vector3.new(p.X, 500, p.Z), Vector3.new(0, -520, 0), ip)
+	return h and h.Position + Vector3.new(0, 3, 0)
+end
+
+hv = function(f, p, fk, ty)
+	for i = 1, 3 do
+		local _, r = lc()
+		if not r then return nil, "No Character" end
+		local q = i == 1 and Vector3.new(r.Position.X, ty or -35, r.Position.Z) or i == 2 and Vector3.new(p.X, ty or -35, p.Z) or p
+		local j, e = mo(q, i == 2 and 30 or 1e6, fk)
+		if not j then return nil, e end
+		local dl = os.clock() + (q - r.Position).Magnitude / 30 + 5
+		repeat task.wait() until j.st == "Arrived" or j.dn or f.st ~= "Running" or os.clock() > dl
+		if j.dn then return nil, j.why or "Move Failed" end
+		if f.st ~= "Running" then return nil end
+		if j.st ~= "Arrived" then return nil, "Move Timeout" end
+	end
+	return true
 end
 
 ap = function(c, np, p)
@@ -519,7 +614,33 @@ local function dv(f, m, id, pt)
 end
 
 local wb = {on = true}
-local zy = {on = false, rq = false, nt = 0, ss = 0, fr = {}, wl = {}}
+local zy = {on = false, rq = false, nt = 0, ss = 0, fr = {}, wl = {}, hu = {}, nm = {}, hp = -1e9}
+local zj = `Avenoric/Configs/FishingMaster/{lp.Name}_Safe.json`
+pcall(function()
+	local d = hs:JSONDecode(readfile(zj))
+	if type(d) ~= "table" or d.JobId ~= game.JobId then return end
+	for k, t in {RealPlayers = zy.wl, HubUsers = zy.hu} do
+		for _, x in type(d[k]) == "table" and d[k] or {} do
+			if type(x) == "table" and tonumber(x.UserId) then t[tonumber(x.UserId)], zy.nm[tonumber(x.UserId)] = x.Seen or true, x.Name end
+		end
+	end
+end)
+local function zf()
+	local o = {JobId = game.JobId, RealPlayers = {}, HubUsers = {}}
+	for k, t in {RealPlayers = zy.wl, HubUsers = zy.hu} do
+		for u in t do
+			local p = game:GetService("Players"):GetPlayerByUserId(u)
+			zy.nm[u] = p and p.Name or zy.nm[u]
+			table.insert(o[k], {Name = zy.nm[u] or "?", UserId = u, Seen = type(t[u]) == "string" and t[u] or nil})
+		end
+	end
+	pcall(function()
+		for _, x in {"Avenoric", "Avenoric/Configs", "Avenoric/Configs/FishingMaster"} do
+			if not isfolder(x) then makefolder(x) end
+		end
+		writefile(zj, hs:JSONEncode(o))
+	end)
+end
 local wz = {island_starter = Vector3.new(-37.4, 11.1, 305.9), island_jungle = Vector3.new(-1161.1, 10.8, -61.9), island_desert = Vector3.new(-44.1, 10.1, -935.4), island_snow = Vector3.new(1171.7, 9.4, -266.5), island_volcano = Vector3.new(1772.5, 9.2, 1069.3), island_fossil = Vector3.new(-543.2, 10.6, 2172.3)}
 
 local function wm(id)
@@ -674,9 +795,11 @@ local function wx(f, id)
 		if o.hb then o.hb:Disconnect() end
 		if not s then ok, e = nil, `Warp Failed: {ok}` end
 		if ok or f.st ~= "Running" then break end
+		zx(`[Warp] {id}: {e or "Warp Failed"}, Retrying`)
 		task.wait(1)
 	end
 	wc(false, ok)
+	zx(`[Warp] {id}: {ok and "Arrived" or e or "Stopped"}`)
 	return ok, e
 end
 
@@ -709,9 +832,33 @@ local function zm(p, wi)
 	local an = hm and hm:FindFirstChildOfClass("Animator")
 	for _, t in an and an:GetPlayingAnimationTracks() or {} do
 		if t.WeightCurrent > 0.05 and t.Animation and wi[t.Animation.AnimationId] then
-			zy.wl[p.UserId] = true
+			zy.wl[p.UserId] = wi[t.Animation.AnimationId]
+			zf()
 			return true
 		end
+	end
+	return false
+end
+
+local function zg(p)
+	if zy.hu[p.UserId] then return true end
+	local hm = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
+	local an = hm and hm:FindFirstChildOfClass("Animator")
+	for _, t in an and an:GetPlayingAnimationTracks() or {} do
+		if t.Animation and t.Animation.AnimationId:match("%d+$") == "180435571" and math.abs(t.Speed - 0.37) < 0.01 and t.WeightTarget < 0.05 then
+			zy.hu[p.UserId] = true
+			zf()
+			return true
+		end
+	end
+	return false
+end
+
+local function zq(p)
+	local hm = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
+	local an = hm and hm:FindFirstChildOfClass("Animator")
+	for _, t in an and an:GetPlayingAnimationTracks() or {} do
+		if t.Animation and t.Animation.AnimationId:match("%d+$") == "180435571" and math.abs(t.Speed - 0.41) < 0.01 and t.WeightTarget < 0.05 then return true end
 	end
 	return false
 end
@@ -727,9 +874,9 @@ local function zw()
 		task.spawn(sq, Vector3.new(g.X, 2, g.Z), 5)
 	end
 	local wi, nr, cs = {}, false, game:GetService("CollectionService")
-	for _, n in {"walk", "run"} do
+	for _, n in {"walk", "run", "jump"} do
 		for _, x in am:FindFirstChild(n) and am[n]:GetChildren() or {} do
-			if x:IsA("Animation") then wi[x.AnimationId] = true end
+			if x:IsA("Animation") then wi[x.AnimationId] = n == "jump" and "Jump" or "Walk" end
 		end
 	end
 	for _, p in game:GetService("Players"):GetPlayers() do
@@ -739,8 +886,8 @@ local function zw()
 				local ok, v = pcall(lp.IsFriendsWith, lp, p.UserId)
 				zy.fr[p.UserId] = ok and v == true
 			end
-			for _, x in zy.fr[p.UserId] == false and zm(p, wi) and id ~= "" and cs:GetTagged("IslandRegion") or {} do
-				if x:IsA("BasePart") and x:GetAttribute("islandId") == id and (x.Position - h.Position).Magnitude < x.Size.X / 2 then nr = true end
+			for _, x in zy.fr[p.UserId] == false and not zg(p) and zm(p, wi) and id ~= "" and cs:GetTagged("IslandRegion") or {} do
+				if x:IsA("BasePart") and x:GetAttribute("islandId") == id and (x.Position - h.Position).Magnitude < x.Size.X / 2 then nr, zy.by = true, {p.Name, p.UserId, id, zy.wl[p.UserId]} end
 			end
 		end
 	end
@@ -749,6 +896,8 @@ end
 
 local function zh()
 	zy.nt = os.clock() + 30
+	local b = zy.by or {}
+	zx(`[Safe] Hop From {game.JobId:sub(1, 8)} | Real Player {b[1] or "?"} ({b[2] or "?"}) | Seen {b[4] == "Jump" and "Jumping" or "Walking"} | {b[3] or "?"} | {#game:GetService("Players"):GetPlayers()} Players`, true)
 	local ok, r = pcall(function() return hs:JSONDecode((game :: any):HttpGet(`https://games.roblox.com/v1/games/{game.PlaceId}/servers/Public?sortOrder=Asc&limit=100`)) end)
 	if not ok or type(r) ~= "table" or type(r.data) ~= "table" then return nil, "Hop Failed: Server List" end
 	local o = {}
@@ -757,7 +906,10 @@ local function zh()
 	end
 	if #o == 0 then return nil, "Hop Failed: No Server" end
 	local tp = game:GetService("TeleportService")
-	local tk, e = pcall(tp.TeleportToPlaceInstance, tp, game.PlaceId, o[math.random(1, math.min(5, #o))], lp)
+	local ds = o[math.random(1, math.min(5, #o))]
+	zy.hp = os.clock()
+	zx(`[Safe] Teleporting To {ds:sub(1, 8)}`, true)
+	local tk, e = pcall(tp.TeleportToPlaceInstance, tp, game.PlaceId, ds, lp)
 	if not tk then return nil, `Hop Failed: {e}` end
 	task.wait(15)
 	return nil, "Hop Failed: Teleport Timeout"
@@ -927,6 +1079,10 @@ local function bo(f)
 		return q
 	end
 	if not (f.hm or f.bb or sw or h.SeatPart) and ic() ~= "" then f.hm = {r.CFrame, ic()} end
+	if f.bg ~= x then
+		f.bg = x
+		zx(`[Boss] Going To {x.Name} On {id or "?"}`)
+	end
 	if id and ic() ~= id and wx(f, id) then
 		_, r, h = lc()
 		if not r then return nil, "No Character" end
@@ -1144,6 +1300,7 @@ local function ug(f, q, ac)
 	local function dn() return ((pd().Quest or {}).Done or {})[q[1]] == true or q[1] == "taiji_hooking_art_v2" and vb() > v0 or q[9] and ((pd().Inventory or {}).Souls or {})[q[1]] == true end
 	if not ac then
 		local a, m = qr:Accept(q[1])
+		zx(`[Quest] Accept {q[1]}: {tostring(a)} {m or ""}`)
 		if a ~= true then
 			f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: {m or "Accept Refused"}`}
 			return true
@@ -1179,6 +1336,7 @@ local function ug(f, q, ac)
 		end
 	end
 	local cp, m = qr:Complete(q[1])
+	zx(`[Quest] Complete {q[1]}: {tostring(cp)} {m or ""}`)
 	if cp ~= true then
 		f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: {m or "Complete Refused"}`}
 		return true
@@ -1312,7 +1470,7 @@ local function ss(f)
 		local o, oi = f.hm[1], f.hm[2]
 		local ok, e = true, nil
 		if ic() ~= oi then ok, e = ti(f, oi, f.bk()) end
-		if ok and f.st == "Running" then ok, e = go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
+		if ok and f.st == "Running" and not f.hf() then ok, e = go(f, o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit) end
 		if f.st ~= "Running" then return nil end
 		if not ok then return nil, e or "Return Failed" end
 		f.hm, f.rp = nil, false
@@ -1355,7 +1513,32 @@ local function ss(f)
 	if not ok then return nil, e end
 	local h = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
 	if not h then return nil, "No Character" end
-	if not bp and (f.rp or rv.Swimming and rv.Swimming:IsSwimming() or not tg(h)) then
+	if f.hp and not f.hf() then
+		if cj and cj.p == f.hp then cj:Stop() end
+		f.hp, f.rp = nil, true
+	end
+	local hi = not bp and f.hf()
+	if hi then
+		local id = vi(h.Position)
+		if f.rp or not f.hp or f.hi ~= id then
+			local gy
+			f.hp, f.hi = nil, id
+			if id ~= "" then f.hp, gy = uh(id) end
+			if f.hp then
+				f.rp = false
+				zx(`[Hidden] Spot {math.floor(f.hp.X)}, {math.floor(f.hp.Z)} Under Ground Y {math.floor(gy)} On {id}`)
+			elseif id ~= "" then
+				zx(`[Hidden] No Spot On {id}, Normal Spot`)
+			end
+		end
+		if f.hp and not (cj and not cj.dn and cj.p == f.hp) then
+			local q = tg({Position = f.hp})
+			local mk, me = hv(f, f.hp, q and ((q - f.hp) * Vector3.new(1, 0, 1)).Unit)
+			if f.st ~= "Running" then return nil end
+			if not mk then return nil, me or "Move Failed" end
+		end
+	end
+	if not bp and not (hi and f.hp) and (f.rp or rv.Swimming and rv.Swimming:IsSwimming() or not tg(h)) then
 		f.rp = false
 		local g = rs(vi(h.Position))
 		if not g and vi(h.Position) == "" then
@@ -1411,8 +1594,14 @@ local function ss(f)
 			qw(f, `z{zs}`, `{rq2 and "Rod" or "Soul"} Quest Waiting: Equip {({taiji_hooking_art = "Taiji Hooking Art", taiji_hooking_art_v2 = "Taiji Hooking Art V2", one_hook_supreme = "One Hook Supreme", rod_gate_20_percent = "Rod Gate 20%"})[zs]}`, rq2 and "Rod Quest" or "Soul Quest")
 		end
 	end
+	local up = hi and f.hp and s.rl and f.st == "Running" and cj and not cj.dn and cj.p == f.hp and cj.fk
+	if up then mo(Vector3.new(f.hp.X, 1000, f.hp.Z), 1e6, up) end
 	local re = s.rl and f.st == "Running" and rl(f, s, zk) or not (s.cr or s.rr) and f.st == "Running" and "Bite Timeout"
-	if bf and not (s.cr and s.cr[1]) then f.bl = os.clock() + 180 end
+	if up then mo(f.hp, 1e6, up) end
+	if bf and not (s.cr and s.cr[1]) then
+		f.bl = os.clock() + 180
+		zx(`[Boss] Fight Ended Without Catch ({s.rr or "No Reset"}), Lockout 180 s`)
+	end
 	if f.st ~= "Running" or re then
 		if s.cr and s.cr[1] and not s.cr[2] then task.wait(0.75); fc.FishLootConfirm:Fire() end
 		if not (s.cr or s.rr) then fc.FishCancel:Fire(); task.wait(1) end
@@ -1420,6 +1609,7 @@ local function ss(f)
 	end
 	if bp and s.rr == "IslandLocked" then
 		f.bx, f.bb, f.rp = f.br, false, true
+		zx("[Boss] Region On A Locked Island, Skipped")
 		return nil
 	end
 	if s.rr == "NoSkillEquipped" then return "Auto Fish Failed: No Skill Equipped" end
@@ -1441,6 +1631,10 @@ end
 local function rn(f)
 	local n = 0
 	while f.st == "Running" do
+		if f.fq then
+			f.st = "Stopped"
+			break
+		end
 		if f.iw() then
 			task.wait(0.5)
 			continue
@@ -1448,6 +1642,7 @@ local function rn(f)
 		if zy.on and zy.rq and not (f.bu or f.bb or f.hm) then
 			zy.rq = false
 			local _, e = zh()
+			if e then zx(`[Safe] {e}`, true) end
 			f.nq = {Title = "Safe", Text = e}
 			continue
 		end
@@ -1474,7 +1669,7 @@ local c = {wh = Color3.new(1, 1, 1), bk = Color3.new(0, 0, 0), tx = Color3.fromR
 local A = {rc = "rbxassetid://125251722298900", bd = "rbxassetid://136433490436465", pt = "rbxassetid://121067803898821", bn = "rbxassetid://93002040112047", cl = "rbxassetid://111107150082609", dv = "rbxassetid://136287431693380", tb = "rbxassetid://125130865636154", kp = "rbxassetid://135029838989371", ib = "rbxassetid://93542270748747", gb = "rbxassetid://78615923342985"}
 local ww, wh = 500, 322
 local mb, tc, mm = Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch, Enum.UserInputType.MouseMovement
-local L, tf, fx, bad = {Flags = {}}, nil, {}, {}
+local L, tf, fx, bad = {Flags = {}, Lg = nil :: any}, nil, {}, {}
 
 local function mk(k, p, ch)
 	local o = Instance.new(k)
@@ -1497,9 +1692,14 @@ end
 local function fire(f, ...)
 	if type(f) ~= "function" then return end
 	task.spawn(function(...)
-		local ok, e = pcall(f, ...)
+		local tb
+		local ok, e = xpcall(f, function(x)
+			tb = debug.traceback(tostring(x), 2)
+			return x
+		end, ...)
 		if ok then return end
 		warn(`Callback Failed: {e}`)
+		if L.Lg then pcall(L.Lg, `Callback Failed: {tb or e}`) end
 		if tf then tf(tostring(e)) end
 	end, ...)
 end
@@ -2161,8 +2361,15 @@ local gi = (function()
 	end)
 	return ok and type(r) == "string" and r or nil
 end)()
+local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-EC2F-86PQ", 1791298800, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+local kc = {t = 0, v = false}
+local function kv()
+	if os.clock() < kc.t then return kc.v end
+	local o, s = pcall(readfile, kf)
+	kc.v, kc.t = o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky, os.clock() + 30
+	return kc.v
+end
 do
-	local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-27BD-V8DS", 1791212256, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 	local function xp() return workspace:GetServerTimeNow() >= ex end
 	local o, s = pcall(readfile, kf)
 	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
@@ -2298,11 +2505,45 @@ do
 	end
 end
 local gw = L:Window({Title = "Ngao - Gaming Hub | Fishing Master", Config = `FishingMaster/{lp.Name}`, Icon = gi})
+do
+	local on = gw.Notify
+	gw.Notify = function(s, q)
+		if type(q) == "table" then zx(`[{q.Title or "Hub"}] {q.Text or ""}`) end
+		return on(s, q)
+	end
+	L.Lg = function(e) zx(`[Hub] {e}`) end
+	zx(`[Hub] Loaded | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)} | {#ps:GetPlayers()} Players`)
+end
 local gt, ft = gw:Tab({Name = "General", Icon = "rbxassetid://135753849387222"}), nil
 
+local xl: {[any]: any} = {}
+
+local function xt()
+	local d, r = pd(), lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+	local n, f, i = 0, ge.__FmF, ic()
+	for _ in (d.Inventory or {}).Fishes or {} do n += 1 end
+	local fu = md("Shared", "Lib", "FishStorageRules").GetState(d).isFull
+	local p = r and `{math.floor(r.Position.X)}, {math.floor(r.Position.Y)}, {math.floor(r.Position.Z)}` or "None"
+	return `[State] Island {i ~= "" and i or "Sea"} | Pos {p} | Coin {d.Coin or 0} | Satchel {n}{fu and " Full" or ""} | Quest {((d.Quest or {}).Current or {}).Id or ""} | Daily {((d.DailyQuest or {}).Active or {}).Template or ""} | Rod {d.RodEquip or "?"} | Farm {f and f.st or "Off"}{f and f.bu and " At Boss" or ""}`
+end
+
 local function cx(fn, ...)
+	if not kv() then return false, "Key Check Failed: No Valid Key" end
 	local r, dn
-	task.spawn(function(...) r = table.pack(pcall(fn, ...)); dn = true end, ...)
+	task.spawn(function(...)
+		local tb
+		r = table.pack(xpcall(fn, function(x)
+			tb = debug.traceback(tostring(x), 2)
+			return x
+		end, ...))
+		if not r[1] and not xl[r[2]] and (tb ~= xl.lt or os.clock() - (xl.tt or 0) > 60) then
+			xl.lt, xl.tt = tb, os.clock()
+			zx(`[Error] {tb or r[2]}`)
+			local ok, s = pcall(xt)
+			if ok then zx(s) end
+		end
+		dn = true
+	end, ...)
 	repeat task.wait() until dn
 	return table.unpack(r, 1, r.n)
 end
@@ -2331,10 +2572,24 @@ local function fb(f)
 			if type(v) == "table" and type(v.phase) == "string" then s.cd[k] = {v.phase, os.clock() + (tonumber(v.remaining) or 0)} end
 		end
 	end))
-	local ok, e = pcall(rn, f)
+	local tb
+	local ok, e = xpcall(rn, function(x)
+		tb = debug.traceback(tostring(x), 2)
+		return x
+	end, f)
 	for _, c in f.cs do c:Disconnect() end
+	local _, hr = lc()
+	local hq = f.hp and hr and hr.Position.Y > -10 and ut(hr.Position)
+	if hq and (hr.Position.Y < hq.Y - 4 or hr.Position.Y > 500) then
+		mo(hq, 1e6)
+		task.wait(0.1)
+	end
 	if cj then cj:Stop() end
-	if not ok then error(e, 0) end
+	if not ok then
+		zx(`[Auto Fish] Crash: {tb or e}`)
+		xl[e] = true
+		error(e, 0)
+	end
 end
 
 local function fs()
@@ -2364,6 +2619,7 @@ local function fs()
 	function f.sr() return L.Flags.sr or {} end
 	function f.fi() return ix[L.Flags.fi] end
 	function f.ab() return L.Flags.ab == true end
+	function f.hf() return L.Flags.hf == true end
 	function f.dq() return L.Flags.dq == true end
 	function f.bk() return bi[L.Flags.sb] or "truck" end
 	function f.iw()
@@ -2385,6 +2641,10 @@ local function fs()
 	if not ok then f.why = `Auto Fish Failed: {e}` end
 	f.dn = true
 	if ge.__FmF ~= f or not f.why then return end
+	task.spawn(function()
+		local sk, sv = pcall(xt)
+		if sk then zx(sv) end
+	end)
 	gw:Notify({Title = "Auto Fish", Text = f.why})
 	ft:Set(false)
 end
@@ -2894,7 +3154,12 @@ do
 end
 gt:Dropdown({Name = "Select Farm Island", Options = {"Current Island", table.unpack(iz)}, Default = "Current Island", Flag = "fi"})
 ft = gt:Toggle({Name = "Auto Fish", Flag = "af", Callback = function(v)
-	if v then fs() elseif ge.__FmF then ge.__FmF.st = "Stopped" end
+	local o = ge.__FmF
+	if v then
+		fs()
+	elseif o then
+		if o.bz and (o.s.fp or o.s.rl) and not (o.s.cr or o.s.rr) then o.fq = true else o.st = "Stopped" end
+	end
 end})
 gt:Toggle({Name = "Auto Boss", Flag = "ab"})
 
@@ -3150,11 +3415,17 @@ ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb.on = v == true end})
 ts:Toggle({Name = "Safe", Flag = "zy", Callback = function(v) zy.on = v == true end})
+ts:Toggle({Name = "Hidden Fishing", Flag = "hf"})
 local jr = false
 pcall(function() ge.__FmJ:Disconnect() end)
 ge.__FmJ = (game:GetService("GuiService") :: any).ErrorMessageChanged:Connect(function(m)
 	if jr or type(m) ~= "string" or m == "" then return end
+	if os.clock() - zy.hp < 30 then
+		zx(`[Rejoin] Ignored During Hop: {m}`, true)
+		return
+	end
 	jr = true
+	zx(`[Rejoin] Kicked: {m}`, true)
 	task.spawn(function()
 		local tp = game:GetService("TeleportService")
 		while true do
@@ -3168,16 +3439,21 @@ ge.__FmZ = zl
 task.spawn(function()
 	while ge.__FmZ == zl do
 		task.wait(0.5)
-		local f = ge.__FmF
-		if not zy.on or os.clock() < zy.nt or not zw() then
-			zy.rq = false
-		elseif f and not f.dn and f.st == "Running" then
-			zy.rq = true
-		else
-			gw:Notify({Title = "Safe", Text = "Player On Island, Hopping"})
-			local _, e = zh()
-			gw:Notify({Title = "Safe", Text = e})
-		end
+		local sk, se = pcall(function()
+			local f, ok, w = ge.__FmF, true, false
+			if zy.on and os.clock() >= zy.nt then ok, w = cx(zw) end
+			if not (ok and w) then
+				zy.rq = false
+			elseif f and not f.dn and f.st == "Running" then
+				zy.rq = true
+			else
+				gw:Notify({Title = "Safe", Text = "Player On Island, Hopping"})
+				local _, e = zh()
+				if e then zx(`[Safe] {e}`, true) end
+				gw:Notify({Title = "Safe", Text = e})
+			end
+		end)
+		if not sk then zx(`[Safe] Loop Error: {se}`) end
 	end
 end)
 ts:Button({Name = "FPS Booster", Callback = function()
@@ -3264,6 +3540,114 @@ lp:SetAttribute("PLR_TITLE", "tester")
 ge.__FmTt = lp:GetAttributeChangedSignal("PLR_TITLE"):Connect(function()
 	if lp:GetAttribute("PLR_TITLE") ~= "tester" then lp:SetAttribute("PLR_TITLE", "tester") end
 end)
+
+do
+	local wk = {}
+	ge.__FmW = wk
+	task.spawn(function()
+		local t0
+		while ge.__FmW == wk do
+			local h, ht = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid"), rv.HeldToolController
+			if ht and h and h.Health > 0 and not ht:IsReady() then
+				t0 = t0 or os.clock()
+				if os.clock() - t0 >= 5 then
+					t0 = nil
+					pcall(function() ht.BackpackReady.OnClientEvent:Fire() end)
+					zx("[Hotbar] Ready Flag Stuck, Repaired")
+				end
+			else
+				t0 = nil
+			end
+			task.wait(1)
+		end
+	end)
+end
+
+do
+	local o = ge.__FmS
+	if o then
+		o.on = false
+		pcall(function() o.t:Stop(0) end)
+		pcall(function() o.h:Stop(0) end)
+	end
+	local sk = {on = true, t = nil :: any, h = nil :: any}
+	ge.__FmS = sk
+	task.spawn(function()
+		local an, ah
+		while sk.on do
+			local hm = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
+			local a = hm and hm.Health > 0 and hm:FindFirstChildOfClass("Animator")
+			if a and (a ~= an or not (sk.t and sk.t.IsPlaying)) then
+				pcall(function()
+					local x = Instance.new("Animation")
+					x.AnimationId = "rbxassetid://180435571"
+					if sk.t and an == a then sk.t:Destroy() end
+					sk.t, an = a:LoadAnimation(x), a
+					sk.t.Looped, sk.t.Priority = true, Enum.AnimationPriority.Core
+					sk.t:Play(0, 0.01, 0.37)
+				end)
+			end
+			local fm = ge.__FmF
+			local hw = L.Flags.hf == true and fm and not fm.dn and fm.st == "Running"
+			if hw and a and (a ~= ah or not (sk.h and sk.h.IsPlaying)) then
+				pcall(function()
+					local x = Instance.new("Animation")
+					x.AnimationId = "rbxassetid://180435571"
+					if sk.h and ah == a then sk.h:Destroy() end
+					sk.h, ah = a:LoadAnimation(x), a
+					sk.h.Looped, sk.h.Priority = true, Enum.AnimationPriority.Core
+					sk.h:Play(0, 0.01, 0.41)
+				end)
+			elseif not hw and sk.h then
+				pcall(function() sk.h:Stop(0) end)
+				sk.h, ah = nil, nil
+			end
+			task.wait(0.5)
+		end
+	end)
+end
+
+do
+	local o = ge.__FmHd
+	if o then
+		o.on = false
+		o.rs()
+	end
+	local hh = {on = true, v = {}}
+	function hh.rs()
+		for d, v in hh.v do pcall(function() d[v[1]] = v[2] end) end
+		hh.v = {}
+	end
+	ge.__FmHd = hh
+	task.spawn(function()
+		while hh.on do
+			pcall(function()
+				local nf, sn = workspace:FindFirstChild("Nametags"), {}
+				for _, p in ps:GetPlayers() do
+					if p ~= lp and zq(p) then
+						for _, m in {p.Character, nf and nf:FindFirstChild(p.Name)} do
+							for _, d in m and m:GetDescendants() or {} do
+								local k = (d:IsA("BasePart") or d:IsA("Decal")) and "LocalTransparencyModifier" or (d:IsA("Beam") or d:IsA("Trail") or d:IsA("ParticleEmitter") or d:IsA("LayerCollector") or d:IsA("Highlight")) and "Enabled"
+								if k then
+									if not hh.v[d] then hh.v[d] = {k, d[k]} end
+									d[k] = k ~= "Enabled" and 1 or false
+									sn[d] = true
+								end
+							end
+						end
+					end
+				end
+				for d, v in hh.v do
+					if not sn[d] then
+						pcall(function() d[v[1]] = v[2] end)
+						hh.v[d] = nil
+					end
+				end
+			end)
+			task.wait(0.25)
+		end
+	end)
+end
 
 local function bh()
 	for _, x in ge.__FmB or {} do
