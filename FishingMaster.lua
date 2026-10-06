@@ -2436,7 +2436,7 @@ local gi = (function()
 	end)
 	return ok and type(r) == "string" and r or nil
 end)()
-local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-EC2F-86PQ", 1791298800, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-Q6T8-RYBR", 1791392400, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 local kc = {t = 0, v = false}
 local function kv()
 	if os.clock() < kc.t then return kc.v end
@@ -2698,8 +2698,8 @@ local function fs()
 	function f.dq() return L.Flags.dq == true end
 	function f.bk() return bi[L.Flags.sb] or "truck" end
 	function f.iw()
-		local j, id, g, b, t, u = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR, ge.__FmT, ge.__FmU
-		return g and not g.dn and (g.bz or g.rq and not f.bu) or b and not b.dn and (b.bz or b.rq and not f.bu) or j and not j.dn and (j.bz or id and ic() ~= id) or t and not t.dn and t.bz or u and not u.dn and (u.bz or u.rq and not f.bu) or false
+		local j, id, g, b, t, u, o = ge.__FmI, ix[L.Flags.si], ge.__FmG, ge.__FmR, ge.__FmT, ge.__FmU, ge.__FmO
+		return g and not g.dn and (g.bz or g.rq and not f.bu) or b and not b.dn and (b.bz or b.rq and not f.bu) or j and not j.dn and (j.bz or id and ic() ~= id) or t and not t.dn and t.bz or u and not u.dn and (u.bz or u.rq and not f.bu) or o and not o.dn and (o.bz or o.rq and not f.bu) or false
 	end
 	ge.__FmF = f
 	task.spawn(function()
@@ -2909,9 +2909,9 @@ local function gl(j)
 			local rc = ut or not (cc or ag) and sc
 			if rc then rc._requestId = (tonumber(rc._requestId) or 0) + 1 end
 			r = cc and rv.CrateGachaController.OpenPacket:Fire(cr, k) or ag and rv.AuraGachaController.Pull:Fire(k) or ut and ut.Pull:Fire(k, ut._requestId) or not (cc or ag or ut) and sc.Pull:Fire("Coin", k, sc._requestId)
-			for _ = 1, ut and type(r) == "table" and r.reason == "pending" and 5 or 0 do
+			for _ = 1, rc and (type(r) ~= "table" or r.reason == "pending") and 5 or 0 do
 				task.wait(3)
-				local x = ut.Recover:Fire(ut._requestId)
+				local x = rc.Recover:Fire(rc._requestId)
 				if type(x) == "table" and x.reason ~= "pending" and x.reason ~= "none" then r = x; break end
 			end
 			if type(r) ~= "table" or not r.ok then break end
@@ -3017,7 +3017,7 @@ local function xu(j)
 		local d, rr, q = pd(), {}, {}
 		for _, r in L.Flags.ur or {} do rr[r] = true end
 		for id, u in type(d.Units) == "table" and type(d.Units.Owned) == "table" and d.Units.Owned or {} do
-			if type(u) == "table" and rr[u.Rarity] and not uo.IsEquipped(d.Units, id) then table.insert(q, id) end
+			if type(u) == "table" and rr[u.Rarity] and u.locked ~= true and not uo.IsEquipped(d.Units, id) then table.insert(q, id) end
 		end
 		if #q > 0 then
 			local fm = ge.__FmF
@@ -3029,17 +3029,20 @@ local function xu(j)
 			for _, id in q do
 				if j.st ~= "Running" then break end
 				local u = (pd().Units.Owned or {})[id]
-				if u and not uo.IsEquipped(pd().Units, id) then
+				if u and u.locked ~= true and not uo.IsEquipped(pd().Units, id) then
 					local ok, e = uc:RemoveUnit(id)
-					if ok ~= true and e ~= "fishing_locked" then
-						j.bz = false
-						j.why = `Auto Delete Unit Failed: {e or "No Response"}`
-						return
+					if ok ~= true then
+						if e == "fishing_locked" then break end
+						if e ~= "locked" and e ~= "equipped" then
+							j.bz = false
+							j.why = `Auto Delete Unit Failed: {e or "No Response"}`
+							return
+						end
+					else
+						local x = ct.Unit.GetById(u.UnitId)
+						table.insert(t, `{x and x.name or u.UnitId} ({u.Rarity})`)
+						task.wait(0.5)
 					end
-					if ok ~= true then break end
-					local x = ct.Unit.GetById(u.UnitId)
-					table.insert(t, `{x and x.name or u.UnitId} ({u.Rarity})`)
-					task.wait(0.5)
 				end
 			end
 			j.bz = false
@@ -3075,6 +3078,76 @@ local function xy()
 	if ge.__FmU ~= j or not j.why then return end
 	gw:Notify({Title = "Unit", Text = j.why})
 	xk:Set(false)
+end
+
+local function xo(j)
+	local ec, ct = rv.EquipmentController, md("Data", "Catalog")
+	local function al(d, k)
+		local a = type(d.Inventory) == "table" and type(d.Inventory.Auras) == "table" and d.Inventory.Auras[k]
+		local c = type(a) == "table" and type(a.catalogId) == "string" and ct.Aura.GetById(a.catalogId)
+		return c and a.locked ~= true and d.AuraEquip ~= k and c or nil
+	end
+	while j.st == "Running" do
+		local d, rr, q = pd(), {}, {}
+		for _, r in L.Flags.xr or {} do rr[r] = true end
+		for k in type(d.Inventory) == "table" and type(d.Inventory.Auras) == "table" and d.Inventory.Auras or {} do
+			local c = al(d, k)
+			if c and rr[c.rarity] then table.insert(q, k) end
+		end
+		if #q > 0 then
+			local fm = ge.__FmF
+			j.rq = true
+			while j.st == "Running" and fm and not fm.dn and (fm.bz or fm.bu) do task.wait(0.5) end
+			if j.st ~= "Running" then return end
+			j.bz, j.rq = true, false
+			local t = {}
+			for _, k in q do
+				if j.st ~= "Running" then break end
+				local c = al(pd(), k)
+				if c and rr[c.rarity] then
+					local ok = ec.EquipmentRemove:Fire("aura", k)
+					if ok ~= true then
+						j.bz = false
+						j.why = ok == false and "Auto Delete Aura Failed: Remove Refused" or "Auto Delete Aura Failed: No Response"
+						return
+					end
+					table.insert(t, `{c.name or c.id} ({c.rarity})`)
+					task.wait(0.5)
+				end
+			end
+			j.bz = false
+			if #t > 0 then j.nt = {Title = "Aura", Text = `Deleted {table.concat(t, ", ")}`} end
+		end
+		task.wait(5)
+	end
+end
+
+local xz
+local function xw()
+	local o = ge.__FmO
+	if o then
+		o.st = "Stopped"
+		local dl = os.clock() + 5
+		repeat task.wait(0.1) until o.dn or os.clock() > dl
+	end
+	local j = {st = "Running", dn = false, nt = false, bz = false, rq = false}
+	ge.__FmO = j
+	task.spawn(function()
+		while not j.dn do
+			local x = j.nt
+			if x then
+				j.nt = false
+				gw:Notify(x)
+			end
+			task.wait(0.5)
+		end
+	end)
+	local ok, e = cx(xo, j)
+	if not ok then j.why = `Auto Delete Aura Failed: {e}` end
+	j.dn = true
+	if ge.__FmO ~= j or not j.why then return end
+	gw:Notify({Title = "Aura", Text = j.why})
+	xz:Set(false)
 end
 
 local mk
@@ -3269,6 +3342,11 @@ tm:Section({Name = "Unit"})
 tm:Dropdown({Name = "Delete Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical"}, Default = {}, Multi = true, Flag = "ur"})
 xk = tm:Toggle({Name = "Auto Delete Unit", Flag = "ua", Callback = function(v)
 	if v then xy() elseif ge.__FmU then ge.__FmU.st = "Stopped" end
+end})
+tm:Section({Name = "Aura"})
+tm:Dropdown({Name = "Delete Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Divine"}, Default = {}, Multi = true, Flag = "xr"})
+xz = tm:Toggle({Name = "Auto Delete Aura", Flag = "xa", Callback = function(v)
+	if v then xw() elseif ge.__FmO then ge.__FmO.st = "Stopped" end
 end})
 
 local tq = gw:Tab({Name = "Shop", Icon = "rbxassetid://95128643065405"})
@@ -3594,6 +3672,15 @@ local function nt()
 end
 
 nt()
+
+if ge.__FmC then ge.__FmC:Disconnect() end
+task.spawn(function()
+	local g = lp:WaitForChild("PlayerGui"):WaitForChild("Version", 30)
+	local l = g and g:FindFirstChildWhichIsA("TextLabel", true)
+	if not l then return end
+	l.TextTransparency = 1
+	ge.__FmC = l:GetPropertyChangedSignal("TextTransparency"):Connect(function() if l.TextTransparency ~= 1 then l.TextTransparency = 1 end end)
+end)
 
 task.spawn(function()
 	for _ = 1, 3 do
