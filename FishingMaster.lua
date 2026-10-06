@@ -799,11 +799,11 @@ local function wy(f, id, mp, h, o)
 	o.hb = game:GetService("RunService").Heartbeat:Connect(function()
 		if r.Parent then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, cf end
 	end)
-	task.wait(0.5)
-	cf = CFrame.new(mp.X, 1000, mp.Z)
-	task.wait(1)
-	cf = CFrame.new(mp + Vector3.new(4, 3, 0))
 	task.wait(0.3)
+	cf = CFrame.new(mp.X, 1000, mp.Z)
+	task.wait(0.6)
+	cf = CFrame.new(mp + Vector3.new(4, 3, 0))
+	task.wait(0.2)
 	local dl = os.clock() + 4.5
 	while not ok and os.clock() < dl and f.st == "Running" do
 		local b, dn = {}, false
@@ -812,17 +812,22 @@ local function wy(f, id, mp, h, o)
 		repeat task.wait() until dn or os.clock() > d2
 		if not ok then task.wait(0.1) end
 	end
+	if ok then
+		local d3 = os.clock() + 3
+		repeat task.wait() until (pd() or {}).SpawnIsland == id or os.clock() > d3 or f.st ~= "Running"
+	end
 	o.hb:Disconnect()
 	if f.st ~= "Running" then return nil end
 	if not ok then return nil, "Warp Failed: Spawn Not Set" end
-	local bc, tk = md("Controllers", "BackpackController"), false
-	for _ = 1, 10 do
-		task.wait(1)
-		if f.st ~= "Running" then return nil end
+	if (pd() or {}).SpawnIsland ~= id then return nil, "Warp Failed: Spawn Island Unchanged" end
+	local bc, tk, d4 = md("Controllers", "BackpackController"), false, os.clock() + 10
+	while f.st == "Running" and os.clock() < d4 do
 		local s, v = pcall(function() return bc.TeleportToSpawn:Fire() end)
 		tk = s and v == true
 		if tk then break end
+		task.wait(0.5)
 	end
+	if f.st ~= "Running" then return nil end
 	if not tk then return nil, "Warp Failed: Respawn Refused" end
 	dl = os.clock() + 8
 	repeat task.wait(0.2) until ic() == id and lc() or os.clock() > dl
@@ -3604,6 +3609,18 @@ ge.__FmA = lp.Idled:Connect(function()
 	vu:CaptureController()
 	vu:ClickButton2(Vector2.new())
 end)
+
+do
+	local nc = rv.NotificationController
+	if type(nc) == "table" and type(nc.Push) == "function" then
+		local op = ge.__FmNo or nc.Push
+		ge.__FmNo = op
+		nc.Push = function(s, t, ...)
+			if type(t) == "string" and (t == "Left the region" or t:sub(1, 8) == "Entered ") then return end
+			return op(s, t, ...)
+		end
+	end
+end
 
 if ge.__FmTt then ge.__FmTt:Disconnect() end
 lp:SetAttribute("PLR_TITLE", "tester")
