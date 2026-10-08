@@ -1737,14 +1737,15 @@ local function rn(f)
 end
 
 local L = (function()
-local ps, uis, tws, gs, hs, rs, cp = game:GetService("Players"), game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("GuiService"), game:GetService("HttpService"), game:GetService("RunService"), game:GetService("ContentProvider")
+local ps, uis, tws, gs, hs = game:GetService("Players"), game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("GuiService"), game:GetService("HttpService")
 local ge = getgenv and getgenv() or _G
-local ff, fi = Font.new("rbxassetid://12187375422", Enum.FontWeight.Bold), Font.new("rbxassetid://12187375422", Enum.FontWeight.Bold, Enum.FontStyle.Italic)
-local c = {wh = Color3.new(1, 1, 1), bk = Color3.new(0, 0, 0), tx = Color3.fromRGB(232, 238, 255), dm = Color3.fromRGB(150, 165, 200), bl = Color3.fromRGB(85, 170, 255), gn = Color3.fromRGB(0, 249, 0), kf = Color3.fromRGB(204, 205, 209), er = Color3.fromRGB(235, 64, 52), nv = Color3.fromRGB(10, 16, 40), sk = Color3.fromRGB(20, 20, 30)}
-local A = {rc = "rbxassetid://125251722298900", bd = "rbxassetid://136433490436465", pt = "rbxassetid://121067803898821", bn = "rbxassetid://93002040112047", cl = "rbxassetid://111107150082609", dv = "rbxassetid://136287431693380", tb = "rbxassetid://125130865636154", kp = "rbxassetid://135029838989371", ib = "rbxassetid://93542270748747", gb = "rbxassetid://78615923342985"}
-local ww, wh = 500, 322
-local mb, tc, mm = Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch, Enum.UserInputType.MouseMovement
-local L, tf, fx, bad = {Flags = {}, Lg = nil :: any}, nil, {}, {}
+local c = {bg = Color3.fromRGB(37, 37, 34), cd = Color3.fromRGB(47, 47, 43), hv = Color3.fromRGB(58, 58, 54), pr = Color3.fromRGB(68, 68, 63), tx = Color3.fromRGB(244, 240, 232), dm = Color3.fromRGB(168, 164, 156), ac = Color3.fromRGB(76, 194, 255), er = Color3.fromRGB(214, 106, 94)}
+local fn, fb, ww, wh, nw, th = Enum.Font.BuilderSansMedium, Enum.Font.BuilderSansBold, 580, 340, 150, 40
+local ip = "rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"
+local ir, ib = Font.new(ip), Font.new(ip, Enum.FontWeight.Bold)
+local mb, tc, mm, kb = Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch, Enum.UserInputType.MouseMovement, Enum.UserInputType.Keyboard
+local ti = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local L = {Flags = {}}
 
 local function mk(k, p, ch)
 	local o = Instance.new(k)
@@ -1756,670 +1757,714 @@ local function mk(k, p, ch)
 	return o
 end
 
-local function rc(r)
-	return mk("UICorner", {CornerRadius = UDim.new(0, r or 6)})
+local function rc(r) return mk("UICorner", {CornerRadius = UDim.new(0, r)}) end
+local function sk(t, col) return mk("UIStroke", {Color = col or c.tx, Transparency = t, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}) end
+local function pd(l, r, t, b) return mk("UIPadding", {PaddingLeft = UDim.new(0, l), PaddingRight = UDim.new(0, r or l), PaddingTop = UDim.new(0, t or 0), PaddingBottom = UDim.new(0, b or t or 0)}) end
+local function ll(g) return mk("UIListLayout", {Padding = UDim.new(0, g), SortOrder = Enum.SortOrder.LayoutOrder}) end
+local function tw(o, p, d) tws:Create(o, d and TweenInfo.new(d, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) or ti, p):Play() end
+
+local function tl(p, ch)
+	local d = {BackgroundTransparency = 1, Font = fn, TextColor3 = c.tx, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, Text = ""}
+	for i, v in p do d[i] = v end
+	return mk("TextLabel", d, ch)
 end
 
-local function pd(l, r, t, b)
-	return mk("UIPadding", {PaddingLeft = UDim.new(0, l), PaddingRight = UDim.new(0, r or l), PaddingTop = UDim.new(0, t or 0), PaddingBottom = UDim.new(0, b or t or 0)})
+local function ig(p, ch)
+	local d = {BackgroundTransparency = 1, FontFace = ir, TextColor3 = c.tx, TextSize = 16, Text = ""}
+	for i, v in p do d[i] = v end
+	return mk("TextLabel", d, ch)
 end
 
-local function fire(f, ...)
-	if type(f) ~= "function" then return end
-	task.spawn(function(...)
-		local tb
-		local ok, e = xpcall(f, function(x)
-			tb = debug.traceback(tostring(x), 2)
-			return x
-		end, ...)
-		if ok then return end
-		warn(`Callback Failed: {e}`)
-		if L.Lg then pcall(L.Lg, `Callback Failed: {tb or e}`) end
-		if tf then tf(tostring(e)) end
-	end, ...)
+local function bt(p, ch)
+	local d = {BackgroundTransparency = 1, AutoButtonColor = false, Text = "", BorderSizePixel = 0}
+	for i, v in p do d[i] = v end
+	return mk("TextButton", d, ch)
 end
 
-local function ck(q, k)
-	if type(q) ~= "table" or type(q.Name) ~= "string" then error(`{k} Failed: No Name`) end
-	if q.Flag ~= nil and type(q.Flag) ~= "string" then error(`{k} Failed: Bad Flag`) end
+local function hov(b, base)
+	b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundColor3 = c.hv}) end end)
+	b.MouseLeave:Connect(function() tw(b, {BackgroundColor3 = base()}) end)
+	b.MouseButton1Down:Connect(function() tw(b, {BackgroundColor3 = c.pr}, 0.05) end)
+	b.MouseButton1Up:Connect(function() tw(b, {BackgroundColor3 = uis.MouseEnabled and c.hv or base()}) end)
 end
 
-local function dg(h, cs, st, mv, en)
-	local a, p0
-	local function me(i)
-		return i == a or (a.UserInputType == mb and i.UserInputType == mb)
+local function gui()
+	local sg = mk("ScreenGui", {Name = hs:GenerateGUID(false), IgnoreGuiInset = true, ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 999})
+	if not pcall(function() sg.Parent = gethui and gethui() or game:GetService("CoreGui") end) then sg.Parent = ps.LocalPlayer:WaitForChild("PlayerGui") end
+	return sg
+end
+
+local function fit(sg, f, sc, w, h)
+	local s, i = sg.AbsoluteSize, gs:GetGuiInset().Y
+	local v = math.clamp(math.min((s.X - 24) / w, (s.Y - i - 24) / h), 0.5, 1)
+	sc.Scale = v
+	f.Position = UDim2.fromOffset(s.X / 2, i + (s.Y - i) / 2)
+	return v
+end
+
+local function cfn(s)
+	return s == nil or type(s) == "string" and s:match("^[%w _%-]+$") ~= nil
+end
+
+local function dirs()
+	if not isfolder("Avenoric") then makefolder("Avenoric") end
+end
+
+local function inv(u)
+	local code = u:match("([%w%-_]+)/?%s*$")
+	if not code then return end
+	local body = hs:JSONEncode({cmd = "INVITE_BROWSER", nonce = hs:GenerateGUID(false), args = {code = code}})
+	for p = 6463, 6472 do
+		local ok, r = pcall(request, {Url = `http://127.0.0.1:{p}/rpc?v=1`, Method = "POST", Headers = {["Content-Type"] = "application/json", Origin = "https://discord.com"}, Body = body})
+		if ok and type(r) == "table" and r.StatusCode == 200 then return end
 	end
-
-	table.insert(cs, h.InputBegan:Connect(function(i)
-		if a or (i.UserInputType ~= mb and i.UserInputType ~= tc) then return end
-		a, p0 = i, i.Position
-		st(i)
-	end))
-	table.insert(cs, uis.InputChanged:Connect(function(i)
-		if a and (i == a or (a.UserInputType == mb and i.UserInputType == mm)) then mv(Vector2.new(i.Position.X - p0.X, i.Position.Y - p0.Y)) end
-	end))
-	table.insert(cs, uis.InputEnded:Connect(function(i)
-		if not a or not me(i) then return end
-		local d = Vector2.new(i.Position.X - p0.X, i.Position.Y - p0.Y)
-		a = nil
-		if en then en(d) end
-	end))
 end
 
-local function gr(p, k, r)
-	local q = {}
-	for i, x in k do q[i] = ColorSequenceKeypoint.new((i - 1) / (#k - 1), Color3.fromHex(x)) end
-	return mk("UIGradient", {Parent = p, Color = ColorSequence.new(q), Rotation = r or 90})
-end
-
-local function fb(o, k)
-	if bad[k] then o.BackgroundTransparency = 0 else table.insert(fx, {o, k}) end
-	return o
-end
-
-task.spawn(function()
-	local ls = {}
-	for _, v in A do table.insert(ls, v) end
-	pcall(cp.PreloadAsync, cp, ls, function(id, st)
-		if st ~= Enum.AssetFetchStatus.Failure then return end
-		for k, v in A do
-			if v == id then bad[k] = true end
+function L:Gate(o)
+	o = o or {}
+	if type(o.Check) ~= "function" then error("Gate Failed: No Check", 0) end
+	if not cfn(o.Config) then error("Gate Failed: Bad Config", 0) end
+	local mx = o.Max == nil and 24 or tonumber(o.Max)
+	if not (mx and mx >= 1) then error("Gate Failed: Bad Max", 0) end
+	local kp = o.Config and `Avenoric/Keys/{o.Config}.txt`
+	if kp and isfile and isfile(kp) then
+		local ok, s = pcall(readfile, kp)
+		if ok and type(s) == "string" and s ~= "" then
+			local ok2, r = pcall(o.Check, s)
+			if ok2 and r == true then return s end
 		end
-		for _, x in fx do
-			if bad[x[2]] and x[1].Parent then x[1].BackgroundTransparency = 0 end
-		end
+	end
+	local sg = gui()
+	L.GateGui = sg
+	bt({Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(), BackgroundTransparency = 0.5, Parent = sg})
+	local f = mk("Frame", {Size = UDim2.fromOffset(300, 180), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 2, Parent = sg}, {rc(12), sk(0.85), pd(20, 20, 20, 20)})
+	local sc = mk("UIScale", {Parent = f})
+	fit(sg, f, sc, 300, 180)
+	local cn = sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() fit(sg, f, sc, 300, 180) end)
+	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, TextSize = 16, Size = UDim2.new(1, 0, 0, 20), Parent = f})
+	tl({Text = "Enter your key to continue", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 16), Parent = f})
+	local bx = mk("Frame", {Position = UDim2.fromOffset(0, 48), Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(6), sk(0.9)})
+	local st = bx:FindFirstChildOfClass("UIStroke")
+	local tb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), Font = fn, TextSize = 14, TextColor3 = c.tx, PlaceholderText = "Key", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = bx})
+	local ml = tl({Text = "", TextSize = 12, TextColor3 = c.er, Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 16), Visible = false, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
+	local sb = bt({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = o.Link and UDim2.new(0.5, -4, 0, 32) or UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.ac, BackgroundTransparency = 0, Font = fb, TextSize = 13, TextColor3 = c.bg, Text = "Submit", Parent = f}, {rc(6)})
+	tb:GetPropertyChangedSignal("Text"):Connect(function() if #tb.Text > mx then tb.Text = tb.Text:sub(1, mx) end end)
+	local busy, got = false, nil
+	local function msg(s, col) ml.Text, ml.TextColor3, ml.Visible = s, col or c.er, true end
+	local function sub()
+		if busy then return end
+		local s = (tb.Text:gsub("^%s+", ""):gsub("%s+$", ""))
+		if s == "" then msg("Enter A Key"); return end
+		busy, sb.Text = true, "Checking..."
+		local ok, r, m = pcall(o.Check, s)
+		busy, sb.Text = false, "Submit"
+		if not ok then msg("Key Check Failed: " .. tostring(r)); return end
+		if r ~= true then msg(m and tostring(m) or "Wrong Key"); return end
+		if kp then pcall(function() dirs(); if not isfolder("Avenoric/Keys") then makefolder("Avenoric/Keys") end; writefile(kp, s) end) end
+		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
+		got = s
+	end
+	tb.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
+	tb.FocusLost:Connect(function(en)
+		tw(st, {Color = c.tx, Transparency = 0.9})
+		if en then sub() end
 	end)
-end)
-
-local function tl(p, z, t, f, sc)
-	return mk("TextLabel", {Parent = p, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, FontFace = f or ff, TextSize = z, TextColor3 = c.wh, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Text = t}, {mk("UIStroke", {Color = sc or c.sk, Thickness = 1.2})})
-end
-
-local function bt(x)
-	local k = x:FindFirstChildOfClass("UIStroke")
-	k.Color, k.Transparency, k.Thickness, k.LineJoinMode = c.bk, 0.25, 2, Enum.LineJoinMode.Round
-	x.AnchorPoint, x.Position, x.Size, x.TextTruncate, x.TextXAlignment, x.TextScaled = Vector2.new(0.5, 0.5), UDim2.fromScale(0.58, 0.63), UDim2.fromScale(0.6, 0.32), Enum.TextTruncate.None, Enum.TextXAlignment.Center, true
-	return x
-end
-
-local function hg(o)
-	local w, g = Color3.new(1, 1, 1), Color3.fromRGB(126, 126, 126)
-	mk("UIGradient", {Parent = o, Rotation = 90, Color = ColorSequence.new({ColorSequenceKeypoint.new(0, w), ColorSequenceKeypoint.new(0.38, w), ColorSequenceKeypoint.new(0.59, g), ColorSequenceKeypoint.new(0.72, w), ColorSequenceKeypoint.new(1, w)})})
-	return o
-end
-
-local function im(p, i, q)
-	q.Parent, q.Image, q.BackgroundTransparency = p, i, q.BackgroundTransparency or 1
-	return mk("ImageLabel", q)
-end
-
-local function pn(p, ss)
-	local f, s = mk("Frame", {Parent = p, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1}), Rect.new(256, 256, 256, 256)
-	fb(mk("Frame", {Parent = f, Size = UDim2.fromScale(1, 1), BackgroundColor3 = c.nv, BackgroundTransparency = 1, BorderSizePixel = 0}, {rc(10)}), "rc")
-	im(f, A.rc, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Slice, SliceCenter = s, SliceScale = ss, ImageColor3 = c.bk, ImageTransparency = 0.2, ZIndex = 2})
-	im(f, A.pt, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, -8, 1, -8), ScaleType = Enum.ScaleType.Crop, ImageColor3 = Color3.fromHex("9fa1a1"), ImageTransparency = 0.5, ZIndex = 2})
-	gr(im(f, A.rc, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Slice, SliceCenter = s, SliceScale = ss, ImageTransparency = 0.5, ZIndex = 3}), {"0433ff", "000000"}, -90)
-	gr(im(f, A.bd, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Slice, SliceCenter = s, SliceScale = ss, ImageColor3 = Color3.fromHex("f4f7ff"), ZIndex = 5}), {"f4f7ff", "7c8088", "7c8088"}, 73)
-	return f
+	sb.Activated:Connect(sub)
+	if o.Link then
+		local gk = bt({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(0.5, -4, 0, 32), BackgroundColor3 = c.cd, BackgroundTransparency = 0, Font = fn, TextSize = 13, TextColor3 = c.tx, Text = "Get Key", Parent = f}, {rc(6), sk(0.9)})
+		hov(gk, function() return c.cd end)
+		gk.Activated:Connect(function()
+			if setclipboard then setclipboard(tostring(o.Link)) end
+			msg("Link Copied", c.dm)
+		end)
+	end
+	repeat task.wait() until got ~= nil
+	cn:Disconnect()
+	sg:Destroy()
+	L.GateGui = nil
+	return got
 end
 
 function L:Window(o)
 	o = o or {}
-	if type(o) ~= "table" then error("Window Failed: Bad Options") end
-	if o.Key ~= nil and o.Key ~= false and typeof(o.Key) ~= "EnumItem" then error("Window Failed: Bad Key") end
-	if o.Config ~= nil and (type(o.Config) ~= "string" or (o.Config .. "/"):gsub("[%w _%-]+/", "") ~= "") then error("Window Failed: Bad Config") end
+	if not cfn(o.Config) then error("Window Failed: Bad Config", 0) end
 	if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
-
-	local W, cs, tb, ov = {}, {}, {}, nil
-	local key = o.Key == nil and Enum.KeyCode.LeftControl or o.Key
-	local sg = mk("ScreenGui", {Name = hs:GenerateGUID(false), ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 999})
-	if not pcall(function() sg.Parent = gethui and gethui() or game:GetService("CoreGui") end) then sg.Parent = ps.LocalPlayer:WaitForChild("PlayerGui") end
-
-	local w = mk("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(ww, wh), BackgroundTransparency = 1, Active = true})
-	local us = mk("UIScale", {Parent = w})
-	pn(w, 0.3)
-	local tp = mk("Frame", {Parent = w, Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, Active = true, ZIndex = 2})
-	local ta = tostring(o.Title or "Avenoric")
-	local t1 = ta:match("^(.-)%s*|")
-	local bn = fb(im(w, A.bn, {Position = UDim2.fromOffset(-14, -30), Size = UDim2.fromOffset(300, 80), BackgroundColor3 = c.bl, ScaleType = Enum.ScaleType.Fit, Active = true, ZIndex = 3}), "bn")
-	local tt = hg(tl(bn, 18, t1 or ta, fi))
-	bt(tt)
-	local xb = fb(mk("ImageButton", {Parent = w, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -8, 0, 8), Size = UDim2.fromOffset(34, 38), BackgroundColor3 = c.er, BackgroundTransparency = 1, AutoButtonColor = false, Image = A.cl, ScaleType = Enum.ScaleType.Fit, ZIndex = 4}), "cl")
-	local xu = mk("UIScale", {Parent = xb})
-	local nb = mk("TextButton", {Parent = w, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -32, 0, 18), Size = UDim2.fromOffset(28, 28), BackgroundTransparency = 1, AutoButtonColor = false, Text = "", ZIndex = 4})
-	mk("Frame", {Parent = nb, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 3), BackgroundColor3 = c.wh, BorderSizePixel = 0, ZIndex = 4}, {rc(2), mk("UIStroke", {Color = c.sk, Thickness = 1.2})})
-	local bar = mk("ScrollingFrame", {Parent = w, Position = UDim2.fromOffset(12, 48), Size = UDim2.new(0, 46, 1, -60), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, ScrollingDirection = Enum.ScrollingDirection.Y, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 2}, {mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3), HorizontalAlignment = Enum.HorizontalAlignment.Center}), pd(0, 0, 3, 3)})
-	mk("Frame", {Parent = w, Position = UDim2.fromOffset(64, 48), Size = UDim2.new(0, 1, 1, -60), BackgroundColor3 = c.dm, BackgroundTransparency = 0.6, BorderSizePixel = 0, ZIndex = 2})
-	local hd = hg(tl(w, 20, "", fi))
-	hd.Position, hd.Size, hd.ZIndex = UDim2.fromOffset(78, 44), UDim2.new(1, -92, 0, 26), 2
-	local bd = mk("Frame", {Parent = w, Position = UDim2.fromOffset(72, 74), Size = UDim2.new(1, -82, 1, -84), BackgroundTransparency = 1, ZIndex = 2})
-	local gz = mk("TextButton", {Parent = w, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -4, 1, -4), Size = UDim2.fromOffset(14, 14), BackgroundTransparency = 1, AutoButtonColor = false, Text = "", ZIndex = 6})
-	for _, q in {{10, 10}, {6, 10}, {10, 6}, {2, 10}, {6, 6}, {10, 2}} do mk("Frame", {Parent = gz, Position = UDim2.fromOffset(q[1], q[2]), Size = UDim2.fromOffset(2, 2), BackgroundColor3 = c.dm, BorderSizePixel = 0, ZIndex = 6}) end
-	local hu = (function()
-		local ok, b = pcall(function() return ps.LocalPlayer.PlayerGui:WaitForChild("HUD", 5).Frame.Buttons end)
-		return ok and b or nil
-	end)()
-	local hb = hu and hu:FindFirstAncestorOfClass("ScreenGui")
-	local sh = mk("ScreenGui", {Name = hs:GenerateGUID(false), ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 998})
-	if hb then
-		sh.IgnoreGuiInset = hb.IgnoreGuiInset
-		pcall(function() sh.ScreenInsets = hb.ScreenInsets end)
+	local W = {Tabs = {}, Current = nil, cn = {}, key = o.Key == nil and Enum.KeyCode.LeftControl or o.Key, sx = false, sq = false, kw = false, fc = nil, sv = 1, fd = nil, w = ww, h = wh}
+	local sg = gui()
+	W.Gui = sg
+	local mn = mk("Frame", {Name = "Main", Size = UDim2.fromOffset(ww, wh), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, Parent = sg}, {rc(12), sk(0.85)})
+	W.Main = mn
+	local sc = mk("UIScale", {Parent = mn})
+	local tb = mk("Frame", {Size = UDim2.new(1, 0, 0, th), BackgroundTransparency = 1, Parent = mn})
+	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, Position = UDim2.fromOffset(16, 0), Size = UDim2.new(1, -116, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = tb})
+	local function cap(x, g)
+		local b = bt({Size = UDim2.fromOffset(40, 28), Position = UDim2.new(1, x, 0, 6), BackgroundColor3 = c.hv, Parent = tb}, {rc(6)})
+		local i = ig({Text = g, TextSize = 14, TextColor3 = c.dm, Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, Parent = b})
+		b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundTransparency = 0}) end end)
+		b.MouseLeave:Connect(function() tw(b, {BackgroundTransparency = 1}) end)
+		return b, i
 	end
-	if not pcall(function() sh.Parent = gethui and gethui() or game:GetService("CoreGui") end) then sh.Parent = ps.LocalPlayer:WaitForChild("PlayerGui") end
-	local se = hu and hu:FindFirstChild("Settings")
-	local fl
-	if se then
-		fl = se:Clone()
-		for _, d in fl:GetDescendants() do
-			if d:IsA("LuaSourceContainer") or d.Name == "HasNotification" then d:Destroy() end
+	local xb, xi = cap(-46, "x")
+	local nb = cap(-88, "minus")
+	local tsf = mk("Frame", {AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -12, 1, -12), Size = UDim2.fromOffset(300, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 100, Parent = sg}, {ll(8)})
+
+	function W:Notify(n)
+		n = n or {}
+		if n.Title == nil and n.Text == nil then error("Notify Failed: No Text", 0) end
+		local t = n.Time == nil and 4 or n.Time
+		if type(t) ~= "number" or t ~= t or t <= 0 then error("Notify Failed: Bad Time", 0) end
+		local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = c.cd, BorderSizePixel = 0, ZIndex = 100, Parent = tsf}, {rc(8), sk(0.9), pd(18, 14, 10, 10)})
+		mk("Frame", {Position = UDim2.fromOffset(-12, 2), Size = UDim2.new(0, 3, 1, -4), BackgroundColor3 = n.Error and c.er or c.ac, BorderSizePixel = 0, ZIndex = 101, Parent = f}, {rc(2)})
+		local lay = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 101, Parent = f}, {ll(2)})
+		tl({Text = tostring(n.Title or "Avenoric"), Font = fb, Size = UDim2.new(1, 0, 0, 18), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 102, LayoutOrder = 1, Parent = lay})
+		if n.Text ~= nil then tl({Text = tostring(n.Text), TextSize = 13, TextColor3 = c.dm, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextWrapped = true, ZIndex = 102, LayoutOrder = 2, Parent = lay}) end
+		local us = mk("UIScale", {Scale = 0.9, Parent = f})
+		tw(us, {Scale = 1})
+		task.delay(t, function() if f.Parent then f:Destroy() end end)
+		return f
+	end
+
+	local function run(f, ...)
+		if not f then return end
+		local ok, e = pcall(f, ...)
+		if ok then return end
+		warn("Callback Failed: " .. tostring(e))
+		W:Notify({Title = "Callback Failed", Text = tostring(e), Error = true})
+	end
+
+	local cp, cd, dirty, pend, dead = o.Config and `Avenoric/Configs/{o.Config}.json`, {}, false, false, false
+	if cp and isfile and isfile(cp) then
+		local ok, d = pcall(function() return hs:JSONDecode(readfile(cp)) end)
+		if ok and type(d) == "table" then cd = d else
+			pcall(function() writefile(cp .. ".bad", readfile(cp)); delfile(cp) end)
+			W:Notify({Title = "Config Load Failed", Text = "Invalid Json", Error = true})
 		end
-		local t = fl:FindFirstChild("Title", true)
-		if t and t:IsA("TextLabel") then t.Text = "Ngao" end
-		if type(o.Icon) == "string" then
-			for _, d in fl:GetDescendants() do
-				if d:IsA("ImageLabel") and d.Name == "Icon" then
-					d.Image = o.Icon
-					mk("UICorner", {Parent = d, CornerRadius = UDim.new(1, 0)})
-				end
-			end
-		end
-		fl.Name, fl.AnchorPoint, fl.LayoutOrder, fl.Parent = "Ngao", Vector2.zero, 0, sh
-	else
-		fl = mk("ImageButton", {Parent = sh, Name = "Ngao", Size = UDim2.fromOffset(44, 44), BackgroundColor3 = Color3.fromRGB(18, 18, 21), BackgroundTransparency = 0.08, AutoButtonColor = false, Image = type(o.Icon) == "string" and o.Icon or ""}, {rc(22)})
 	end
-	local fu = fl:FindFirstChildOfClass("UIScale") or mk("UIScale", {Parent = fl})
-	local hz, ht = se ~= nil, 0
-	local tq = mk("Frame", {Parent = sg, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -12, 1, -12), Size = UDim2.new(0, 250, 1, -80), BackgroundTransparency = 1}, {mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Bottom, Padding = UDim.new(0, 8)})})
-	local qs, act, tn = mk("UIScale", {Parent = tq}), {}, 0
-
-	local function vs()
-		local v = sg.AbsoluteSize
-		if v.X < 1 then v = workspace.CurrentCamera.ViewportSize end
-		return v, gs:GetGuiInset().Y
+	local function save()
+		if not cp or not dirty then return end
+		dirty = false
+		pcall(function()
+			dirs()
+			if not isfolder("Avenoric/Configs") then makefolder("Avenoric/Configs") end
+			writefile(cp, hs:JSONEncode(cd))
+		end)
 	end
-
-	local function cl(p, z)
-		local v, t = vs()
-		local hx, hy = z.X / 2, z.Y / 2
-		return Vector2.new(math.clamp(p.X, hx, math.max(hx, v.X - hx)), math.clamp(p.Y, t + hy, math.max(t + hy, v.Y - hy)))
+	local function put(e, v)
+		if not e.Flag then return end
+		L.Flags[e.Flag] = v
+		if not cp then return end
+		if e.sv then cd[e.Flag] = e.sv(v) else cd[e.Flag] = v end
+		dirty = true
+		if pend or dead then return end
+		pend = true
+		task.delay(0.5, function() pend = false; save() end)
 	end
-
-	local v0, t0 = vs()
-	local wp, zm = Vector2.new(v0.X / 2, (v0.Y + t0) / 2), nil
-	local function put()
-		wp = cl(wp, Vector2.new(ww + 24, wh + 36) * us.Scale)
-		w.Position = UDim2.fromOffset(wp.X, wp.Y)
-	end
-
-	local function zs()
-		local v, t = vs()
-		return zm or math.clamp(math.min((v.X - 24) / (ww + 24), (v.Y - t - 24) / (wh + 36), 1.2), 0.5, 1.2)
-	end
-
-	local function fit()
-		us.Scale = zs()
-		qs.Scale = us.Scale
-		put()
-	end
-
-	local function toast(q)
-		tn += 1
-		local o = #act >= 4 and table.remove(act, 1)
-		if o then o:Destroy() end
-		local h = mk("Frame", {Parent = tq, LayoutOrder = tn, Size = UDim2.fromScale(1, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1})
-		local k = mk("Frame", {Parent = h, Position = UDim2.fromOffset(270, 0), Size = UDim2.fromScale(1, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1})
-		local pf = pn(k, 0.12)
-		mk("Frame", {Parent = pf, AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 8, 0.5, 0), Size = UDim2.new(0, 3, 1, -18), BackgroundColor3 = q.Err and c.er or c.bl, BorderSizePixel = 0, ZIndex = 6}, {rc(2)})
-		local x = mk("Frame", {Parent = k, Size = UDim2.fromScale(1, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 2}, {pd(20, 12, 10), mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3)})})
-		local function rz() pf.Size = UDim2.new(1, 0, 0, x.AbsoluteSize.Y / math.max(qs.Scale, 0.01)) end
-		x:GetPropertyChangedSignal("AbsoluteSize"):Connect(rz)
-		rz()
-		hg(mk("TextLabel", {Parent = x, LayoutOrder = 1, Size = UDim2.fromScale(1, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, FontFace = fi, TextSize = 15, TextColor3 = c.wh, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, Text = q.Title}, {mk("UIStroke", {Color = c.sk, Thickness = 1.2})}))
-		if q.Text ~= "" then mk("TextLabel", {Parent = x, LayoutOrder = 2, Size = UDim2.fromScale(1, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, FontFace = ff, TextSize = 13, TextColor3 = c.tx, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, Text = q.Text}, {mk("UIStroke", {Color = c.sk, Thickness = 1})}) end
-		table.insert(act, h)
-		tws:Create(k, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Position = UDim2.new()}):Play()
-		task.delay(q.Time, function()
-			local i = table.find(act, h)
-			if not i then return end
-			table.remove(act, i)
-			local tw = tws:Create(k, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {Position = UDim2.fromOffset(270, 0)})
-			tw:Play()
-			tw.Completed:Wait()
-			h:Destroy()
+	local function done(e)
+		if not e.Flag then return end
+		L.Flags[e.Flag] = e:Get()
+		local s = cd[e.Flag]
+		if s == nil then return end
+		pcall(function()
+			if e.ld then s = e.ld(s) end
+			e:Set(s)
 		end)
 	end
 
-	local function ef(e)
-		toast({Title = "Callback Failed", Text = e, Time = 6, Err = true})
+	local nv = mk("Frame", {Position = UDim2.fromOffset(12, th + 4), Size = UDim2.new(0, nw, 1, -(th + 16)), BackgroundTransparency = 1, Parent = mn})
+	local sbx = mk("Frame", {Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = nv}, {rc(6), sk(0.9)})
+	local sst = sbx:FindFirstChildOfClass("UIStroke")
+	ig({Text = "magnifying-glass", TextSize = 14, TextColor3 = c.dm, Position = UDim2.fromOffset(9, 0), Size = UDim2.fromOffset(16, 32), Parent = sbx})
+	local sb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(30, 0), Size = UDim2.new(1, -36, 1, 0), Font = fn, TextSize = 13, TextColor3 = c.tx, PlaceholderText = "Search", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = sbx})
+	sb.Focused:Connect(function() tw(sst, {Color = c.ac, Transparency = 0}) end)
+	sb.FocusLost:Connect(function() tw(sst, {Color = c.tx, Transparency = 0.9}) end)
+	local tf = mk("ScrollingFrame", {Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, 0, 1, -40), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = nv}, {ll(4)})
+	local pg = mk("Frame", {Position = UDim2.fromOffset(nw + 20, th + 4), Size = UDim2.new(1, -(nw + 32), 1, -(th + 16)), BackgroundTransparency = 1, ClipsDescendants = true, Parent = mn})
+	local function page()
+		local p = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = c.dm, ScrollBarImageTransparency = 0.5, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Visible = false, Parent = pg}, {ll(4), pd(2, 8, 2, 4)})
+		for _, k in {"CanvasPosition", "AbsoluteCanvasSize", "AbsoluteWindowSize"} do p:GetPropertyChangedSignal(k):Connect(function() W.fd() end) end
+		return p
 	end
+	local sr = page()
+	local function fade(top)
+		local f = mk("Frame", {Size = UDim2.new(1, -8, 0, 20), Position = top and UDim2.new() or UDim2.new(0, 0, 1, -20), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 5, Visible = false, Parent = pg})
+		mk("UIGradient", {Rotation = 90, Transparency = NumberSequence.new(top and 0 or 1, top and 1 or 0), Parent = f})
+		return f
+	end
+	local ft, fb2 = fade(true), fade(false)
+	local function fd()
+		local p = W.sx and sr or W.Current and W.Current.Page
+		if not p then ft.Visible, fb2.Visible = false, false; return end
+		ft.Visible, fb2.Visible = p.CanvasPosition.Y > 1, p.AbsoluteCanvasSize.Y - p.AbsoluteWindowSize.Y - p.CanvasPosition.Y > 1
+	end
+	W.fd = fd
+	local ov = bt({Size = UDim2.fromScale(1, 1), ZIndex = 50, Visible = false, Parent = mn})
+	ov.Activated:Connect(function() if W.fc then W.fc() end end)
+	local fl = bt({Size = UDim2.fromOffset(44, 44), BackgroundColor3 = Color3.fromRGB(18, 18, 21), BackgroundTransparency = 0.08, Parent = sg}, {rc(22)})
+	ig({Text = "studio", FontFace = ib, TextSize = 24, TextColor3 = Color3.fromRGB(247, 247, 248), Position = UDim2.fromOffset(10, 10), Size = UDim2.fromOffset(24, 24), Active = false, Parent = fl})
 
-	local cf, dt, pv = o.Config and `Avenoric/Configs/{o.Config}.json`, {}, false
-	if cf then
-		local ok, r = pcall(function() return isfile(cf) and hs:JSONDecode(readfile(cf)) or {} end)
-		if ok and type(r) == "table" then
-			dt = r
-		else
-			pcall(function() writefile(`{cf}.bad`, readfile(cf)) end)
-			toast({Title = "Config Load Failed", Text = "Invalid Json", Time = 6, Err = true})
-		end
+	local function cl()
+		local s, n, hw, hh = sg.AbsoluteSize, gs:GetGuiInset().Y, W.w * sc.Scale / 2, W.h * sc.Scale / 2
+		mn.Position = UDim2.fromOffset(math.clamp(mn.Position.X.Offset, hw, s.X - hw), math.clamp(mn.Position.Y.Offset, n + hh, s.Y - hh))
 	end
+	local function rsz(w, h)
+		local s, n = sg.AbsoluteSize, gs:GetGuiInset().Y
+		W.w, W.h = math.clamp(math.round(tonumber(w) or W.w), 420, math.max(420, s.X - 24)), math.clamp(math.round(tonumber(h) or W.h), 260, math.max(260, s.Y - n - 24))
+		mn.Size = UDim2.fromOffset(W.w, W.h)
+		W.sv = math.clamp(math.min((s.X - 24) / W.w, (s.Y - n - 24) / W.h), 0.5, 1)
+		sc.Scale = W.sv
+		cl()
+	end
+	local function fx()
+		W.sv = fit(sg, mn, sc, W.w, W.h)
+		fl.Position = UDim2.fromOffset(16, gs:GetGuiInset().Y + 8)
+	end
+	function W:Resize(w, h) rsz(w, h) end
+	fx()
+	local dr
+	local function hd(p, ax, ay)
+		local b = bt({AnchorPoint = p.AnchorPoint, Position = p.Position, Size = p.Size, ZIndex = 3, Parent = mn})
+		table.insert(W.cn, b.InputBegan:Connect(function(i)
+			if i.UserInputType ~= mb and i.UserInputType ~= tc then return end
+			local w0, h0, d0, s0 = W.w, W.h, i.Position, sc.Scale
+			local lx, ly = mn.Position.X.Offset - W.w * s0 / 2, mn.Position.Y.Offset - W.h * s0 / 2
+			dr = {i = i, mv = function(q)
+				rsz(ax and w0 + (q.X - d0.X) / s0 or W.w, ay and h0 + (q.Y - d0.Y) / s0 or W.h)
+				mn.Position = UDim2.fromOffset(lx + W.w * sc.Scale / 2, ly + W.h * sc.Scale / 2)
+				cl()
+			end}
+		end))
+	end
+	hd({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = UDim2.fromOffset(16, 16)}, true, true)
+	hd({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(1, -16, 0, 10)}, false, true)
+	hd({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, th), Size = UDim2.new(0, 10, 1, -(th + 16))}, true, false)
+	table.insert(W.cn, sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(fx))
 
-	local function wr()
-		if not pv then return end
-		pv = false
-		local ok, e = pcall(function()
-			if not isfolder("Avenoric") then makefolder("Avenoric") end
-			local fp = "Avenoric/Configs"
-			if not isfolder(fp) then makefolder(fp) end
-			for x in o.Config:gmatch("([^/]+)/") do
-				fp ..= `/{x}`
-				if not isfolder(fp) then makefolder(fp) end
-			end
-			writefile(cf, hs:JSONEncode(dt))
-		end)
-		if not ok then toast({Title = "Config Save Failed", Text = tostring(e), Time = 6, Err = true}) end
+	function W:Show()
+		mn.Visible, sc.Scale = true, W.sv
 	end
-
-	local function sf(f, v, e)
-		if f == nil then return end
-		L.Flags[f] = v
-		if not cf then return end
-		if e == nil then dt[f] = v else dt[f] = e end
-		if pv then return end
-		pv = true
-		task.delay(0.5, wr)
-	end
-
-	local function lv(f)
-		if f == nil then return nil end
-		return dt[f]
-	end
-	local zv = tonumber(lv("_z"))
-	zm = zv and math.clamp(zv, 0.5, 10) or nil
-
-	local function tg()
-		w.Visible = not w.Visible
-	end
-
-	fit()
-	local function hp()
-		if hz and not (hu and hu.Parent and hu:IsDescendantOf(game)) and os.clock() - ht > 1 then
-			ht = os.clock()
-			local ok, b = pcall(function() return ps.LocalPlayer.PlayerGui.HUD.Frame.Buttons end)
-			hu = ok and b or nil
-			hb = hu and hu:FindFirstAncestorOfClass("ScreenGui")
-		end
-		local s, i = hz and hu and hu:FindFirstChild("Settings"), hz and hu and hu:FindFirstChild("Index")
-		if s and i and hb then
-			local u, g = s:FindFirstChildOfClass("UIScale"), sh.AbsolutePosition
-			local z, c1 = s.AbsoluteSize / math.max(u and u.Scale or 1, 0.01), s.AbsolutePosition + s.AbsoluteSize / 2
-			local p = c1 * 2 - (i.AbsolutePosition + i.AbsoluteSize / 2) - z / 2 - g
-			fl.Size, fl.Position = UDim2.fromOffset(z.X, z.Y), UDim2.fromOffset(p.X, p.Y)
-			fl.Visible = hb.Enabled and hu.Parent.Visible and hu.Visible and s.Visible
-		else
-			fl.Size, fl.Position, fl.Visible = UDim2.fromOffset(44, 44), UDim2.fromOffset(16, select(2, vs()) + 8), true
-		end
-	end
-	hp()
-	table.insert(cs, rs.RenderStepped:Connect(hp))
-	table.insert(cs, sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-		local v, t = vs()
-		wp = Vector2.new(v.X / 2, (v.Y + t) / 2)
-		fit()
-	end))
-	local w0
-	for _, h in {tp, bn} do
-		dg(h, cs, function() w0 = wp end, function(d)
-			wp = w0 + d
-			put()
-		end)
-	end
-	local z0, s0
-	dg(gz, cs, function()
-		z0, s0 = us.Scale, Vector2.new(ww, wh) * us.Scale
-	end, function(d)
-		zm = math.clamp(z0 * (1 + (d.X / s0.X + d.Y / s0.Y) / 2), 0.5, 10)
-		us.Scale = zs()
-		qs.Scale = us.Scale
-		put()
-	end, function() sf("_z", zm) end)
-	local fm, fv = fl:FindFirstChild("Image"), false
-	local fk = fm and fm:FindFirstChild("Icon")
-	local function fa(x, ro)
-		tws:Create(fu, TweenInfo.new(0.12, Enum.EasingStyle.Back), {Scale = x}):Play()
-		if fk and ro then tws:Create(fk, TweenInfo.new(0.12, Enum.EasingStyle.Back), {Rotation = ro}):Play() end
-	end
-	table.insert(cs, fl.MouseEnter:Connect(function()
-		fv = true
-		fa(1.05, 5)
-	end))
-	table.insert(cs, fl.MouseLeave:Connect(function()
-		fv = false
-		fa(1, 0)
-	end))
-	table.insert(cs, fl.MouseButton1Down:Connect(function() fa(0.9) end))
-	table.insert(cs, fl.MouseButton1Up:Connect(function() fa(fv and 1.05 or 1) end))
-	table.insert(cs, fl.Activated:Connect(tg))
-	table.insert(cs, nb.Activated:Connect(function() w.Visible = false end))
-	local xa, xn = false, 0
-	local function xs(a)
-		xa = a
-		tws:Create(xu, TweenInfo.new(0.12), {Scale = a and 1.2 or 1}):Play()
-	end
-
-	table.insert(cs, xb.Activated:Connect(function()
-		if xa then
-			(W :: any):Destroy()
-			return
-		end
-		xn += 1
-		local n = xn
-		xs(true)
+	function W:Hide() mn.Visible = false end
+	local function tg() if mn.Visible then W:Hide() else W:Show() end end
+	fl.Activated:Connect(tg)
+	nb.Activated:Connect(function() W:Hide() end)
+	local arm, an = false, 0
+	xb.Activated:Connect(function()
+		if arm then (W :: any):Destroy(); return end
+		arm, an = true, an + 1
+		local n = an
+		tw(xb, {BackgroundColor3 = c.er, BackgroundTransparency = 0})
+		xi.TextColor3 = Color3.new(1, 1, 1)
 		task.delay(3, function()
-			if xa and xn == n then xs(false) end
+			if an ~= n or not arm then return end
+			arm = false
+			tw(xb, {BackgroundColor3 = c.hv, BackgroundTransparency = 1})
+			xi.TextColor3 = c.dm
 		end)
+	end)
+
+	table.insert(W.cn, tb.InputBegan:Connect(function(i)
+		if i.UserInputType ~= mb and i.UserInputType ~= tc then return end
+		local p0, d0 = mn.Position, i.Position
+		dr = {i = i, mv = function(p)
+			local s, n, hw, hh = sg.AbsoluteSize, gs:GetGuiInset().Y, mn.AbsoluteSize.X / 2, mn.AbsoluteSize.Y / 2
+			mn.Position = UDim2.fromOffset(math.clamp(p0.X.Offset + p.X - d0.X, hw, s.X - hw), math.clamp(p0.Y.Offset + p.Y - d0.Y, n + hh, s.Y - hh))
+		end}
 	end))
-	table.insert(cs, uis.InputBegan:Connect(function(i)
-		if key and i.KeyCode == key and not uis:GetFocusedTextBox() then tg() end
+	table.insert(W.cn, uis.InputChanged:Connect(function(i)
+		if not dr or (i.UserInputType ~= mm and i ~= dr.i) then return end
+		dr.mv(i.Position)
+	end))
+	table.insert(W.cn, uis.InputEnded:Connect(function(i)
+		if not dr or (i ~= dr.i and i.UserInputType ~= mb) then return end
+		if dr.up then dr.up() end
+		dr = nil
+	end))
+	table.insert(W.cn, uis.InputBegan:Connect(function(i)
+		if i.UserInputType ~= kb or W.kw or not W.key or i.KeyCode ~= W.key or uis:GetFocusedTextBox() then return end
+		tg()
 	end))
 
-	local function sel(T)
-		hd.Text = T.nm
-		for _, x in tb do
-			local on = x == T
-			x.cg.Visible = on
-			tws:Create(x.bt, TweenInfo.new(0.15), {BackgroundColor3 = on and c.bl or c.bk, BackgroundTransparency = on and 0.2 or 0.5}):Play()
-			x.sk.Transparency = on and 0 or 1
-		end
+	local function jump(e)
+		local p = e.Tab.Page
+		p.CanvasPosition = Vector2.new(0, math.max(0, (e.Row.AbsolutePosition.Y - p.AbsolutePosition.Y) / sc.Scale + p.CanvasPosition.Y - 4))
+		local st = e.Row:FindFirstChildOfClass("UIStroke")
+		if not st then return end
+		tw(st, {Color = c.ac, Transparency = 0})
+		task.delay(0.8, function() tw(st, {Color = c.tx, Transparency = 0.92}, 0.4) end)
 	end
 
-	local function ox()
-		local x = ov
-		ov = nil
-		if not x then return end
-		x.f:Destroy()
-		if x.cb then x.cb() end
-	end
-
-	local function oo(nm, ls, has, pick, cb)
-		ox()
-		local f = mk("TextButton", {Parent = w, Size = UDim2.fromScale(1, 1), BackgroundColor3 = c.bk, BackgroundTransparency = 0.45, AutoButtonColor = false, Text = "", ZIndex = 20})
-		f.Activated:Connect(ox)
-		local p = mk("Frame", {Parent = f, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.53), Size = UDim2.new(1, -60, 1, -56), BackgroundTransparency = 1, Active = true})
-		pn(p, 0.2)
-		local t = hg(tl(p, 17, nm, fi))
-		t.Position, t.Size, t.ZIndex = UDim2.fromOffset(14, 6), UDim2.new(1, -60, 0, 26), 2
-		local x = fb(mk("ImageButton", {Parent = p, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(28, 31), BackgroundColor3 = c.er, BackgroundTransparency = 1, AutoButtonColor = false, Image = A.cl, ScaleType = Enum.ScaleType.Fit, ZIndex = 3}), "cl")
-		x.Activated:Connect(ox)
-		local y, sb = 36, nil
-		if #ls > 8 then
-			local bx = mk("Frame", {Parent = p, Position = UDim2.fromOffset(12, 36), Size = UDim2.new(1, -24, 0, 30), BackgroundColor3 = c.bk, BackgroundTransparency = 0.2, BorderSizePixel = 0, ZIndex = 2})
-			im(bx, A.ib, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Slice, SliceCenter = Rect.new(80, 80, 432, 432), SliceScale = 0.15, ZIndex = 3})
-			sb = mk("TextBox", {Parent = bx, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -20, 1, 0), BackgroundTransparency = 1, ClearTextOnFocus = false, FontFace = ff, TextSize = 14, TextColor3 = c.wh, PlaceholderColor3 = Color3.fromRGB(128, 128, 128), PlaceholderText = "SEARCH", TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 4})
-			y = 72
+	function W:Search(s)
+		s = tostring(s or "")
+		if sb.Text ~= s then W.sq = true; sb.Text = s; W.sq = false end
+		for _, x in sr:GetChildren() do
+			if x:IsA("GuiButton") then x:Destroy() end
 		end
-		local cv = mk("CanvasGroup", {Parent = p, Position = UDim2.fromOffset(12, y), Size = UDim2.new(1, -24, 1, -y - 10), BackgroundTransparency = 1, ZIndex = 2})
-		local fg = mk("UIGradient", {Parent = cv, Rotation = 90})
-		local sc = mk("ScrollingFrame", {Parent = cv, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = c.bl, ScrollingDirection = Enum.ScrollingDirection.Y, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y}, {mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3)}), pd(0, 6, 0, 0)})
-		local function fe()
-			local q = sc.CanvasPosition.Y
-			local u, d = q > 1, q < sc.AbsoluteCanvasSize.Y - sc.AbsoluteWindowSize.Y - 1
-			fg.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, u and 1 or 0), NumberSequenceKeypoint.new(0.1, 0), NumberSequenceKeypoint.new(0.9, 0), NumberSequenceKeypoint.new(1, d and 1 or 0)})
+		if s == "" then
+			if not W.sx then return nil end
+			W.sx, sr.Visible = false, false
+			if W.Current then W.Current.Page.Visible = true end
+			fd()
+			return nil
 		end
-		for _, n in {"CanvasPosition", "AbsoluteCanvasSize", "AbsoluteWindowSize"} do sc:GetPropertyChangedSignal(n):Connect(fe) end
-		fe()
-		local bs = {}
-		for i, s in ls do
-			local b = mk("TextButton", {Parent = sc, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.bl, BackgroundTransparency = 1, BorderSizePixel = 0, AutoButtonColor = false, Text = ""}, {rc(6)})
-			local l = tl(b, 14, s)
-			l.Position, l.Size = UDim2.fromOffset(10, 0), UDim2.new(1, -40, 1, 0)
-			local k = mk("Frame", {Parent = b, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = c.gn, BackgroundTransparency = 1, BorderSizePixel = 0}, {rc(4), mk("UIStroke", {Color = c.wh, Thickness = 1.2})})
-			bs[s] = {b, k}
-			b.Activated:Connect(function()
-				if pick(s) then ox() end
-			end)
-		end
-		local function rf()
-			for s, z in bs do
-				local on = has(s)
-				z[1].BackgroundTransparency, z[2].BackgroundTransparency = on and 0.55 or 1, on and 0 or 1
-			end
-		end
-		if sb then
-			sb:GetPropertyChangedSignal("Text"):Connect(function()
-				local q = sb.Text:lower()
-				for s, z in bs do z[1].Visible = q == "" or s:lower():find(q, 1, true) ~= nil end
-			end)
-		end
-		rf()
-		ov = {f = f, cb = cb}
-		return rf
-	end
-
-	function W:Tab(q)
-		if type(q) ~= "table" or type(q.Name) ~= "string" then error("Tab Failed: No Name") end
-		if q.Icon ~= nil and type(q.Icon) ~= "string" then error("Tab Failed: Bad Icon") end
-		if q.IconRect ~= nil and (type(q.IconRect) ~= "table" or #q.IconRect ~= 4) then error("Tab Failed: Bad Icon Rect") end
-		local T, n = {nm = q.Name}, 0
-		T.bt = mk("TextButton", {Parent = bar, LayoutOrder = #tb + 1, Size = UDim2.fromOffset(34, 34), BackgroundColor3 = c.bk, BackgroundTransparency = 0.5, BorderSizePixel = 0, AutoButtonColor = false, Text = ""}, {rc(10)})
-		T.sk = mk("UIStroke", {Parent = T.bt, Color = c.wh, Thickness = 1.5, Transparency = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border})
-		if q.Icon then
-			local x = im(T.bt, q.Icon, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(26, 26), ScaleType = Enum.ScaleType.Fit})
-			if q.IconRect then x.ImageRectOffset, x.ImageRectSize = Vector2.new(q.IconRect[1], q.IconRect[2]), Vector2.new(q.IconRect[3], q.IconRect[4]) end
-		else
-			tl(T.bt, 18, q.Name:sub(1, 1), fi).TextXAlignment = Enum.TextXAlignment.Center
-		end
-		T.cg = mk("CanvasGroup", {Parent = bd, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false})
-		local fg = mk("UIGradient", {Parent = T.cg, Rotation = 90})
-		T.pg = mk("ScrollingFrame", {Parent = T.cg, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = c.bl, ScrollingDirection = Enum.ScrollingDirection.Y, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y}, {pd(0, 8, 2, 6), mk("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 5)})})
-		local function fe()
-			local y = T.pg.CanvasPosition.Y
-			local a, z = y > 1, y < T.pg.AbsoluteCanvasSize.Y - T.pg.AbsoluteWindowSize.Y - 1
-			fg.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, a and 1 or 0), NumberSequenceKeypoint.new(0.1, 0), NumberSequenceKeypoint.new(0.9, 0), NumberSequenceKeypoint.new(1, z and 1 or 0)})
-		end
-		for _, p in {"CanvasPosition", "AbsoluteCanvasSize", "AbsoluteWindowSize"} do table.insert(cs, T.pg:GetPropertyChangedSignal(p):Connect(fe)) end
-		fe()
-		table.insert(tb, T)
-		table.insert(cs, T.bt.Activated:Connect(function() sel(T) end))
-		if #tb == 1 then sel(T) end
-
-		local function od()
-			n += 1
-			return n
-		end
-
-		local function row(k, h)
-			local r = mk(k, {Parent = T.pg, LayoutOrder = od(), Size = UDim2.new(1, 0, 0, h or 38), BackgroundColor3 = c.bk, BorderSizePixel = 0})
-			if r:IsA("TextButton") then r.AutoButtonColor, r.Text = false, "" end
-			mk("UIGradient", {Parent = r, Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.1, 0.4), NumberSequenceKeypoint.new(0.9, 0.4), NumberSequenceKeypoint.new(1, 1)})})
-			return r
-		end
-
-		local function lb(p, s, wd)
-			local x = tl(p, 15, s, ff, Color3.fromHex("303030"))
-			x.Position, x.Size = UDim2.fromOffset(14, 0), UDim2.new(1, -14 - wd, 1, 0)
-			gr(x, {"d9daff", "55ffff", "4f87ff", "55aaff"})
-			return x
-		end
-
-		function T:Section(q)
-			if type(q) ~= "table" or type(q.Name) ~= "string" then error("Section Failed: No Name") end
-			local r = mk("Frame", {Parent = T.pg, LayoutOrder = od(), Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1})
-			gr(im(r, A.dv, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(0.9, 0, 0, 5), ScaleType = Enum.ScaleType.Stretch}), {"fdffff", "f7fafa", "929294", "dfe1e1", "fdffff"}, 0)
-			local x = tl(r, 18, q.Name, fi)
-			x.TextXAlignment, x.TextTruncate, x.ZIndex = Enum.TextXAlignment.Center, Enum.TextTruncate.None, 2
-			return {Set = function(_, s) x.Text = tostring(s) end, Get = function() return x.Text end}
-		end
-
-		function T:Label(q)
-			if type(q) ~= "table" or q.Text == nil then error("Label Failed: No Text") end
-			local r = row("Frame")
-			r.AutomaticSize = Enum.AutomaticSize.Y
-			local x = mk("TextLabel", {Parent = r, Size = UDim2.fromScale(1, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, FontFace = ff, TextSize = 14, TextColor3 = c.tx, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, Text = tostring(q.Text)}, {pd(14, 14, 9), mk("UIStroke", {Color = c.sk, Thickness = 1})})
-			return {Set = function(_, s) x.Text = tostring(s) end, Get = function() return x.Text end}
-		end
-
-		function T:Button(q)
-			if type(q) ~= "table" or type(q.Name) ~= "string" then error("Button Failed: No Name") end
-			local r = row("TextButton")
-			local x = lb(r, q.Name, 96)
-			local g = fb(mk("ImageButton", {Parent = r, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(78, 26), BackgroundColor3 = c.gn, BackgroundTransparency = 1, AutoButtonColor = false, Image = A.gb, ScaleType = Enum.ScaleType.Fit}, {rc(6)}), "gb")
-			gr(g, {"00f900", "76ff4d"})
-			hg(tl(g, 14, "Run", fi)).TextXAlignment = Enum.TextXAlignment.Center
-			local u = mk("UIScale", {Parent = g})
-			local function go()
-				u.Scale = 0.9
-				tws:Create(u, TweenInfo.new(0.2), {Scale = 1}):Play()
-				fire(q.Callback)
-			end
-			table.insert(cs, r.Activated:Connect(go))
-			table.insert(cs, g.Activated:Connect(go))
-			return {Set = function(_, s) x.Text = tostring(s) end, Get = function() return x.Text end}
-		end
-
-		function T:Toggle(q)
-			ck(q, "Toggle")
-			local r, v = row("TextButton"), nil
-			lb(r, q.Name, 70)
-			local k = mk("Frame", {Parent = r, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(54, 24), BackgroundColor3 = c.bl, BorderSizePixel = 0}, {rc(12)})
-			rc(12).Parent = im(k, A.tb, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Tile, TileSize = UDim2.fromOffset(7, 7), ImageColor3 = c.bk, ImageTransparency = 0.85})
-			local d = mk("Frame", {Parent = k, AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.fromScale(0.05, 0.5), Size = UDim2.fromScale(0.45, 0.8), BackgroundColor3 = c.kf, BorderSizePixel = 0}, {rc(10), mk("UIStroke", {Color = c.bk, Thickness = 1.5})})
-			rc(10).Parent = im(d, A.kp, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Crop, ImageColor3 = c.bk, ImageTransparency = 0.5})
-			local function set(x, cb)
-				x = x == true
-				if x == v then return end
-				v = x
-				sf(q.Flag, v)
-				tws:Create(d, TweenInfo.new(0.15), {Position = UDim2.fromScale(v and 0.5 or 0.05, 0.5), BackgroundColor3 = v and c.gn or c.kf}):Play()
-				if cb then fire(q.Callback, v) end
-			end
-
-			local sv = lv(q.Flag)
-			set(q.Default)
-			if type(sv) == "boolean" then
-				set(sv)
-				task.defer(fire, q.Callback, v)
-			end
-			table.insert(cs, r.Activated:Connect(function() set(not v, true) end))
-			return {Set = function(_, x) set(x, true) end, Get = function() return v end}
-		end
-
-		function T:Dropdown(q)
-			ck(q, "Dropdown")
-			local mu, v, rd, rf = q.Multi == true, nil, false, nil
-			local function po(o, k)
-				if type(o) ~= "table" then error(`{k} Failed: Bad Options`) end
-				local t = {}
-				for _, s in o do
-					if type(s) ~= "string" then error(`{k} Failed: Bad Options`) end
-					if not table.find(t, s) then table.insert(t, s) end
+		local n, q = 0, s:lower()
+		for _, T in W.Tabs do
+			for _, e in T.Rows do
+				if e.Kind ~= "Section" and e.Kind ~= "Label" and e.Name:lower():find(q, 1, true) then
+					n += 1
+					local b = bt({Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = c.cd, LayoutOrder = n, Parent = sr}, {rc(6), sk(0.92), pd(12, 12)})
+					tl({Text = e.Name, Size = UDim2.new(0.6, 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+					tl({Text = e.Sec and `{T.Name} · {e.Sec}` or T.Name, TextSize = 12, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.4, 0, 1, 0), TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+					hov(b, function() return c.cd end)
+					b.Activated:Connect(function()
+						W:Search("")
+						T:Select()
+						task.defer(jump, e)
+					end)
 				end
-				return t
 			end
+		end
+		if not W.sx then
+			W.sx, sr.Visible = true, true
+			if W.Current then W.Current.Page.Visible = false end
+		end
+		fd()
+		return n
+	end
+	sb:GetPropertyChangedSignal("Text"):Connect(function() if not W.sq then W:Search(sb.Text) end end)
 
-			local op = po(q.Options or {}, "Dropdown")
-			local r = row("TextButton")
-			lb(r, q.Name, 160)
-			local vl = tl(r, 13, "")
-			vl.AnchorPoint, vl.Position, vl.Size, vl.TextXAlignment, vl.TextColor3 = Vector2.new(1, 0.5), UDim2.new(1, -30, 0.5, 0), UDim2.fromOffset(140, 20), Enum.TextXAlignment.Right, c.dm
-			local cv = mk("Frame", {Parent = r, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(12, 6), BackgroundTransparency = 1})
-			mk("Frame", {Parent = cv, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(3, 3), Size = UDim2.fromOffset(8, 2), Rotation = 45, BackgroundColor3 = c.bl, BorderSizePixel = 0})
-			mk("Frame", {Parent = cv, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(9, 3), Size = UDim2.fromOffset(8, 2), Rotation = -45, BackgroundColor3 = c.bl, BorderSizePixel = 0})
+	function W:Tab(t)
+		t = t or {}
+		local T = {Rows = {}, Name = tostring(t.Name or "Tab"), W = W, n = 0, sec = nil}
+		local b = bt({Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = c.cd, LayoutOrder = #W.Tabs + 1, Parent = tf}, {rc(6)})
+		local bar = mk("Frame", {Size = UDim2.fromOffset(3, 16), Position = UDim2.fromOffset(0, 10), BackgroundColor3 = c.ac, BorderSizePixel = 0, Visible = false, Parent = b}, {rc(2)})
+		local ico = t.Icon and ig({Text = tostring(t.Icon), TextColor3 = c.dm, Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(20, 36), TextXAlignment = Enum.TextXAlignment.Center, Parent = b})
+		local nm = tl({Text = T.Name, TextColor3 = c.dm, Position = UDim2.fromOffset(ico and 38 or 12, 0), Size = UDim2.new(1, -(ico and 46 or 20), 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+		local p = page()
+		T.Page, T.Btn = p, b
+		local function paint(on)
+			tw(b, {BackgroundTransparency = on and 0 or 1})
+			bar.Visible, nm.TextColor3 = on, on and c.tx or c.dm
+			if ico then ico.TextColor3, ico.FontFace = on and c.tx or c.dm, on and ib or ir end
+		end
+		T.pt = paint
+		b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundColor3 = c.hv, BackgroundTransparency = 0}) end end)
+		b.MouseLeave:Connect(function() tw(b, {BackgroundColor3 = c.cd, BackgroundTransparency = W.Current == T and 0 or 1}) end)
+		function T:Select()
+			if W.sx then W:Search("") end
+			if W.Current == T then return end
+			if W.Current then W.Current.Page.Visible = false; W.Current.pt(false) end
+			W.Current, p.Visible = T, true
+			paint(true)
+			fd()
+		end
+		b.Activated:Connect(function() T:Select() end)
+		table.insert(W.Tabs, T)
+		if not W.Current then T:Select() else paint(false) end
 
-			local function has(x)
-				return mu and table.find(v, x) ~= nil or v == x
+		local function add(e)
+			T.n += 1
+			e.Row.LayoutOrder = T.n
+			table.insert(T.Rows, e)
+			return e
+		end
+		local function row(k, r)
+			if type(r.Name) ~= "string" then error(`{k} Failed: Bad Name`, 0) end
+			if r.Flag ~= nil and type(r.Flag) ~= "string" then error(`{k} Failed: Bad Flag`, 0) end
+			local f = bt({Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = c.cd, Parent = p}, {rc(6), sk(0.92), pd(12, 12)})
+			hov(f, function() return c.cd end)
+			local l = tl({Text = r.Name, Size = UDim2.new(0.5, 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
+			local e = {Row = f, Kind = k, Name = r.Name, Flag = r.Flag, Tab = T, Sec = T.sec, Label = l}
+			function e:Get() return (e :: any).v end
+			return add(e), f, l
+		end
+		local function txt(e, l)
+			function e:Set(s) l.Text = tostring(s) end
+			function e:Get() return l.Text end
+			return e
+		end
+
+		function T:Section(r)
+			r = r or {}
+			local l = tl({Text = tostring(r.Name or ""), Font = fb, TextSize = 13, Size = UDim2.new(1, 0, 0, 30), TextYAlignment = Enum.TextYAlignment.Bottom, Parent = p}, {pd(4, 0, 0, 4)})
+			T.sec = l.Text
+			return txt(add({Row = l, Kind = "Section", Name = l.Text, Tab = T}), l)
+		end
+
+		function T:Label(r)
+			r = r or {}
+			local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = c.cd, BorderSizePixel = 0, Parent = p}, {rc(6), sk(0.92), pd(12, 12, 10, 10)})
+			local l = tl({Text = tostring(r.Text or ""), TextSize = 13, TextColor3 = c.dm, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextWrapped = true, Parent = f})
+			return txt(add({Row = f, Kind = "Label", Name = l.Text, Tab = T, Sec = T.sec}), l)
+		end
+
+		function T:Button(r)
+			r = r or {}
+			local e, f, l = row("Button", r)
+			ig({Text = "chevron-small-right", TextSize = 14, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(16, 44), TextXAlignment = Enum.TextXAlignment.Center, Parent = f})
+			f.Activated:Connect(function() run(r.Callback) end)
+			return txt(e, l)
+		end
+
+		function T:Toggle(r)
+			r = r or {}
+			local e, f = row("Toggle", r)
+			local sw = mk("Frame", {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(40, 20), BackgroundColor3 = c.ac, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = f}, {rc(10), sk(0.2, c.dm)})
+			local st = sw:FindFirstChildOfClass("UIStroke")
+			local kn = mk("Frame", {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = c.dm, BorderSizePixel = 0, Parent = sw}, {rc(6)})
+			local sl = tl({Text = "Off", TextSize = 13, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -48, 0, 0), Size = UDim2.fromOffset(40, 44), TextXAlignment = Enum.TextXAlignment.Right, Parent = f})
+			e.v, e.ld = r.Default == true, function(s) return s == true end
+			local function draw(a)
+				local on, g = e.v, a and tw or function(x, q) for i, v in q do x[i] = v end end
+				g(sw, {BackgroundTransparency = on and 0 or 1})
+				g(st, {Transparency = on and 1 or 0.2})
+				g(kn, {Position = UDim2.new(0, on and 24 or 4, 0.5, 0), BackgroundColor3 = on and c.bg or c.dm})
+				sl.Text = on and "On" or "Off"
 			end
+			draw(false)
+			function e:Set(v)
+				v = v == true
+				if v == e.v then return end
+				e.v = v
+				draw(true)
+				put(e, v)
+				run(r.Callback, v)
+			end
+			f.Activated:Connect(function() e:Set(not e.v) end)
+			done(e)
+			return e
+		end
 
+		function T:Slider(r)
+			r = r or {}
+			local lo, hi, st = tonumber(r.Min), tonumber(r.Max), r.Step == nil and 1 or tonumber(r.Step)
+			if not (lo and hi and hi > lo) then error("Slider Failed: Bad Range", 0) end
+			if not (st and st > 0) then error("Slider Failed: Bad Step", 0) end
+			local e, f = row("Slider", r)
+			local vl = tl({Text = "", TextSize = 13, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(44, 44), TextXAlignment = Enum.TextXAlignment.Right, Parent = f})
+			local hit = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -52, 0.5, 0), Size = UDim2.fromOffset(120, 28), Parent = f})
+			local tr = mk("Frame", {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = c.hv, BorderSizePixel = 0, Parent = hit}, {rc(2)})
+			local fi = mk("Frame", {Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = c.ac, BorderSizePixel = 0, Parent = tr}, {rc(2)})
+			local kn = mk("Frame", {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = c.ac, BorderSizePixel = 0, Parent = hit}, {rc(7), mk("UIStroke", {Color = c.bg, Thickness = 2})})
+			local function q(v) return math.clamp(lo + math.round((v - lo) / st) * st, lo, hi) end
+			local d0 = r.Default
+			e.v, e.ld = q(type(d0) == "number" and d0 == d0 and d0 or lo), tonumber
 			local function draw()
-				vl.Text = mu and (#v > 0 and table.concat(v, ", ") or "None") or v or "None"
-				if rf then rf() end
+				local a = (e.v - lo) / (hi - lo)
+				fi.Size, kn.Position, vl.Text = UDim2.new(a, 0, 1, 0), UDim2.new(a, 0, 0.5, 0), ("%g"):format(e.v)
 			end
+			draw()
+			function e:Set(v)
+				if type(v) ~= "number" or v ~= v then error("Slider Set Failed: Not A Number", 0) end
+				v = q(v)
+				if v == e.v then return end
+				e.v = v
+				draw()
+				put(e, v)
+				run(r.Callback, v)
+			end
+			local function at(x) e:Set(lo + math.clamp((x - hit.AbsolutePosition.X) / hit.AbsoluteSize.X, 0, 1) * (hi - lo)) end
+			hit.InputBegan:Connect(function(i)
+				if i.UserInputType ~= mb and i.UserInputType ~= tc then return end
+				p.ScrollingEnabled = false
+				dr = {i = i, mv = function(v) at(v.X) end, up = function() p.ScrollingEnabled = true end}
+				at(i.Position.X)
+			end)
+			done(e)
+			return e
+		end
 
-			local function nv(x)
-				if not mu then return table.find(op, x) and x or nil end
-				local o = {}
-				if type(x) == "table" then
-					for _, s in op do
-						if table.find(x, s) then table.insert(o, s) end
-					end
+		function T:Dropdown(r)
+			r = r or {}
+			if type(r.Options) ~= "table" then error("Dropdown Failed: Bad Options", 0) end
+			local e, f = row("Dropdown", r)
+			local mu = r.Multi == true
+			e.Options = {}
+			local function opts(l)
+				local seen = {}
+				e.Options = {}
+				for _, s in l do
+					if type(s) == "string" and not seen[s] then seen[s] = true; table.insert(e.Options, s) end
 				end
-				return o
 			end
-
+			opts(r.Options)
+			local box = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(150, 28), BackgroundColor3 = c.bg, Parent = f}, {rc(4), sk(0.9)})
+			local bl = tl({Text = "", TextSize = 13, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -34, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = box})
+			local ch = ig({Text = "chevron-small-down", TextSize = 14, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, 0), Size = UDim2.fromOffset(16, 28), TextXAlignment = Enum.TextXAlignment.Center, Parent = box})
+			local function norm(v)
+				if mu then
+					if type(v) ~= "table" then error("Dropdown Set Failed: Not A Table", 0) end
+					local want, out = {}, {}
+					for _, s in v do want[s] = true end
+					for _, s in e.Options do
+						if want[s] then table.insert(out, s) end
+					end
+					return out
+				end
+				if v == nil then return nil end
+				if table.find(e.Options, v) then return v end
+				error("Dropdown Set Failed: Unknown Option", 0)
+			end
 			local function same(a, b)
 				if not mu then return a == b end
 				if #a ~= #b then return false end
-				for i = 1, #a do
-					if a[i] ~= b[i] then return false end
+				for i, s in a do
+					if b[i] ~= s then return false end
 				end
 				return true
 			end
-
-			local function set(x, cb)
-				x = nv(x)
-				if rd and same(x, v) then return end
-				rd, v = true, x
-				sf(q.Flag, mu and table.clone(v) or v, mu and table.clone(v) or v or false)
+			e.v = if mu then (if type(r.Default) == "table" then norm(r.Default) else {}) else (if table.find(e.Options, r.Default) then r.Default else nil)
+			if mu then e.ld = function(s) return type(s) == "table" and s or {} end else e.sv, e.ld = function(v) return if v == nil then false else v end, function(s) return s ~= false and s or nil end end
+			local function has(s) return mu and table.find(e.v, s) ~= nil or not mu and e.v == s end
+			local function draw()
+				local any = mu and #e.v > 0 or not mu and e.v ~= nil
+				bl.Text, bl.TextColor3 = any and (mu and table.concat(e.v, ", ") or e.v) or "None", any and c.tx or c.dm
+			end
+			draw()
+			function e:Get() return mu and table.clone(e.v) or e.v end
+			local function emit(v)
+				e.v = v
 				draw()
-				if cb then fire(q.Callback, mu and table.clone(v) or v) end
+				put(e, e:Get())
+				run(r.Callback, e:Get())
 			end
+			function e:Set(v)
+				v = norm(v)
+				if same(v, e.v) then return end
+				emit(v)
+			end
+			function e:Refresh(l)
+				if type(l) ~= "table" then error("Dropdown Refresh Failed: Bad Options", 0) end
+				opts(l)
+				local v = mu and norm(e.v) or (table.find(e.Options, e.v) and e.v or nil)
+				if not same(v, e.v) then emit(v) end
+				draw()
+			end
+			local fy
+			local function close()
+				if not fy then return end
+				fy:Destroy()
+				fy, ov.Visible, ch.Text, W.fc = nil, false, "chevron-small-down", nil
+			end
+			local function open()
+				if fy then close(); return end
+				if W.fc then W.fc() end
+				W.fc, ov.Visible, ch.Text = close, true, "chevron-small-up"
+				local s, bp = sc.Scale, (box.AbsolutePosition - mn.AbsolutePosition) / sc.Scale
+				local h = math.max(math.min(#e.Options, 5), 1) * 32 + 8
+				local y = bp.Y + 32
+				if y + h > wh - 8 then y = bp.Y - h - 4 end
+				fy = mk("Frame", {Position = UDim2.fromOffset(bp.X, y), Size = UDim2.fromOffset(box.AbsoluteSize.X / s, h), BackgroundColor3 = c.cd, BorderSizePixel = 0, Parent = ov}, {rc(6), sk(0.85), pd(4, 4, 4, 4)})
+				local ls = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = c.dm, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = fy}, {ll(0)})
+				if #e.Options == 0 then tl({Text = "No Options", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -10, 0, 32), Parent = ls}) end
+				for n, s in e.Options do
+					local sel = has(s)
+					local b = bt({Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.hv, BackgroundTransparency = sel and 0 or 1, LayoutOrder = n, Parent = ls}, {rc(4)})
+					tl({Text = s, TextSize = 13, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -36, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+					local ck = ig({Text = "check", TextSize = 14, TextColor3 = c.ac, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 0), Size = UDim2.fromOffset(16, 32), TextXAlignment = Enum.TextXAlignment.Center, Visible = sel, Parent = b})
+					b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundTransparency = 0}) end end)
+					b.MouseLeave:Connect(function() tw(b, {BackgroundTransparency = has(s) and 0 or 1}) end)
+					b.Activated:Connect(function()
+						if not mu then e:Set(s); close(); return end
+						local v, i = e:Get(), table.find(e.v, s)
+						if i then table.remove(v, i) else table.insert(v, s) end
+						e:Set(v)
+						ck.Visible = has(s)
+						tw(b, {BackgroundTransparency = ck.Visible and 0 or 1})
+					end)
+				end
+			end
+			box.Activated:Connect(open)
+			hov(box, function() return c.bg end)
+			done(e)
+			return e
+		end
 
-			local sv = lv(q.Flag)
-			set(q.Default)
-			if mu and type(sv) == "table" or not mu and (sv == false or type(sv) == "string") then
-				set(sv or nil)
-				task.defer(fire, q.Callback, mu and table.clone(v) or v)
+		function T:TextBox(r)
+			r = r or {}
+			local e, f = row("TextBox", r)
+			local bx = mk("Frame", {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(150, 28), BackgroundColor3 = c.bg, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(4), sk(0.9)})
+			local st = bx:FindFirstChildOfClass("UIStroke")
+			local x = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(8, 0), Size = UDim2.new(1, -16, 1, 0), Font = fn, TextSize = 13, TextColor3 = c.tx, PlaceholderText = tostring(r.Placeholder or ""), PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = type(r.Default) == "string" and r.Default or "", Parent = bx})
+			e.v, e.ld = x.Text, tostring
+			function e:Set(v)
+				v = tostring(v)
+				x.Text = v
+				if v == e.v then return end
+				e.v = v
+				put(e, v)
+				run(r.Callback, v)
 			end
-			table.insert(cs, r.Activated:Connect(function()
-				rf = oo(q.Name, op, has, function(x)
-					if not mu then
-						set(x, true)
-						return true
-					end
-					local n = table.clone(v)
-					local j = table.find(n, x)
-					if j then table.remove(n, j) else table.insert(n, x) end
-					set(n, true)
-					return false
-				end, function() rf = nil end)
+			x.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
+			x.FocusLost:Connect(function()
+				tw(st, {Color = c.tx, Transparency = 0.9})
+				e:Set(x.Text)
+			end)
+			done(e)
+			return e
+		end
+
+		local function kc(v)
+			if v == nil then return nil end
+			if typeof(v) == "EnumItem" and v.EnumType == Enum.KeyCode then return v end
+			return false
+		end
+
+		function T:Keybind(r)
+			r = r or {}
+			local d = kc(r.Default)
+			if d == false then error("Keybind Failed: Bad Key", 0) end
+			local e, f = row("Keybind", r)
+			local cb = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(0, 24), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = c.bg, Parent = f}, {rc(4), sk(0.9), pd(10, 10)})
+			local kl = tl({Text = "", TextSize = 12, Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, TextXAlignment = Enum.TextXAlignment.Center, Parent = cb})
+			local wt = false
+			e.v, e.sv, e.ld = d, function(v) return v and v.Name or false end, function(s) return type(s) == "string" and Enum.KeyCode[s] or nil end
+			local function draw()
+				kl.Text, kl.TextColor3 = wt and "..." or (e.v and e.v.Name or "None"), (wt or e.v) and c.tx or c.dm
+			end
+			draw()
+			function e:Set(v)
+				local k = kc(v)
+				if k == false then error("Keybind Set Failed: Bad Key", 0) end
+				if k == e.v then return end
+				e.v = k
+				draw()
+				put(e, k)
+			end
+			hov(cb, function() return c.bg end)
+			cb.Activated:Connect(function()
+				wt = not wt
+				W.kw = wt
+				draw()
+			end)
+			table.insert(W.cn, uis.InputBegan:Connect(function(i, gp)
+				if i.UserInputType ~= kb then return end
+				if wt then
+					wt, W.kw = false, false
+					if i.KeyCode == Enum.KeyCode.Backspace then e:Set(nil) elseif i.KeyCode ~= Enum.KeyCode.None then e:Set(i.KeyCode) end
+					draw()
+					return
+				end
+				if gp or not e.v or i.KeyCode ~= e.v or uis:GetFocusedTextBox() then return end
+				run(r.Callback)
 			end))
-			return {Set = function(_, x)
-				if mu and type(x) ~= "table" then error("Dropdown Set Failed: Not A Table") end
-				if not mu and x ~= nil and not table.find(op, x) then error("Dropdown Set Failed: Unknown Option") end
-				set(x, true)
-			end, Get = function() return mu and table.clone(v) or v end, Refresh = function(_, o)
-				op = po(o, "Dropdown Refresh")
-				if rf then ox() end
-				set(v, true)
-				draw()
-			end}
+			done(e)
+			return e
 		end
 
 		return T
 	end
 
-	function W:Notify(q)
-		if type(q) ~= "table" or (q.Title == nil and q.Text == nil) then error("Notify Failed: No Text") end
-		if q.Time ~= nil and (type(q.Time) ~= "number" or not (q.Time > 0)) then error("Notify Failed: Bad Time") end
-		toast({Title = tostring(q.Title or "Avenoric"), Text = q.Text == nil and "" or tostring(q.Text), Time = q.Time or 4})
-	end
-
 	function W:Destroy()
-		for _, x in cs do x:Disconnect() end
-		table.clear(cs)
-		table.clear(act)
-		wr()
+		dead = true
+		for _, x in W.cn do x:Disconnect() end
+		W.cn = {}
+		save()
 		sg:Destroy()
-		sh:Destroy()
-		if tf == ef then tf = nil end
 		if ge.__AvW == W then ge.__AvW = nil end
 	end
 
-	tf, ge.__AvW = ef, W
+	ge.__AvW = W
 	return W
 end
-
-L.Sk = {bt = bt, mk = mk, rc = rc, gr = gr, fb = fb, tl = tl, hg = hg, im = im, pn = pn, A = A, c = c, ff = ff, fi = fi}
 
 return L
 end)()
@@ -2436,7 +2481,7 @@ local gi = (function()
 	end)
 	return ok and type(r) == "string" and r or nil
 end)()
-local kf, ky, ex, kl = "Avenoric/Key.txt", "NGAO-J3GA-WJWH", 1791478771, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+local kf, ky, ex, kl = "Avenoric/Keys/FishingMaster.txt", "NGAO-CV82-42CP", 1791559112, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 local kc = {t = 0, v = false}
 local function kv()
 	if os.clock() < kc.t then return kc.v end
@@ -2444,152 +2489,118 @@ local function kv()
 	kc.v, kc.t = o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky, os.clock() + 30
 	return kc.v
 end
-do
-	local function xp() return workspace:GetServerTimeNow() >= ex end
-	local o, s = pcall(readfile, kf)
-	if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
-	ge.__FmD = nil
-	if xp() or not (o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky) then
-		local tws, S = game:GetService("TweenService"), L.Sk
-		local mi, c, A, ff, fi = S.mk, S.c, S.A, S.ff, S.fi
-		local function lb(q)
-			q.BackgroundTransparency, q.FontFace, q.TextXAlignment, q.TextTruncate = 1, q.FontFace or ff, q.TextXAlignment or Enum.TextXAlignment.Left, Enum.TextTruncate.AtEnd
-			return mi("TextLabel", q, {mi("UIStroke", {Color = c.bk, Thickness = 1.2, Transparency = 0.3})})
-		end
-		local function bn(q, g, t, z)
-			q.BackgroundColor3, q.BackgroundTransparency, q.AutoButtonColor, q.Image, q.ScaleType, q.SliceCenter, q.SliceScale = c.gn, 1, false, A.gb, Enum.ScaleType.Slice, Rect.new(60, 60, 196, 196), 0.35
-			local b = S.fb(mi("ImageButton", q), "gb")
-			S.gr(b, g)
-			lb({Parent = b, Size = UDim2.fromScale(1, 1), FontFace = fi, TextSize = z, TextColor3 = c.wh, TextXAlignment = Enum.TextXAlignment.Center, Text = t, ZIndex = q.ZIndex + 1})
-			return b
-		end
-		local sg, ch = mi("ScreenGui", {Name = game:GetService("HttpService"):GenerateGUID(false), ResetOnSpawn = false, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 1000}), nil
-		ge.__FmD = sg
-		if not pcall(function() sg.Parent = gethui() end) then sg.Parent = lp:WaitForChild("PlayerGui") end
-		local fw, fh = 380, 494
-		local fr = mi("Frame", {Parent = sg, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(fw, fh), BackgroundTransparency = 1})
-		local us = mi("UIScale", {Parent = fr, Scale = 0.5})
-		S.pn(fr, 0.25)
-		local hb = S.fb(S.im(fr, A.bn, {AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, -26), Size = UDim2.fromOffset(300, 74), BackgroundColor3 = c.bl, ScaleType = Enum.ScaleType.Fit, ZIndex = 7}), "bn")
-		local ht = S.bt(S.tl(hb, 16, "Ngao - Gaming Hub", fi))
-		ht.Position, ht.Size, ht.ZIndex = UDim2.fromScale(0.58, 0.62), UDim2.fromScale(0.62, 0.34), 8
-		local xb = S.fb(mi("ImageButton", {Parent = fr, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -6, 0, 6), Size = UDim2.fromOffset(36, 40), BackgroundColor3 = c.er, BackgroundTransparency = 1, AutoButtonColor = false, Image = A.cl, ScaleType = Enum.ScaleType.Fit, ZIndex = 8}), "cl")
-		local xu = mi("UIScale", {Parent = xb})
-		local lo = S.im(fr, gi or "", {AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 58), Size = UDim2.fromOffset(88, 88), BackgroundColor3 = c.nv, BackgroundTransparency = 0, ZIndex = 6})
-		S.rc(44).Parent = lo
-		mi("UIStroke", {Parent = lo, Color = c.bl, Thickness = 3})
-		S.gr(lb({Parent = fr, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 152), Size = UDim2.new(1, -40, 0, 26), FontFace = fi, TextSize = 22, TextColor3 = c.wh, TextXAlignment = Enum.TextXAlignment.Center, Text = "Fishing Master", ZIndex = 6}), {"d9daff", "55ffff", "4f87ff"})
-		local function cd(y, h, n, t)
-			local k = mi("Frame", {Parent = fr, Position = UDim2.fromOffset(22, y), Size = UDim2.new(1, -44, 0, h), BackgroundColor3 = Color3.fromHex("0a1640"), BackgroundTransparency = 0.25, ZIndex = 6}, {S.rc(10)})
-			local ks = mi("UIStroke", {Parent = k, Color = Color3.fromHex("4f87ff"), Thickness = 1.2, Transparency = 0.35, ApplyStrokeMode = Enum.ApplyStrokeMode.Border})
-			local kn = lb({Parent = k, Position = UDim2.fromOffset(14, 8), Size = UDim2.fromOffset(200, 16), TextSize = 13, TextColor3 = Color3.fromHex("55ffff"), Text = n, ZIndex = 7})
-			lb({Parent = k, Position = UDim2.fromOffset(14, 24), Size = UDim2.new(1, -28, 0, 22), FontFace = fi, TextSize = 18, TextColor3 = c.wh, Text = t, ZIndex = 7})
-			return {k, ks, kn, n}
-		end
-		local b1 = cd(192, 66, "STEP 1", "Get The Key Link")
-		local gk = bn({Parent = b1[1], AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(118, 42), ZIndex = 8}, {"55aaff", "4f87ff"}, "Get Key", 17)
-		local b2 = cd(270, 108, "STEP 2", "Paste The Key")
-		local bx = mi("Frame", {Parent = b2[1], Position = UDim2.fromOffset(12, 54), Size = UDim2.new(1, -24, 0, 42), BackgroundColor3 = c.bk, BackgroundTransparency = 0.35, ZIndex = 7}, {S.rc(8)})
-		S.im(bx, A.ib, {Size = UDim2.fromScale(1, 1), ScaleType = Enum.ScaleType.Slice, SliceCenter = Rect.new(80, 80, 432, 432), SliceScale = 0.15, ZIndex = 8})
-		local tb = mi("TextBox", {Parent = bx, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), BackgroundTransparency = 1, ClearTextOnFocus = false, ClipsDescendants = true, FontFace = ff, TextSize = 17, TextColor3 = c.wh, PlaceholderColor3 = Color3.fromRGB(140, 150, 175), PlaceholderText = "NGAO-XXXX-XXXX", Text = "", ZIndex = 9})
-		tb:GetPropertyChangedSignal("Text"):Connect(function() if #tb.Text > 32 then tb.Text = tb.Text:sub(1, 32) end end)
-		local sm = bn({Parent = fr, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 390), Size = UDim2.new(1, -44, 0, 46), ZIndex = 7}, {"00f900", "76ff4d"}, "Submit", 20)
-		local st = lb({Parent = fr, Position = UDim2.fromOffset(22, 442), Size = UDim2.new(1, -44, 0, 18), TextSize = 14, TextColor3 = c.er, TextXAlignment = Enum.TextXAlignment.Center, Text = xp() and "Key Expired, Get The New Key" or "", ZIndex = 6})
-		local pl = mi("Frame", {Parent = fr, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 464), Size = UDim2.fromOffset(190, 20), BackgroundColor3 = c.bk, BackgroundTransparency = 0.45, ZIndex = 6}, {S.rc(10)})
-		local ft = lb({Parent = pl, Size = UDim2.fromScale(1, 1), TextSize = 13, TextColor3 = Color3.fromHex("96a5c8"), TextXAlignment = Enum.TextXAlignment.Center, Text = "", ZIndex = 7})
-		local function sx(t, q) st.Text, st.TextColor3 = t, q or c.er end
-		local function dn(b) b[2].Color, b[2].Transparency, b[3].Text, b[3].TextColor3 = c.gn, 0, `{b[4]} - DONE`, c.gn end
-		local function sk()
-			local p = fr.Position
-			for _, d in {-8, 8, -5, 5, 0} do
-				fr.Position = p + UDim2.fromOffset(d, 0)
-				task.wait(0.04)
-			end
-			fr.Position = p
-		end
-		local function dj()
-			local q = request or http_request or (syn and syn.request)
-			if not q then return end
-			local h = game:GetService("HttpService")
-			for pt = 6463, 6472 do
-				local ok, r = pcall(q, {Url = `http://127.0.0.1:{pt}/rpc?v=1`, Method = "POST", Headers = {["Content-Type"] = "application/json", Origin = "https://discord.com"}, Body = h:JSONEncode({cmd = "INVITE_BROWSER", nonce = h:GenerateGUID(false), args = {code = "fTQF5TvfEJ"}})})
-				if ok and type(r) == "table" and r.StatusCode == 200 then return end
-			end
-		end
-		local function sb()
-			local t = tb.Text:match("^%s*(.-)%s*$")
-			local e = t == "" and "Key Check Failed: Empty Key" or t ~= ky and "Key Check Failed: Wrong Key" or xp() and "Key Check Failed: Key Expired" or nil
-			if e then
-				sx(e)
-				task.spawn(sk)
-				return
-			end
-			pcall(function()
-				if not isfolder("Avenoric") then makefolder("Avenoric") end
-				writefile(kf, ky)
-			end)
-			dn(b2)
-			sx("Key Accepted", c.gn)
-			task.spawn(dj)
-			task.wait(0.4)
-			ch = ch or "k"
-		end
-		gk.Activated:Connect(function()
-			local cf = setclipboard or toclipboard
-			if kl == "" then return sx("Copy Failed: Link Not Set") end
-			if not cf then return sx("Copy Failed: No Clipboard") end
-			if not pcall(cf, kl) then return sx("Copy Failed: Clipboard Error") end
-			dn(b1)
-			sx("Link Copied, Open It In Your Browser", c.gn)
-		end)
-		sm.Activated:Connect(sb)
-		local xa, xn = false, 0
-		xb.Activated:Connect(function()
-			if xa then
-				ch = ch or "c"
-				return
-			end
-			xn += 1
-			local n = xn
-			xa = true
-			tws:Create(xu, TweenInfo.new(0.12), {Scale = 1.2}):Play()
-			task.delay(3, function()
-				if xa and xn == n then
-					xa = false
-					tws:Create(xu, TweenInfo.new(0.12), {Scale = 1}):Play()
-				end
-			end)
-		end)
-		tb.FocusLost:Connect(function(e) if e then sb() end end)
-		task.spawn(function()
-			while sg.Parent and not ch do
-				local r = ex - workspace:GetServerTimeNow()
-				ft.Text = r > 0 and string.format("Key Expires In %dh %02dm", r // 3600, r % 3600 // 60) or "Key Expired"
-				task.wait(20)
-			end
-		end)
-		local v = workspace.CurrentCamera.ViewportSize
-		local sc = math.min(math.max(v.Y * 0.42 / fh, 0.75), (v.Y - 24) / (fh + 26), (v.X - 24) / fw)
-		us.Scale = sc * 0.9
-		tws:Create(us, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {Scale = sc}):Play()
-		repeat task.wait() until ch or ge.__FmD ~= sg
-		if ge.__FmD ~= sg then error("Key Gate Replaced", 0) end
-		ge.__FmD = nil
-		sg:Destroy()
-		if ch ~= "k" then error("Key Gate Closed", 0) end
-	end
-end
-local gw = L:Window({Title = "Ngao - Gaming Hub | Fishing Master", Config = `FishingMaster/{lp.Name}`, Icon = gi})
+if ge.__FmD then pcall(function() ge.__FmD:Destroy() end) end
+ge.__FmD = nil
+task.defer(function() ge.__FmD = L.GateGui end)
+L:Gate({Title = "Ngao - Gaming Hub", Link = kl, Discord = "https://discord.gg/fTQF5TvfEJ", Config = "FishingMaster", Check = function(s)
+	if workspace:GetServerTimeNow() >= ex then return false, "Key Expired" end
+	return s == ky, "Wrong Key"
+end})
+ge.__FmD = nil
+local gw = L:Window({Title = "Ngao - Gaming Hub | Fishing Master", Config = `FishingMaster_{lp.Name}`})
 do
 	local on = gw.Notify
 	gw.Notify = function(s, q)
 		if type(q) == "table" then zx(`[{q.Title or "Hub"}] {q.Text or ""}`) end
 		return on(s, q)
 	end
-	L.Lg = function(e) zx(`[Hub] {e}`) end
 	zx(`[Hub] Loaded | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)} | {#ps:GetPlayers()} Players`)
 end
-local gt, ft = gw:Tab({Name = "General", Icon = "rbxassetid://135753849387222"}), nil
+do
+	for _, x in gw.Gui:GetChildren() do
+		local t = x:IsA("GuiButton") and x:FindFirstChildWhichIsA("TextLabel")
+		if t and t.Text == "studio" then x.Visible = false end
+	end
+	if ge.__FmNg then pcall(ge.__FmNg) end
+	local tws, cs = game:GetService("TweenService"), {}
+	local ok0, b0 = pcall(function() return lp.PlayerGui:WaitForChild("HUD", 5).Frame.Buttons end)
+	local hu, ht = ok0 and b0 or nil, 0
+	local hb = hu and hu:FindFirstAncestorOfClass("ScreenGui")
+	local sh = Instance.new("ScreenGui")
+	sh.Name, sh.ResetOnSpawn, sh.IgnoreGuiInset, sh.ZIndexBehavior, sh.DisplayOrder = hs:GenerateGUID(false), false, true, Enum.ZIndexBehavior.Sibling, 998
+	if hb then
+		sh.IgnoreGuiInset = hb.IgnoreGuiInset
+		pcall(function() sh.ScreenInsets = hb.ScreenInsets end)
+	end
+	if not pcall(function() sh.Parent = gethui() end) then sh.Parent = lp.PlayerGui end
+	local se, fl = hu and hu:FindFirstChild("Settings"), nil
+	if se then
+		fl = se:Clone()
+		for _, d in fl:GetDescendants() do
+			if d:IsA("LuaSourceContainer") or d.Name == "HasNotification" then d:Destroy() end
+		end
+		local t = fl:FindFirstChild("Title", true)
+		if t and t:IsA("TextLabel") then t.Text = "Ngao" end
+		if gi then
+			for _, d in fl:GetDescendants() do
+				if d:IsA("ImageLabel") and d.Name == "Icon" then
+					d.Image = gi
+					local u = Instance.new("UICorner")
+					u.CornerRadius, u.Parent = UDim.new(1, 0), d
+				end
+			end
+		end
+		fl.Name, fl.AnchorPoint, fl.LayoutOrder, fl.Parent = "Ngao", Vector2.zero, 0, sh
+	else
+		fl = Instance.new("ImageButton")
+		fl.Name, fl.Size, fl.BackgroundColor3, fl.BackgroundTransparency, fl.AutoButtonColor, fl.Image = "Ngao", UDim2.fromOffset(44, 44), Color3.fromRGB(18, 18, 21), 0.08, false, gi or ""
+		local u = Instance.new("UICorner")
+		u.CornerRadius, u.Parent = UDim.new(0, 22), fl
+		fl.Parent = sh
+	end
+	local fu = fl:FindFirstChildOfClass("UIScale")
+	if not fu then
+		fu = Instance.new("UIScale")
+		fu.Parent = fl
+	end
+	local hz = se ~= nil
+	local function hp()
+		if hz and not (hu and hu.Parent and hu:IsDescendantOf(game)) and os.clock() - ht > 1 then
+			ht = os.clock()
+			local ok, b = pcall(function() return lp.PlayerGui.HUD.Frame.Buttons end)
+			hu = ok and b or nil
+			hb = hu and hu:FindFirstAncestorOfClass("ScreenGui")
+		end
+		local s, i = hz and hu and hu:FindFirstChild("Settings"), hz and hu and hu:FindFirstChild("Index")
+		if s and i and hb then
+			local u, g = s:FindFirstChildOfClass("UIScale"), sh.AbsolutePosition
+			local z, c1 = s.AbsoluteSize / math.max(u and u.Scale or 1, 0.01), s.AbsolutePosition + s.AbsoluteSize / 2
+			local p = c1 * 2 - (i.AbsolutePosition + i.AbsoluteSize / 2) - z / 2 - g
+			fl.Size, fl.Position = UDim2.fromOffset(z.X, z.Y), UDim2.fromOffset(p.X, p.Y)
+			fl.Visible = hb.Enabled and hu.Parent.Visible and hu.Visible and s.Visible
+		else
+			fl.Size, fl.Position, fl.Visible = UDim2.fromOffset(44, 44), UDim2.fromOffset(16, game:GetService("GuiService"):GetGuiInset().Y + 8), true
+		end
+	end
+	hp()
+	table.insert(cs, game:GetService("RunService").RenderStepped:Connect(hp))
+	local fm, fv = fl:FindFirstChild("Image"), false
+	local fk = fm and fm:FindFirstChild("Icon")
+	local function fa(x, ro)
+		tws:Create(fu, TweenInfo.new(0.12, Enum.EasingStyle.Back), {Scale = x}):Play()
+		if fk and ro then tws:Create(fk, TweenInfo.new(0.12, Enum.EasingStyle.Back), {Rotation = ro}):Play() end
+	end
+	table.insert(cs, fl.MouseEnter:Connect(function()
+		fv = true
+		fa(1.05, 5)
+	end))
+	table.insert(cs, fl.MouseLeave:Connect(function()
+		fv = false
+		fa(1, 0)
+	end))
+	table.insert(cs, fl.MouseButton1Down:Connect(function() fa(0.9) end))
+	table.insert(cs, fl.MouseButton1Up:Connect(function() fa(fv and 1.05 or 1) end))
+	table.insert(cs, fl.Activated:Connect(function() if gw.Main.Visible then gw:Hide() else gw:Show() end end))
+	local function dn()
+		for _, c in cs do c:Disconnect() end
+		table.clear(cs)
+		pcall(function() sh:Destroy() end)
+		if ge.__FmNg == dn then ge.__FmNg = nil end
+	end
+	ge.__FmNg = dn
+	table.insert(cs, gw.Gui.Destroying:Connect(dn))
+end
+local gt, ft = gw:Tab({Name = "General", Icon = "shrimp"}), nil
 
 local xl: {[any]: any} = {}
 
@@ -3300,7 +3311,7 @@ do
 		end
 	end)
 end
-gt:Dropdown({Name = "Select Farm Island", Options = {"Current Island", table.unpack(iz)}, Default = "Current Island", Flag = "fi"})
+gt:Dropdown({Name = "Select Farm Island", Options = iz, Flag = "fi"})
 ft = gt:Toggle({Name = "Auto Fish", Flag = "af", Callback = function(v)
 	local o = ge.__FmF
 	if v then
@@ -3325,7 +3336,7 @@ gt:Section({Name = "Sell"})
 gt:Dropdown({Name = "Sell Rarity", Options = ra, Default = {}, Multi = true, Flag = "sr"})
 gt:Toggle({Name = "Auto Sell", Flag = "as"})
 
-local tz, qtx = gw:Tab({Name = "Status", Icon = "rbxassetid://125235305885604"}), `Iq{game:GetService("HttpService"):GenerateGUID(false)}`
+local tz, qtx = gw:Tab({Name = "Status", Icon = "trophy"}), `Iq{game:GetService("HttpService"):GenerateGUID(false)}`
 tz:Section({Name = "Island Quest"})
 local iql = tz:Label({Text = qtx})
 local rtx = `Rq{game:GetService("HttpService"):GenerateGUID(false)}`
@@ -3337,7 +3348,7 @@ local yql = tz:Label({Text = ytx})
 tz:Section({Name = "Skill Market"})
 local kql = tz:Label({Text = "Loading..."})
 
-local tm = gw:Tab({Name = "Misc", Icon = "rbxassetid://137813242924560"})
+local tm = gw:Tab({Name = "Misc", Icon = "four-squares-grid"})
 tm:Section({Name = "Unit"})
 tm:Dropdown({Name = "Delete Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical"}, Default = {}, Multi = true, Flag = "ur"})
 xk = tm:Toggle({Name = "Auto Delete Unit", Flag = "ua", Callback = function(v)
@@ -3349,7 +3360,7 @@ xz = tm:Toggle({Name = "Auto Delete Aura", Flag = "xa", Callback = function(v)
 	if v then xw() elseif ge.__FmO then ge.__FmO.st = "Stopped" end
 end})
 
-local tq = gw:Tab({Name = "Shop", Icon = "rbxassetid://95128643065405"})
+local tq = gw:Tab({Name = "Shop", Icon = "shopping-basket"})
 tq:Section({Name = "Gacha"})
 tq:Dropdown({Name = "Select Gacha", Options = ga, Default = "Skill Master", Flag = "gk"})
 tq:Dropdown({Name = "Select Roll", Options = {"x1", "x10"}, Default = "x1", Flag = "gr"})
@@ -3371,7 +3382,7 @@ rk = tq:Toggle({Name = "Auto Buy Rod", Flag = "rb", Callback = function(v)
 	elseif ge.__FmR then ge.__FmR.st = "Stopped" end
 end})
 
-local tl = gw:Tab({Name = "Teleport", Icon = "rbxassetid://116165046950286"})
+local tl = gw:Tab({Name = "Teleport", Icon = "person-teleport"})
 tl:Section({Name = "Island"})
 tl:Dropdown({Name = "Select Island", Options = iz, Flag = "si"})
 it = tl:Toggle({Name = "Auto Island", Flag = "ai", Callback = function(v)
@@ -3500,7 +3511,7 @@ local function ep(n, id)
 end
 
 if eo then
-	local tv = gw:Tab({Name = "Visual", Icon = "rbxassetid://105107872623903"})
+	local tv = gw:Tab({Name = "Visual", Icon = "eye"})
 	tv:Section({Name = "Effect"})
 	tv:Dropdown({Name = "Rod Skin", Options = eo[1][1], Default = "Default", Flag = "es", Callback = function(v) ep("RodSkinId", eo[1][2][v]) end})
 	tv:Dropdown({Name = "Aura", Options = eo[2][1], Default = "Default", Flag = "ea", Callback = function(v) ep("AuraCatalogId", eo[2][2][v]) end})
@@ -3559,11 +3570,40 @@ local function zp()
 			if i % 2000 == 0 then task.wait() end
 		end
 	end)
+	local rn, ui = game:GetService("RunService"), game:GetService("UserInputService")
+	ui.WindowFocusReleased:Connect(function() pcall(rn.Set3dRenderingEnabled, rn, false) end)
+	ui.WindowFocused:Connect(function() pcall(rn.Set3dRenderingEnabled, rn, true) end)
+	local function sm(d)
+		if not d:IsA("Sound") then return end
+		d.Volume = 0
+		d:GetPropertyChangedSignal("Volume"):Connect(function() if d.Volume ~= 0 then d.Volume = 0 end end)
+	end
+	game.DescendantAdded:Connect(function(d) pcall(sm, d) end)
+	task.spawn(function()
+		for i, d in game:GetDescendants() do
+			pcall(sm, d)
+			if i % 2000 == 0 then task.wait() end
+		end
+	end)
+	local function ax(d)
+		if d:IsA("Accoutrement") or d:IsA("Clothing") or d:IsA("ShirtGraphic") or d:IsA("CharacterMesh") then task.defer(pcall, d.Destroy, d) end
+	end
+	local function cr(c)
+		for _, d in c:GetDescendants() do pcall(ax, d) end
+		c.DescendantAdded:Connect(function(d) pcall(ax, d) end)
+	end
+	local function pa(p)
+		if p == lp then return end
+		if p.Character then cr(p.Character) end
+		p.CharacterAdded:Connect(cr)
+	end
+	for _, p in ps:GetPlayers() do pa(p) end
+	ps.PlayerAdded:Connect(pa)
 	if not ul then return nil, "Game Settings Failed: Settings Error" end
 	return true
 end
 
-local ts = gw:Tab({Name = "Setting", Icon = "rbxassetid://138794268715403"})
+local ts = gw:Tab({Name = "Setting", Icon = "gear"})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb.on = v == true end})
