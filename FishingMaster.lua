@@ -1003,9 +1003,16 @@ local function br(f)
 	end
 	local x, n = fd()
 	if x or n >= 12 or os.clock() < (f.sc or 0) then return x end
-	f.sc = os.clock() + 20
-	sa()
-	return (fd())
+	for _, z in game:GetService("CollectionService"):GetTagged("IslandRegion") do
+		if f.st ~= "Running" then break end
+		if z:IsA("BasePart") then
+			sq(Vector3.new(z.Position.X, 2, z.Position.Z), 10)
+			x = fd()
+			if x then return x end
+		end
+	end
+	f.sc = os.clock() + 5
+	return nil
 end
 
 local function zd(m)
