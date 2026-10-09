@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, hf = {}, fm = 1, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -718,8 +718,9 @@ local function ow()
 			if typeof(c) == "CFrame" then
 				p[#p + 1] = Vector2.new(c.X, c.Z)
 			elseif v.Placement == nil and type(k) == "string" then
-				local a = dr[v.AssetCategory]
-				if not (st.es and a and a.Rarity and st.se[a.Rarity._id]) or (st.pi and ix[v.AssetCategory] ~= true) then
+				local a, w = dr[v.AssetCategory], nil
+				if st.pi then w = ix[v.AssetCategory] ~= true else w = not (st.es and a and a.Rarity and st.se[a.Rarity._id]) end
+				if w then
 					u[#u + 1] = {u = k, k = tonumber(a and a.Rarity and a.Rarity.Rank) or 0, e = tonumber(a and a.EarningRate) or 0}
 				end
 			end
@@ -790,7 +791,6 @@ do
 end
 
 local function mt()
-	if st.on then return false, "Treadmill Failed: Farm Running" end
 	if st.bt then return true end
 	st.tr = nil
 	local b = tb()
@@ -920,6 +920,18 @@ local function lo(g)
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
 		fz(false)
+		if st.bt or tm() then
+			if not cr() and #cd() == 0 then
+				lg("No Eggs | On Treadmill")
+				task.wait(1)
+				continue
+			end
+			lg("Leaving Treadmill")
+			local ok, wy = lt()
+			if not ok then lg(tostring(wy)) end
+			task.wait(1)
+			continue
+		end
 		if not sw() then
 			lg("Waiting To Swap")
 			task.wait(0.2)
@@ -951,9 +963,17 @@ local function lo(g)
 					continue
 				end
 				if os.clock() >= st.pc then
-					local n, wy = pe()
 					st.pc = os.clock() + 15
-					if n > 0 or not tostring(wy):find("Skipped", 1, true) then lg(string.format("Placed %d%s", n, wy and (" | " .. wy) or "")) end
+					if st.pi then
+						lg("Placing Eggs")
+						local n, wy = pe()
+						lg(string.format("Placed %d%s", n, wy and (" | " .. wy) or ""))
+					end
+					lg("No Eggs | Mounting Treadmill")
+					un()
+					local ok, wy = mt()
+					lg(ok and "Treadmill Mounted" or tostring(wy))
+					continue
 				end
 				lg("No Eggs")
 				task.wait(1)
@@ -1045,6 +1065,11 @@ local function lo(g)
 	end
 	if not st.sr or ge.__SaeAf ~= st or st.g ~= g then return end
 	st.on, st.sr = false, false
+	if st.bt or tm() then
+		lg("Leaving Treadmill")
+		local ok, wy = lt()
+		if not ok then lg(tostring(wy)) end
+	end
 	un()
 	lg("Idle")
 end
@@ -1429,37 +1454,11 @@ local function bg(g)
 	ed()
 end
 
-local function ht()
-	local ok, o = pcall(es.ReadOwnerEggs, lp.UserId)
-	if not ok or type(o) ~= "table" then return 0 end
-	local n, t = 0, os.clock()
-	for k, v in pairs(o) do
-		if ge.__SaeAf ~= st or n >= 5 then break end
-		if type(k) == "string" and type(v) == "table" and v.Placement and (st.hf[k] or 0) < t then
-			local o2, r = pcall(es.IsReadyToHatch, k)
-			if o2 and r == true then
-				local o3, a = pcall(es.BeginHatch, k)
-				local o4, b = false, false
-				if o3 and a then o4, b = pcall(es.FinishHatch, k) end
-				if o4 and b then
-					n += 1
-				else
-					st.hf[k] = t + 60
-				end
-				task.wait(0.3)
-			end
-		end
-	end
-	return n
-end
-
 task.spawn(function()
 	while ge.__SaeAf == st do
 		task.wait(10)
 		if ge.__SaeAf ~= st then break end
 		if not kv() then continue end
-		local n = ht()
-		if n > 0 then pcall(appendfile, "SaeLog.txt", string.format("%s Hatched %d\n", os.date("%H:%M:%S"), n)) end
 		if st.ps or st.es then
 			local p, e = sc()
 			if #p + #e > 0 then
@@ -2358,16 +2357,6 @@ pg:Toggle({Name = "Auto Steal Egg", Default = false, Flag = "ae", Callback = fun
 	if v then st.Start() else st.Stop() end
 end})
 pg:Toggle({Name = "Pet Index", Default = false, Flag = "pix", Callback = function(v) st.pi = v == true end})
-pg:Button({Name = "Mount Treadmill", Callback = function()
-	local ok, wy = mt()
-	lg(ok and "Treadmill Mounted" or tostring(wy))
-	W:Notify({Title = "Mount Treadmill", Text = ok and "Treadmill Mounted" or tostring(wy), Error = not ok})
-end})
-pg:Button({Name = "Leave Treadmill", Callback = function()
-	local ok, wy = lt()
-	lg(ok and "Treadmill Left" or tostring(wy))
-	W:Notify({Title = "Leave Treadmill", Text = ok and "Treadmill Left" or tostring(wy), Error = not ok})
-end})
 
 pg:Section({Name = "Pet"})
 pg:Dropdown({Name = "Sell Pet Rarity", Options = ra, Multi = true, Default = {}, Flag = "spr", Callback = function(v) st.sp = rs2(v) end})
