@@ -1422,15 +1422,20 @@ local function bg(g)
 		if t and t.Parent ~= lp.Character then pcall(function() hu:EquipTool(t) end) end
 		if bs then bs() end
 		local p, pk, pd, s, sk, sd = nil, -1, math.huge, nil, -1, math.huge
+		local x1, xk, xd, y1, yk, yd = nil, -1, math.huge, nil, -1, math.huge
 		for _, e in bw.Each() do
 			local eo = typeof(e.Position) == "Vector3" and b.CFrame:PointToObjectSpace(e.Position)
-			local wn = not nd or (type(e.Tier) == "table" and nd[e.Tier.Id] ~= nil)
-			if wn and (e.Alpha or 0) >= 0.5 and eo and math.abs(eo.X) <= b.Size.X / 2 + 10 and math.abs(eo.Z) <= b.Size.Z / 2 + 10 and type(e.Flight) == "table" then
+			if (e.Alpha or 0) >= 0.5 and eo and math.abs(eo.X) <= b.Size.X / 2 + 10 and math.abs(eo.Z) <= b.Size.Z / 2 + 10 and type(e.Flight) == "table" then
 				local m, k = (e.Position - h.Position).Magnitude, tonumber(type(e.Tier) == "table" and e.Tier.Order) or 0
-				if k > pk or (k == pk and m < pd) then p, pk, pd = e, k, m end
-				if m <= 13 and (k > sk or (k == sk and m < sd)) then s, sk, sd = e, k, m end
+				if not nd or (type(e.Tier) == "table" and nd[e.Tier.Id] ~= nil) then
+					if k > pk or (k == pk and m < pd) then p, pk, pd = e, k, m end
+					if m <= 13 and (k > sk or (k == sk and m < sd)) then s, sk, sd = e, k, m end
+				end
+				if k > xk or (k == xk and m < xd) then x1, xk, xd = e, k, m end
+				if m <= 13 and (k > yk or (k == yk and m < yd)) then y1, yk, yd = e, k, m end
 			end
 		end
+		p, s = p or x1, s or y1
 		if s and os.clock() >= nx then
 			nx = os.clock() + 0.5
 			local id = s.Flight.Id
@@ -2357,6 +2362,12 @@ pg:Toggle({Name = "Auto Steal Egg", Default = false, Flag = "ae", Callback = fun
 	if v then st.Start() else st.Stop() end
 end})
 pg:Toggle({Name = "Pet Index", Default = false, Flag = "pix", Callback = function(v) st.pi = v == true end})
+pg:Button({Name = "Leave Treadmill", Callback = function()
+	local ok, wy = false, "Treadmill Failed: Not Mounted"
+	if st.bt or tm() then ok, wy = lt() end
+	lg(ok and "Treadmill Left" or tostring(wy))
+	W:Notify({Title = "Leave Treadmill", Text = ok and "Treadmill Left" or tostring(wy), Error = not ok})
+end})
 
 pg:Section({Name = "Pet"})
 pg:Dropdown({Name = "Sell Pet Rarity", Options = ra, Multi = true, Default = {}, Flag = "spr", Callback = function(v) st.sp = rs2(v) end})
