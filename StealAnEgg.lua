@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -1471,11 +1471,39 @@ local function bg(g)
 	ed()
 end
 
+local function ht()
+	local ok, o = pcall(es.ReadOwnerEggs, lp.UserId)
+	if not ok or type(o) ~= "table" then return 0 end
+	local n, t = 0, os.clock()
+	for k, v in pairs(o) do
+		if ge.__SaeAf ~= st or not st.ah or n >= 5 then break end
+		if type(k) == "string" and type(v) == "table" and v.Placement and (st.hf[k] or 0) < t then
+			local o2, r = pcall(es.IsReadyToHatch, k)
+			if o2 and r == true then
+				local o3, a = pcall(es.BeginHatch, k)
+				local o4, b = false, false
+				if o3 and a then o4, b = pcall(es.FinishHatch, k) end
+				if o4 and b then
+					n += 1
+				else
+					st.hf[k] = t + 60
+				end
+				task.wait(0.3)
+			end
+		end
+	end
+	return n
+end
+
 task.spawn(function()
 	while ge.__SaeAf == st do
 		task.wait(10)
 		if ge.__SaeAf ~= st then break end
 		if not kv() then continue end
+		if st.ah then
+			local n = ht()
+			if n > 0 then pcall(appendfile, "SaeLog.txt", string.format("%s Hatched %d\n", os.date("%H:%M:%S"), n)) end
+		end
 		if st.ps or st.es then
 			local p, e = sc()
 			if #p + #e > 0 then
@@ -2373,8 +2401,11 @@ pg:Dropdown({Name = "Select Egg", Options = ra, Multi = true, Default = {}, Flag
 pg:Toggle({Name = "Auto Steal Egg", Default = false, Flag = "ae", Callback = function(v)
 	if v then st.Start() else st.Stop() end
 end})
+local xp = pg:Toggle({Name = "Auto Place Egg", Default = true, Flag = "ape", Callback = function(v) st.ap = v == true end})
+st.ap = xp.v == true
+local xh = pg:Toggle({Name = "Auto Hatch Egg", Default = true, Flag = "ahe", Callback = function(v) st.ah = v == true end})
+st.ah = xh.v == true
 pg:Toggle({Name = "Pet Index", Default = false, Flag = "pix", Callback = function(v) st.pi = v == true end})
-pg:Toggle({Name = "Auto Place Egg", Default = false, Flag = "ape", Callback = function(v) st.ap = v == true end})
 pg:Button({Name = "Leave Treadmill", Callback = function()
 	local ok, wy = false, "Treadmill Failed: Not Mounted"
 	if st.bt or tm() then ok, wy = lt() end
@@ -2405,7 +2436,8 @@ end})
 local mi = W:Tab({Name = "Misc", Icon = "four-squares-grid"})
 mi:Section({Name = "Player"})
 mi:Toggle({Name = "Anti Stun", Default = false, Flag = "ast", Callback = function(v) su(v == true) end})
-mi:Toggle({Name = "Anti Trap", Default = false, Flag = "atr", Callback = function(v) aq(v == true) end})
+local xt = mi:Toggle({Name = "Anti Trap", Default = true, Flag = "atr", Callback = function(v) aq(v == true) end})
+if xt.v then aq(true) end
 
 local tp2 = W:Tab({Name = "Teleport", Icon = "person-teleport"})
 tp2:Section({Name = "Server"})
