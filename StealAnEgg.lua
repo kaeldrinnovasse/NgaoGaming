@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -719,7 +719,11 @@ local function ow()
 				p[#p + 1] = Vector2.new(c.X, c.Z)
 			elseif v.Placement == nil and type(k) == "string" then
 				local a, w = dr[v.AssetCategory], nil
-				if st.pi then w = ix[v.AssetCategory] ~= true else w = not (st.es and a and a.Rarity and st.se[a.Rarity._id]) end
+				if st.pi and not st.ap then
+					w = ix[v.AssetCategory] ~= true
+				else
+					w = not (st.es and a and a.Rarity and st.se[a.Rarity._id]) or (st.pi and ix[v.AssetCategory] ~= true)
+				end
 				if w then
 					u[#u + 1] = {u = k, k = tonumber(a and a.Rarity and a.Rarity.Rank) or 0, e = tonumber(a and a.EarningRate) or 0}
 				end
@@ -799,14 +803,10 @@ local function mt()
 	if not h or not hu or hu.Health <= 0 then return false, "Treadmill Failed: No Character" end
 	if (b.Position - h.Position).Magnitude > 200 then return false, "Treadmill Failed: Too Far" end
 	for _ = 1, 2 do
-		local t0 = os.clock()
-		while Vector3.new(b.Position.X - h.Position.X, 0, b.Position.Z - h.Position.Z).Magnitude > 1.5 do
-			if os.clock() - t0 > 15 then return false, "Treadmill Failed: Walk Timeout" end
-			hu:MoveTo(b.Position)
-			hu.MoveToFinished:Wait()
-			h, hu = rt()
-			if not h or not hu then return false, "Treadmill Failed: Character Lost" end
-		end
+		h = rt()
+		if not h then return false, "Treadmill Failed: Character Lost" end
+		local ok, wy = mv(Vector3.new(b.Position.X, h.Position.Y, b.Position.Z), nil, 10)
+		if not ok then return false, tostring(wy) end
 		local t1 = os.clock()
 		repeat task.wait(0.2) until st.bt or os.clock() - t1 > 3
 		if st.bt then return true end
@@ -910,19 +910,22 @@ local function sl(p, e)
 	end
 end
 
+local function wq()
+	local l = cd()
+	if #l == 0 then return "No Eggs" end
+	local d, h, hu = dl(), rt()
+	if d and h and hu and d < math.abs(l[1].p.X - h.Position.X) / math.max(hu.WalkSpeed, 16) + 9 then return "Waiting For Day" end
+	return nil
+end
+
 local function lo(g)
-	if tm() then
-		lg("Leaving Treadmill")
-		local ok, wy = lt()
-		if not ok then lg(tostring(wy)) end
-		task.wait(1)
-	end
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
 		fz(false)
 		if st.bt or tm() then
-			if not cr() and #cd() == 0 then
-				lg("No Eggs | On Treadmill")
+			local wy = not cr() and wq()
+			if wy then
+				lg(wy .. " | On Treadmill")
 				task.wait(1)
 				continue
 			end
@@ -962,13 +965,14 @@ local function lo(g)
 					hm(false)
 					continue
 				end
-				if os.clock() >= st.pc then
+				if (st.pi or st.ap) and os.clock() >= st.pc then
 					st.pc = os.clock() + 15
-					if st.pi then
-						lg("Placing Eggs")
-						local n, wy = pe()
-						lg(string.format("Placed %d%s", n, wy and (" | " .. wy) or ""))
-					end
+					lg("Placing Eggs")
+					local n, wy = pe()
+					lg(string.format("Placed %d%s", n, wy and (" | " .. wy) or ""))
+				end
+				if os.clock() >= st.mq then
+					st.mq = os.clock() + 3
 					lg("No Eggs | Mounting Treadmill")
 					un()
 					local ok, wy = mt()
@@ -991,11 +995,19 @@ local function lo(g)
 					lg("Night Coming, Going Home")
 					hm(false)
 				else
-					if os.clock() >= st.pc then
+					if (st.pi or st.ap) and os.clock() >= st.pc then
 						lg("Placing Eggs")
 						local n, wy = pe()
 						st.pc = os.clock() + 15
 						lg(string.format("Placed %d%s", n, wy and (" | " .. wy) or ""))
+					end
+					if os.clock() >= st.mq then
+						st.mq = os.clock() + 3
+						lg("Waiting For Day | Mounting Treadmill")
+						un()
+						local ok, wy = mt()
+						lg(ok and "Treadmill Mounted" or tostring(wy))
+						continue
 					end
 					lg("Waiting For Day")
 					task.wait(0.5)
@@ -2362,6 +2374,7 @@ pg:Toggle({Name = "Auto Steal Egg", Default = false, Flag = "ae", Callback = fun
 	if v then st.Start() else st.Stop() end
 end})
 pg:Toggle({Name = "Pet Index", Default = false, Flag = "pix", Callback = function(v) st.pi = v == true end})
+pg:Toggle({Name = "Auto Place Egg", Default = false, Flag = "ape", Callback = function(v) st.ap = v == true end})
 pg:Button({Name = "Leave Treadmill", Callback = function()
 	local ok, wy = false, "Treadmill Failed: Not Mounted"
 	if st.bt or tm() then ok, wy = lt() end
