@@ -2488,7 +2488,7 @@ local gi = (function()
 	end)
 	return ok and type(r) == "string" and r or nil
 end)()
-local kf, ky, ex, kl = "Avenoric/Keys/FishingMaster.txt", "NGAO-CV82-42CP", 1791559112, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
+local kf, ky, ex, kl = "Avenoric/Keys/FishingMaster.txt", "NGAO-6366-HNW8", 1791645511, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmunx0jzb"
 local kc = {t = 0, v = false}
 local function kv()
 	if os.clock() < kc.t then return kc.v end
