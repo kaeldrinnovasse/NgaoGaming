@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -113,7 +113,7 @@ local function cd()
 	for _, r in s.Records or {} do
 		local a = dr[r.AssetCategory]
 		local wt
-		if st.pi then wt = ix[r.AssetCategory] ~= true and not oc[r.AssetCategory] else wt = a and a.Rarity and st.mr[a.Rarity._id] end
+		if st.pi then wt = ix[r.AssetCategory] ~= true and not oc[r.AssetCategory] elseif next(st.az) then wt = st.az[r.AreaId] == true else wt = a and a.Rarity and st.mr[a.Rarity._id] end
 		if a and (r.State == "Slot" or r.State == "Dropped") and typeof(r.BoundsCFrame) == "CFrame" and (st.bl[r.Uid] or 0) < t and wt then
 			o[#o + 1] = {u = r.Uid, r = r, k = tonumber(a.Rarity and a.Rarity.Rank) or 0, e = tonumber(a.EarningRate) or 0, p = r.BoundsCFrame.Position}
 		end
@@ -2401,9 +2401,32 @@ local function rs2(v)
 	return t
 end
 
+local function an()
+	local w = workspace:FindFirstChild("World") or workspace:FindFirstChild("__OBJECTS")
+	local a = w and w:FindFirstChild("Areas")
+	local g = a and a:FindFirstChild("GuardAreas")
+	local o = {}
+	for _, z in g and g:GetChildren() or {} do
+		local b = z:FindFirstChild("Bounds")
+		if b and b:IsA("BasePart") then o[#o + 1] = {z.Name, b.Position.X - b.Size.X / 2} end
+	end
+	table.sort(o, function(x, y) return x[2] < y[2] end)
+	local n = {}
+	for _, v in o do n[#n + 1] = v[1] end
+	return n
+end
+
 local ra = rk()
 pg:Section({Name = "Farm"})
-pg:Dropdown({Name = "Select Egg", Options = ra, Multi = true, Default = {}, Flag = "mr", Callback = function(v) st.mr = rs2(v) end})
+local xe, xa
+xa = pg:Dropdown({Name = "Select Area", Options = an(), Multi = true, Default = {}, Flag = "ar", Callback = function(v)
+	st.az = rs2(v)
+	if #v > 0 and xe then xe:Set({}) end
+end})
+xe = pg:Dropdown({Name = "Select Egg", Options = ra, Multi = true, Default = {}, Flag = "mr", Callback = function(v)
+	st.mr = rs2(v)
+	if #v > 0 and xa then xa:Set({}) end
+end})
 pg:Toggle({Name = "Auto Steal Egg", Default = false, Flag = "ae", Callback = function(v)
 	if v then st.Start() else st.Stop() end
 end})
