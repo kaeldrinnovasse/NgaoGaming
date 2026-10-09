@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -113,7 +113,7 @@ local function cd()
 	for _, r in s.Records or {} do
 		local a = dr[r.AssetCategory]
 		local wt
-		if st.pi then wt = ix[r.AssetCategory] ~= true and not oc[r.AssetCategory] elseif next(st.az) then wt = st.az[r.AreaId] == true else wt = a and a.Rarity and st.mr[a.Rarity._id] end
+		if st.wf then wt = st.wf.a and r.AreaId == st.wf.a or st.wf.r and a and a.Rarity and a.Rarity._id == st.wf.r or false elseif st.pi then wt = ix[r.AssetCategory] ~= true and not oc[r.AssetCategory] elseif next(st.az) then wt = st.az[r.AreaId] == true else wt = a and a.Rarity and st.mr[a.Rarity._id] end
 		if a and (r.State == "Slot" or r.State == "Dropped") and typeof(r.BoundsCFrame) == "CFrame" and (st.bl[r.Uid] or 0) < t and wt then
 			o[#o + 1] = {u = r.Uid, r = r, k = tonumber(a.Rarity and a.Rarity.Rank) or 0, e = tonumber(a.EarningRate) or 0, p = r.BoundsCFrame.Position}
 		end
@@ -1225,11 +1225,7 @@ local function fp(a, r)
 	return r:find(":", 1, true) and r or (a .. ": " .. r)
 end
 
-local function bj(p, ck)
-	local ok, s = pcall(sv.Await)
-	local w = ok and type(s) == "table" and s.WispCompanion
-	if type(w) ~= "table" or w.Unlocked ~= true then return false, "Wisp Locked" end
-	if lp:GetAttribute("InEnchantedTree") == true then return true end
+local function bd(p, ck)
 	local h, hu = rt()
 	if not h or not hu then return false, "No Character" end
 	local a = p.en.WorldPosition
@@ -1267,6 +1263,16 @@ local function bj(p, ck)
 		st.pv = false
 		if not o2 then return false, wy end
 	end
+	return true
+end
+
+local function bj(p, ck)
+	local ok, s = pcall(sv.Await)
+	local w = ok and type(s) == "table" and s.WispCompanion
+	if type(w) ~= "table" or w.Unlocked ~= true then return false, "Wisp Locked" end
+	if lp:GetAttribute("InEnchantedTree") == true then return true end
+	local o2, wy = bd(p, ck)
+	if not o2 then return false, wy end
 	bh(p.ep)
 	local t = os.clock()
 	repeat task.wait(0.2) until lp:GetAttribute("InEnchantedTree") == true or os.clock() - t > 6
@@ -1323,10 +1329,176 @@ local function bu()
 	return true
 end
 
+local wqd = (function()
+	local ok, r = pcall(function() return require(rs.Data.WispQuests) end)
+	return ok and type(r) == "table" and r or nil
+end)()
+
+local function ws()
+	local o, s = pcall(sv.Await)
+	local w = o and type(s) == "table" and s.WispCompanion
+	return type(w) == "table" and w or nil
+end
+
+local function wu()
+	local w = ws()
+	return w ~= nil and w.Unlocked == true
+end
+
+local function fi(r, ...)
+	local a = table.pack(pcall(r.InvokeServer, r, ...))
+	if a[1] and a[2] then return true end
+	return false, tostring(a[1] and (a[3] or "Denied") or a[2])
+end
+
+local function wr(a, b)
+	return fi(rm.WispCompanion.Request, a, b)
+end
+
+local function wa(id)
+	local ok, r = pcall(function() return require(rs.Data.Areas) end)
+	local d = ok and type(r) == "table" and (r.Directory or r)[id]
+	local o = {}
+	for _, x in type(d) == "table" and d.DropTable or {} do
+		if type(x) == "table" and type(x[1]) == "string" then o[x[1]] = true end
+	end
+	return o
+end
+
+local function wp(id)
+	local o, s = pcall(sv.Await)
+	if not o or type(s) ~= "table" then return nil end
+	local c, q, g = wa(id), {}, {}
+	for _, u in ipairs(s.EquippedAssets or {}) do q[u] = true end
+	for k, v in pairs(s.Inventory or {}) do
+		local o2, i = pcall(ai.Decode, v)
+		if o2 and type(i) == "table" and c[i.Category] and not i.IsFavorite and not i.InFuse and not i.CreatorTemporary and not q[k] then
+			g[i.Category] = g[i.Category] or {}
+			table.insert(g[i.Category], k)
+			if #g[i.Category] >= 3 then return g[i.Category] end
+		end
+	end
+	return nil
+end
+
+local function wz(l)
+	local m = workspace:FindFirstChild("World")
+	m = m and m:FindFirstChild("Machines")
+	m = m and m:FindFirstChild("FuseMachine")
+	m = m and m:FindFirstChild("Machine")
+	if not (m and m:IsA("BasePart")) then return false, "Fuse Failed: No Machine" end
+	local h = rt()
+	if not h then return false, "Fuse Failed: No Character" end
+	if st.bt or tm() then
+		lt()
+		task.wait(1)
+		h = rt()
+		if not h then return false, "Fuse Failed: No Character" end
+	end
+	local d = Vector3.new(h.Position.X - m.Position.X, 0, h.Position.Z - m.Position.Z)
+	if d.Magnitude > 6 then
+		st.bo = true
+		local ok, wy = mv(Vector3.new(m.Position.X, h.Position.Y, m.Position.Z) + d.Unit * 5, nil, 15)
+		st.bo = false
+		fz(false)
+		if not ok then return false, fp("Fuse Failed", wy) end
+	end
+	local o, s = pcall(sv.Await)
+	if not o or type(s) ~= "table" then return false, "Fuse Failed: No Save" end
+	if s.FusionInfoAcknowledged == false then fi(rm.Fusery.ConfirmBriefing) end
+	if s.FusionEggReward then fi(rm.Fusery.FinishReveal) end
+	for _, u in table.clone(type(s.FusionSlots) == "table" and s.FusionSlots or {}) do fi(rm.Fusery.EjectPet, u) end
+	for _, u in l do
+		local ok, wy = fi(rm.Fusery.LoadPet, u, false)
+		if not ok then return false, "Fuse Failed: " .. wy end
+		task.wait(0.3)
+	end
+	local ok, wy = fi(rm.Fusery.BeginFuse)
+	if not ok then return false, "Fuse Failed: " .. wy end
+	task.wait(0.6)
+	ok, wy = fi(rm.Fusery.FinishReveal)
+	if not ok then return false, "Fuse Reveal Failed: " .. wy end
+	return true
+end
+
+local function we()
+	st.wf = nil
+	if not st.wo then return end
+	st.wo = false
+	if st.on then st.Stop() end
+end
+
+local function wt()
+	local p, z = bn2(), workspace:FindFirstChild("World")
+	z = z and z:FindFirstChild("Build")
+	z = z and z:FindFirstChild("EnchantedForestZone")
+	local a = z and z:FindFirstChild("Zone13Props")
+	a = a and a:FindFirstChild("EnchantedTree")
+	a = a and a:FindFirstChild("WispAnchor")
+	local pr = a and a:FindFirstChild("WispTreePrompt")
+	if not (p and pr) then return "Wisp Return Failed: No Tree" end
+	local function ck() if st.on or not st.bf then return "Stopped" end return nil end
+	st.bo = true
+	local ok, wy = bd(p, ck)
+	if ok then
+		bh(pr)
+		local t = os.clock()
+		repeat task.wait(0.2) until wu() or os.clock() - t > 8
+		ok, wy = wu(), "Not Unlocked"
+	end
+	st.bo = false
+	return ok and "Wisp Unlocked" or fp("Wisp Return Failed", wy)
+end
+
+local function wd()
+	local w = ws()
+	if not w or not wqd then return "Wisp Failed: No State" end
+	if not w.Accepted then
+		local ok, m = wr("Accept")
+		return ok and "Wisp Accepted" or "Wisp Accept Failed: " .. tostring(m)
+	end
+	local q = wqd.List[w.Stage]
+	if q and not w.Claimed[q.Id] and (w.Progress[q.Id] or 0) >= q.Target then
+		local ok, m = wr("Claim", q.Id)
+		return ok and "Wisp Claimed | " .. q.Title or "Wisp Claim Failed: " .. tostring(m)
+	end
+	if q and q.Event == "EggSecured" then
+		st.wf = q.Match.AreaId and {a = q.Match.AreaId} or {r = q.Match.Rarity}
+		if not st.on then
+			st.wo = true
+			st.Start()
+		end
+		return string.format("Wisp Quest | %s %d/%d", q.Title, w.Progress[q.Id] or 0, q.Target)
+	end
+	if q and q.Event == "PetFused" then
+		local l = wp(q.Match.AreaId)
+		if not l then
+			st.wf = {a = q.Match.AreaId}
+			if not st.on then
+				st.wo = true
+				st.Start()
+			end
+			return "Wisp Quest | " .. q.Title .. " | Waiting For 3 Same Pets"
+		end
+		we()
+		if st.on then return "Wisp | Waiting For Farm" end
+		local ok, m = wz(l)
+		return ok and "Wisp Fused" or tostring(m)
+	end
+	we()
+	if st.on then return "Wisp | Waiting For Farm" end
+	if q then return "Wisp Quest | " .. q.Title .. " | Not Automated" end
+	if not w.Returning then
+		local ok, m = wr("BeginReturn")
+		return ok and "Wisp Returning" or "Wisp Return Failed: " .. tostring(m)
+	end
+	return wt()
+end
+
 local function bg(g)
 	if not (bb and bw and bq) then lg("Butterfly Failed: No Module") return end
 	if not kv() then lg("Key Check Failed: No Valid Key") return end
-	local by, c0, nx = false, 0, 0
+	local by, c0, nx, lw = false, 0, 0, nil
 	local function ed()
 		if not by then return end
 		by, st.bo = false, false
@@ -1343,12 +1515,23 @@ local function bg(g)
 		return nil
 	end
 	while ge.__SaeAf == st and st.bf and st.bi == g do
+		local nc, tc = bn()
+		if not nc and not wu() then
+			ed()
+			local m = wd()
+			if m ~= lw then
+				lw = m
+				lg(m)
+			end
+			task.wait(1)
+			continue
+		end
+		if st.wf or st.wo then we() end
 		if st.on then
 			by, st.bo = false, false
 			task.wait(1)
 			continue
 		end
-		local nc, tc = bn()
 		if not nc then
 			ed()
 			lg("Claiming Net")
@@ -1475,6 +1658,7 @@ local function bg(g)
 		task.wait(0.1)
 	end
 	ed()
+	we()
 end
 
 local function ht()
