@@ -1771,11 +1771,20 @@ local function fit(sg, f, sc, w, h)
 end
 
 local function cfn(s)
-	return s == nil or type(s) == "string" and s:match("^[%w _%-]+$") ~= nil
+	if s == nil then return true end
+	if type(s) ~= "string" or s == "" then return false end
+	for seg in (s .. "/"):gmatch("([^/]*)/") do
+		if not seg:match("^[%w _%-]+$") then return false end
+	end
+	return true
 end
 
-local function dirs()
-	if not isfolder("Avenoric") then makefolder("Avenoric") end
+local function mkd(p)
+	local d = ""
+	for seg in p:gmatch("([^/]+)/") do
+		d = d == "" and seg or d .. "/" .. seg
+		if not isfolder(d) then makefolder(d) end
+	end
 end
 
 local function inv(u)
@@ -1828,7 +1837,7 @@ function L:Gate(o)
 		busy, sb.Text = false, "Submit"
 		if not ok then msg("Key Check Failed: " .. tostring(r)); return end
 		if r ~= true then msg(m and tostring(m) or "Wrong Key"); return end
-		if kp then pcall(function() dirs(); if not isfolder("Avenoric/Keys") then makefolder("Avenoric/Keys") end; writefile(kp, s) end) end
+		if kp then pcall(function() mkd(kp); writefile(kp, s) end) end
 		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
 		got = s
 	end
@@ -1857,7 +1866,7 @@ function L:Window(o)
 	o = o or {}
 	if not cfn(o.Config) then error("Window Failed: Bad Config", 0) end
 	if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
-	local W = {Tabs = {}, Current = nil, cn = {}, key = o.Key == nil and Enum.KeyCode.LeftControl or o.Key, sx = false, sq = false, kw = false, fc = nil, sv = 1, fd = nil, w = ww, h = wh}
+	local W = {Tabs = {}, Current = nil, cn = {}, key = o.Key == nil and Enum.KeyCode.LeftControl or o.Key, sx = false, sl = "", kw = false, fc = nil, sv = 1, fd = nil, w = ww, h = wh}
 	local sg = gui()
 	W.Gui = sg
 	local mn = mk("Frame", {Name = "Main", Size = UDim2.fromOffset(ww, wh), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, Parent = sg}, {rc(12), sk(0.85)})
@@ -1912,8 +1921,7 @@ function L:Window(o)
 		if not cp or not dirty then return end
 		dirty = false
 		pcall(function()
-			dirs()
-			if not isfolder("Avenoric/Configs") then makefolder("Avenoric/Configs") end
+			mkd(cp)
 			writefile(cp, hs:JSONEncode(cd))
 		end)
 	end
@@ -2062,7 +2070,8 @@ function L:Window(o)
 
 	function W:Search(s)
 		s = tostring(s or "")
-		if sb.Text ~= s then W.sq = true; sb.Text = s; W.sq = false end
+		W.sl = s
+		if sb.Text ~= s then sb.Text = s end
 		for _, x in sr:GetChildren() do
 			if x:IsA("GuiButton") then x:Destroy() end
 		end
@@ -2097,7 +2106,7 @@ function L:Window(o)
 		fd()
 		return n
 	end
-	sb:GetPropertyChangedSignal("Text"):Connect(function() if not W.sq then W:Search(sb.Text) end end)
+	sb:GetPropertyChangedSignal("Text"):Connect(function() if sb.Text ~= W.sl then W:Search(sb.Text) end end)
 
 	function W:Tab(t)
 		t = t or {}
@@ -2562,7 +2571,7 @@ L:Gate({Title = "Ngao - Gaming Hub", Link = kl, Discord = "https://discord.gg/fT
 end})
 ge.__SaeD = nil
 kc.t = 0
-local W = L:Window({Title = "Ngao - Gaming Hub | Steal An Egg", Config = `StealAnEgg_{lp.Name}`})
+local W = L:Window({Title = "Ngao - Gaming Hub | Steal An Egg", Config = `StealAnEgg/{lp.Name}`})
 local pg = W:Tab({Name = "General", Icon = "egg"})
 local function rk()
 	local m, o = {}, {}
