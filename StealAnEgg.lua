@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -488,9 +488,11 @@ local function mv(tg, ck, to, cp)
 	return dn, wy
 end
 
-local function hp(en, y, rq)
+local function hp(en, y, rq, ck)
 	while true do
-		if ge.__SaeAf ~= st or not st.on then return false, "Stopped" end
+		if ge.__SaeAf ~= st or not (st.on or st.bo) then return false, "Stopped" end
+		local r = ck and ck()
+		if r then return false, r end
 		local hr = rt()
 		if not hr then return false, "Home Failed: Character Lost" end
 		if rq and not cr() then return false, "Home Failed: Egg Lost" end
@@ -1248,14 +1250,19 @@ local function bj(p, ck)
 		end
 		if o2 then
 			local y = math.max(h.Position.Y, a.Y) + 50
-			local q = Vector3.new(a.X, y, a.Z - 7)
-			o2, wy = mv(Vector3.new(h.Position.X, y, h.Position.Z), ck, 5)
-			if o2 then o2, wy = mv(q, ck, (q - h.Position).Magnitude / math.max(hu.WalkSpeed, 16) + 10) end
-			if o2 then o2, wy = mv(Vector3.new(a.X, a.Y + 1, a.Z - 7), ck, 10) end
+			o2, wy = hp(Vector3.new(a.X, y, a.Z - 7), y, false, ck)
+			if o2 then o2, wy = hp(Vector3.new(a.X, a.Y + 1, a.Z - 7), y, false, ck) end
 		end
+		fz(false)
 		local _, h2 = rt()
 		local t = os.clock()
 		while h2 and h2.Parent and h2.FloorMaterial == Enum.Material.Air and os.clock() - t < 3 do task.wait(0.1) end
+		t = os.clock()
+		while o2 and os.clock() - t < 8 do
+			local r = ck and ck()
+			if r then o2, wy = false, r end
+			task.wait(0.2)
+		end
 		un()
 		st.pv = false
 		if not o2 then return false, wy end
@@ -1419,10 +1426,9 @@ local function bg(g)
 				end
 			end
 			local y = math.max(h.Position.Y, b.Position.Y) + 50
-			local q = Vector3.new(b.Position.X, y, b.Position.Z)
-			local ok, wy = mv(Vector3.new(h.Position.X, y, h.Position.Z), ck, 5)
-			if ok then ok, wy = mv(q, ck, (q - h.Position).Magnitude / math.max(hu.WalkSpeed, 16) + 10) end
-			if ok then ok, wy = mv(b.Position + Vector3.new(0, 3, 0), ck, 10) end
+			local ok, wy = hp(Vector3.new(b.Position.X, y, b.Position.Z), y, false, ck)
+			if ok then ok, wy = hp(b.Position + Vector3.new(0, 3, 0), y, false, ck) end
+			fz(false)
 			if not ok then
 				lg(tostring(wy))
 				task.wait(0.5)
