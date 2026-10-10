@@ -19,7 +19,7 @@ end
 local st = {on = false, g = 0, si = "Beginning Isle", ba = "Basic Bait", at = false, xu = nil, fb = false, cn = {}, n = 0, sd = 0, ms = "Idle", lf = nil, cu = nil, rc = nil, gc = nil}
 ge.__HwAf = st
 
-local kf, ky, ex, kl = "Avenoric/Keys/HeavyweightFishing.txt", "NGAO-3E8B-J8ZC", 1791680092, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
+local kf, ky, ex, kl = "Avenoric/Keys/HeavyweightFishing.txt", "NGAO-3E8B-J8ZC", 1791680092, "https://linkfree.click/s/ngao-gaming-hubz1u17yvmv1pacnw"
 local kc = {t = 0, v = false}
 local function kv()
 	if os.clock() < kc.t then return kc.v end
