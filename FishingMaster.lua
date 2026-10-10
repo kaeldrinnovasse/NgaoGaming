@@ -2616,6 +2616,17 @@ do
 	ge.__FmNg = dn
 	table.insert(cs, gw.Gui.Destroying:Connect(dn))
 end
+local gr = false
+local function wg(k, fn)
+	if gr then
+		fn()
+		return
+	end
+	task.spawn(function()
+		repeat task.wait(0.1) until gr
+		if L.Flags[k] == true then fn() end
+	end)
+end
 local gt, ft = gw:Tab({Name = "General", Icon = "shrimp"}), nil
 
 local xl: {[any]: any} = {}
@@ -3331,7 +3342,7 @@ gt:Dropdown({Name = "Select Farm Island", Options = iz, Flag = "fi"})
 ft = gt:Toggle({Name = "Auto Fish", Flag = "af", Callback = function(v)
 	local o = ge.__FmF
 	if v then
-		fs()
+		wg("af", fs)
 	elseif o then
 		if o.bz and (o.s.fp or o.s.rl) and not (o.s.cr or o.s.rr) then o.fq = true else o.st = "Stopped" end
 	end
@@ -3368,12 +3379,12 @@ local tm = gw:Tab({Name = "Misc", Icon = "four-squares-grid"})
 tm:Section({Name = "Unit"})
 tm:Dropdown({Name = "Delete Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical"}, Default = {}, Multi = true, Flag = "ur"})
 xk = tm:Toggle({Name = "Auto Delete Unit", Flag = "ua", Callback = function(v)
-	if v then xy() elseif ge.__FmU then ge.__FmU.st = "Stopped" end
+	if v then wg("ua", xy) elseif ge.__FmU then ge.__FmU.st = "Stopped" end
 end})
 tm:Section({Name = "Aura"})
 tm:Dropdown({Name = "Delete Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Divine"}, Default = {}, Multi = true, Flag = "xr"})
 xz = tm:Toggle({Name = "Auto Delete Aura", Flag = "xa", Callback = function(v)
-	if v then xw() elseif ge.__FmO then ge.__FmO.st = "Stopped" end
+	if v then wg("xa", xw) elseif ge.__FmO then ge.__FmO.st = "Stopped" end
 end})
 
 local tq = gw:Tab({Name = "Shop", Icon = "shopping-basket"})
@@ -3381,20 +3392,22 @@ tq:Section({Name = "Gacha"})
 tq:Dropdown({Name = "Select Gacha", Options = ga, Default = "Skill Master", Flag = "gk"})
 tq:Dropdown({Name = "Select Roll", Options = {"x1", "x10"}, Default = "x1", Flag = "gr"})
 gs = tq:Toggle({Name = "Auto Roll", Flag = "gs", Callback = function(v)
-	if v then gg() elseif ge.__FmG then ge.__FmG.st = "Stopped" end
+	if v then wg("gs", gg) elseif ge.__FmG then ge.__FmG.st = "Stopped" end
 end})
 tq:Section({Name = "Skill Market"})
 tq:Dropdown({Name = "Select Skills", Options = mz, Default = {}, Multi = true, Flag = "mm"})
 mk = tq:Toggle({Name = "Auto Buy Skill Market", Flag = "ma", Callback = function(v)
-	if v then mg() elseif ge.__FmM then ge.__FmM.st = "Stopped" end
+	if v then wg("ma", mg) elseif ge.__FmM then ge.__FmM.st = "Stopped" end
 end})
 tq:Section({Name = "Rod"})
 tq:Dropdown({Name = "Select Rod", Options = rz, Flag = "rd"})
 rk = tq:Toggle({Name = "Auto Buy Rod", Flag = "rb", Callback = function(v)
 	if v then
-		if it then it:Set(false) end
-		if nk then nk:Set(false) end
-		rh()
+		wg("rb", function()
+			if it then it:Set(false) end
+			if nk then nk:Set(false) end
+			rh()
+		end)
 	elseif ge.__FmR then ge.__FmR.st = "Stopped" end
 end})
 
@@ -3403,18 +3416,22 @@ tl:Section({Name = "Island"})
 tl:Dropdown({Name = "Select Island", Options = iz, Flag = "si"})
 it = tl:Toggle({Name = "Auto Island", Flag = "ai", Callback = function(v)
 	if v then
-		if rk then rk:Set(false) end
-		if nk then nk:Set(false) end
-		is()
+		wg("ai", function()
+			if rk then rk:Set(false) end
+			if nk then nk:Set(false) end
+			is()
+		end)
 	elseif ge.__FmI then ge.__FmI.st = "Stopped" end
 end})
 tl:Section({Name = "NPC"})
 tl:Dropdown({Name = "Select NPC", Options = nl, Flag = "sv"})
 nk = tl:Toggle({Name = "Teleport To NPC", Flag = "tv", Callback = function(v)
 	if v then
-		if it then it:Set(false) end
-		if rk then rk:Set(false) end
-		ny()
+		wg("tv", function()
+			if it then it:Set(false) end
+			if rk then rk:Set(false) end
+			ny()
+		end)
 	elseif ge.__FmT then ge.__FmT.st = "Stopped" end
 end})
 
@@ -3669,6 +3686,7 @@ ts:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = zp()
 	gw:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e})
 end})
+gr = true
 
 local rx = "Ngao-Gaming Hub"
 
