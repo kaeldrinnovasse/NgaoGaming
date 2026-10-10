@@ -19,6 +19,15 @@ end
 local st = {on = false, g = 0, si = "Beginning Isle", ba = "Basic Bait", at = false, xu = nil, fb = false, cn = {}, n = 0, sd = 0, ms = "Idle", lf = nil, cu = nil, rc = nil, gc = nil}
 ge.__HwAf = st
 
+local kf, ky, ex, kl = "Avenoric/Keys/HeavyweightFishing.txt", "NGAO-3E8B-J8ZC", 1791680092, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
+local kc = {t = 0, v = false}
+local function kv()
+	if os.clock() < kc.t then return kc.v end
+	local o, s = pcall(readfile, kf)
+	kc.v, kc.t = o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky and workspace:GetServerTimeNow() < ex, os.clock() + 30
+	return kc.v
+end
+
 local function fgc()
 	for _, c in getconnections(ev.FishingMinigame.OnClientEvent) do
 		local f = c.Function
@@ -329,6 +338,8 @@ local ip = {
 	["Mistpeak Isle"] = CFrame.lookAt(Vector3.new(2775, 19.2, 190.4), Vector3.new(2775.383, 19.2, 191.324)),
 	["World Angler Isle"] = CFrame.lookAt(Vector3.new(-2504.9, 30.9, -318.1), Vector3.new(-2505.509, 30.9, -318.893)),
 	["Amber Isle"] = CFrame.lookAt(Vector3.new(1417.7, 7.8, 1195.2), Vector3.new(1418.309, 7.8, 1194.407)),
+	["Weather Isle"] = CFrame.lookAt(Vector3.new(-3053.1, 13.5, 1103.1), Vector3.new(-3053.893, 13.5, 1102.491)),
+	["Mystic Reef Isle"] = CFrame.lookAt(Vector3.new(-2434.8, 70.8, -1210.2), Vector3.new(-2433.876, 70.8, -1209.817)),
 }
 
 local xn
@@ -395,6 +406,10 @@ local function fs()
 	st.gc:Disable()
 	task.spawn(function()
 		while st.on and st.g == g do
+			if not kv() then
+				st.ms, st.on = "Key Check Failed: No Valid Key", false
+				break
+			end
 			if not st.at then
 				local ok, e = tp(st.si)
 				if not ok then
@@ -528,11 +543,20 @@ local function fit(sg, f, sc, w, h)
 end
 
 local function cfn(s)
-	return s == nil or type(s) == "string" and s:match("^[%w _%-]+$") ~= nil
+	if s == nil then return true end
+	if type(s) ~= "string" or s == "" then return false end
+	for seg in (s .. "/"):gmatch("([^/]*)/") do
+		if not seg:match("^[%w _%-]+$") then return false end
+	end
+	return true
 end
 
-local function dirs()
-	if not isfolder("Avenoric") then makefolder("Avenoric") end
+local function mkd(p)
+	local d = ""
+	for seg in p:gmatch("([^/]+)/") do
+		d = d == "" and seg or d .. "/" .. seg
+		if not isfolder(d) then makefolder(d) end
+	end
 end
 
 local function inv(u)
@@ -585,7 +609,7 @@ function L:Gate(o)
 		busy, sb.Text = false, "Submit"
 		if not ok then msg("Key Check Failed: " .. tostring(r)); return end
 		if r ~= true then msg(m and tostring(m) or "Wrong Key"); return end
-		if kp then pcall(function() dirs(); if not isfolder("Avenoric/Keys") then makefolder("Avenoric/Keys") end; writefile(kp, s) end) end
+		if kp then pcall(function() mkd(kp); writefile(kp, s) end) end
 		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
 		got = s
 	end
@@ -614,7 +638,7 @@ function L:Window(o)
 	o = o or {}
 	if not cfn(o.Config) then error("Window Failed: Bad Config", 0) end
 	if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
-	local W = {Tabs = {}, Current = nil, cn = {}, key = o.Key == nil and Enum.KeyCode.LeftControl or o.Key, sx = false, sq = false, kw = false, fc = nil, sv = 1, fd = nil, w = ww, h = wh}
+	local W = {Tabs = {}, Current = nil, cn = {}, key = o.Key == nil and Enum.KeyCode.LeftControl or o.Key, sx = false, sl = "", kw = false, fc = nil, sv = 1, fd = nil, w = ww, h = wh}
 	local sg = gui()
 	W.Gui = sg
 	local mn = mk("Frame", {Name = "Main", Size = UDim2.fromOffset(ww, wh), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, Parent = sg}, {rc(12), sk(0.85)})
@@ -669,8 +693,7 @@ function L:Window(o)
 		if not cp or not dirty then return end
 		dirty = false
 		pcall(function()
-			dirs()
-			if not isfolder("Avenoric/Configs") then makefolder("Avenoric/Configs") end
+			mkd(cp)
 			writefile(cp, hs:JSONEncode(cd))
 		end)
 	end
@@ -819,7 +842,8 @@ function L:Window(o)
 
 	function W:Search(s)
 		s = tostring(s or "")
-		if sb.Text ~= s then W.sq = true; sb.Text = s; W.sq = false end
+		W.sl = s
+		if sb.Text ~= s then sb.Text = s end
 		for _, x in sr:GetChildren() do
 			if x:IsA("GuiButton") then x:Destroy() end
 		end
@@ -854,7 +878,7 @@ function L:Window(o)
 		fd()
 		return n
 	end
-	sb:GetPropertyChangedSignal("Text"):Connect(function() if not W.sq then W:Search(sb.Text) end end)
+	sb:GetPropertyChangedSignal("Text"):Connect(function() if sb.Text ~= W.sl then W:Search(sb.Text) end end)
 
 	function W:Tab(t)
 		t = t or {}
@@ -1194,10 +1218,17 @@ end
 return L
 end)()
 
-for _, k in {"__HwG", "__HwB"} do
+for _, k in {"__HwG", "__HwB", "__HwD"} do
 	if ge[k] then pcall(ge[k].Destroy, ge[k]) end
 	ge[k] = nil
 end
+task.defer(function() ge.__HwD = L.GateGui end)
+L:Gate({Title = "Ngao - Gaming Hub", Link = kl, Discord = "https://discord.gg/fTQF5TvfEJ", Config = "HeavyweightFishing", Check = function(s)
+	if workspace:GetServerTimeNow() >= ex then return false, "Key Expired" end
+	return s == ky, "Wrong Key"
+end})
+ge.__HwD = nil
+kc.t = 0
 
 local sg = Instance.new("ScreenGui")
 sg.Name, sg.ResetOnSpawn, sg.IgnoreGuiInset, sg.ZIndexBehavior, sg.DisplayOrder = game:GetService("HttpService"):GenerateGUID(false), false, mg.IgnoreGuiInset, mg.ZIndexBehavior, 50
@@ -1266,7 +1297,7 @@ task.spawn(function()
 end)
 
 
-local iz = {"Beginning Isle", "Bamboo Isle", "Fallout Isle", "Perch Isle", "Sovereign Isle", "Frost Isle", "Battlefield Isle", "Coconut Isle", "Mistpeak Isle", "World Angler Isle", "Amber Isle"}
+local iz = {"Beginning Isle", "Bamboo Isle", "Fallout Isle", "Perch Isle", "Sovereign Isle", "Frost Isle", "Battlefield Isle", "Coconut Isle", "Mistpeak Isle", "World Angler Isle", "Amber Isle", "Weather Isle", "Mystic Reef Isle"}
 local nv, nl, ia, na = {}, {}, iz[1], nil
 do
 	local function nx(f)
@@ -1378,7 +1409,7 @@ local function fp()
 end
 
 
-local W = L:Window({Title = "Ngao - Gaming Hub | Heavyweight Fishing", Config = `HeavyweightFishing_{lp.Name}`})
+local W = L:Window({Title = "Ngao - Gaming Hub | Heavyweight Fishing", Config = `HeavyweightFishing/{lp.Name}`})
 local pa = W:Tab({Name = "General", Icon = "shrimp"})
 local pq = W:Tab({Name = "Shop", Icon = "shopping-basket"})
 local pt = W:Tab({Name = "Teleport", Icon = "person-teleport"})
@@ -1514,7 +1545,7 @@ local function hq()
 	local r = s0 and s.Size.X.Scale ~= 0 and s0.Size.X.Scale / s.Size.X.Scale or 1
 	local q = (s.AbsolutePosition + s.AbsoluteSize * s.AnchorPoint) * 2 - (k.AbsolutePosition + k.AbsoluteSize * k.AnchorPoint) - sg.AbsolutePosition
 	local z = s.AbsoluteSize * r * hv.Value
-	hn.AnchorPoint, hn.Size, hn.Position, hn.Visible = s.AnchorPoint, UDim2.fromOffset(z.X, z.Y), UDim2.fromOffset(q.X, q.Y), mg.Enabled and hb.Visible and s.Visible
+	hn.AnchorPoint, hn.Size, hn.Position, hn.Visible = s.AnchorPoint, UDim2.fromOffset(z.X, z.Y), UDim2.fromOffset(q.X, q.Y), mg.Enabled and hb.Visible and s.Visible and kv()
 end
 table.insert(st.cn, ru.RenderStepped:Connect(hq))
 hn.MouseButton1Click:Connect(function()
