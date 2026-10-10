@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -923,6 +923,23 @@ end
 local function lo(g)
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
+		if st.bx and not cr() then
+			if not st.fp then
+				st.fp = true
+				un()
+				lg("Paused For Butterflies")
+			end
+			task.wait(1)
+			continue
+		end
+		if st.fp then
+			if st.bo then
+				task.wait(0.5)
+				continue
+			end
+			st.fp = false
+			lg("Resuming Farm")
+		end
 		fz(false)
 		if st.bt or tm() then
 			local wy = not cr() and wq()
@@ -1079,6 +1096,11 @@ local function lo(g)
 	end
 	if not st.sr or ge.__SaeAf ~= st or st.g ~= g then return end
 	st.on, st.sr = false, false
+	if st.fp then
+		st.fp = false
+		lg("Idle")
+		return
+	end
 	if st.bt or tm() then
 		lg("Leaving Treadmill")
 		local ok, wy = lt()
@@ -1132,6 +1154,31 @@ local function ba()
 	if not bb then return false end
 	local ok, a, e = pcall(function() return debug.getupvalue(bb.StartEvent, 1), debug.getupvalue(bb.StartEvent, 2) end)
 	return ok and a == true and type(e) == "number" and e > workspace:GetServerTimeNow()
+end
+
+local bfl = (function()
+	local ok, r = pcall(function() return require(rs.Shared.Flags.ButterflyFlags) end)
+	return ok and type(r) == "table" and r or nil
+end)()
+
+local function bc()
+	local t = workspace:GetServerTimeNow()
+	local function tf(x)
+		x = math.max(0, math.floor(x))
+		return string.format("%02d:%02d", x // 60, x % 60)
+	end
+	if bb then
+		local ok, a, e = pcall(function() return debug.getupvalue(bb.StartEvent, 1), debug.getupvalue(bb.StartEvent, 2) end)
+		if ok and a == true and type(e) == "number" and e > t then return "Butterfly Bloom Active: " .. tf(e - t) .. " Left" end
+	end
+	local function fv2(k)
+		local f = bfl and bfl[k]
+		return type(f) == "table" and f.Value or nil
+	end
+	if fv2("Enabled") == false then return "Next Butterfly Bloom: Disabled" end
+	local i, o = tonumber(fv2("IntervalSeconds")), tonumber(fv2("OffsetSeconds"))
+	if not (i and o and i > 0) then return "Next Butterfly Bloom: Unknown" end
+	return "Next Butterfly Bloom: " .. tf(o + math.ceil((t - o) / i) * i - t)
 end
 
 local function bn()
@@ -1501,21 +1548,25 @@ local function bg(g)
 	local by, c0, nx, lw = false, 0, 0, nil
 	local function ed()
 		if not by then return end
-		by, st.bo = false, false
-		if st.on then return end
+		by = false
+		if st.on and not st.fp then
+			st.bo = false
+			return
+		end
 		local _, hu = rt()
 		local t = os.clock()
 		while hu and hu.Parent and hu.FloorMaterial == Enum.Material.Air and os.clock() - t < 3 do task.wait(0.1) end
 		if hu then pcall(function() hu:UnequipTools() end) end
 		un()
-		st.pv = false
+		st.pv, st.bo = false, false
 	end
 	local function ck()
-		if st.on or not st.bf or st.bi ~= g or not ba() then return "Stopped" end
+		if (st.on and not st.fp) or not st.bf or st.bi ~= g or not ba() then return "Stopped" end
 		return nil
 	end
 	while ge.__SaeAf == st and st.bf and st.bi == g do
 		local nc, tc = bn()
+		st.bx = nc and ba() and true or false
 		if not nc and not wu() then
 			ed()
 			local m = wd()
@@ -1527,7 +1578,7 @@ local function bg(g)
 			continue
 		end
 		if st.wf or st.wo then we() end
-		if st.on then
+		if st.on and not st.fp then
 			by, st.bo = false, false
 			task.wait(1)
 			continue
@@ -1657,6 +1708,7 @@ local function bg(g)
 		lg(string.format("%s | Caught %d", nd and "Catching For Essence" or "Catching Rarest", tc - c0))
 		task.wait(0.1)
 	end
+	st.bx = false
 	ed()
 	we()
 end
@@ -2644,6 +2696,13 @@ pg:Toggle({Name = "Auto Sell Egg", Default = false, Flag = "ase", Callback = fun
 
 local et = W:Tab({Name = "Event", Icon = "calendar-star"})
 et:Section({Name = "Butterfly"})
+local xb = et:Label({Text = bc()})
+task.spawn(function()
+	while ge.__SaeAf == st do
+		pcall(function() xb:Set(bc()) end)
+		task.wait(1)
+	end
+end)
 et:Toggle({Name = "Auto Butterfly", Default = false, Flag = "abf", Callback = function(v)
 	st.bf = v == true
 	st.bi += 1
