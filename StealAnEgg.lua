@@ -31,8 +31,12 @@ if ge.__SaeAf then
 	for p, v in ge.__SaeAf.ta or {} do if p.Parent then pcall(function() p.CanTouch = v end) end end
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
+	pcall(function()
+		local c = require(lp.PlayerScripts.PlayerModule):GetControls()
+		if rawget(c, "GetMoveVector") then c.GetMoveVector = nil end
+	end)
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, ra = false, rg = 0, rx = false, rv = false, rmv = nil, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -924,11 +928,11 @@ local function lo(g)
 	while not st.gr and ge.__SaeAf == st do task.wait(0.1) end
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
-		if st.bx and not cr() then
+		if (st.bx or st.rx) and not cr() then
 			if not st.fp then
 				st.fp = true
 				un()
-				lg("Paused For Butterflies")
+				lg(st.rx and "Paused For Race" or "Paused For Butterflies")
 			end
 			task.wait(1)
 			continue
@@ -1543,6 +1547,130 @@ local function wd()
 	return wt()
 end
 
+local rcm = (function()
+	local ok, r = pcall(function() return require(lp.PlayerScripts.PlayerModule):GetControls() end)
+	return ok and type(r) == "table" and r or nil
+end)()
+
+local rpa = (function()
+	local ok, r = pcall(function() return require(rs.Data.RacePowerUps).Attributes end)
+	return ok and type(r) == "table" and r or nil
+end)()
+
+local function rk2()
+	local id = lp:GetAttribute("RaceId")
+	if type(id) ~= "string" then return nil end
+	for _, t in cl:GetTagged("RaceTrack") do
+		if t.Name == id then return t end
+	end
+	return nil
+end
+
+local function rp3(t)
+	local a = t:FindFirstChild("AttachmentTrack")
+	local o = {}
+	for i = 1, a and #a:GetChildren() or 0 do
+		local x = a:FindFirstChild(tostring(i))
+		if not (x and x:IsA("Attachment")) then return nil end
+		o[i] = x.WorldPosition
+	end
+	return #o >= 3 and o or nil
+end
+
+local function rn(p, pos, k, w)
+	local n, bi, bd = #p, k, math.huge
+	for j = 0, w do
+		local i = (k + j - 1) % n + 1
+		local d = (p[i] - pos).Magnitude
+		if d < bd then bi, bd = i, d end
+	end
+	return bi, bd
+end
+
+local function rv3(p, k, hr)
+	local n, pos = #p, hr.Position
+	local la, i, acc = 30 + hr.AssemblyLinearVelocity.Magnitude * 0.35, k, 0
+	while acc < la do
+		local j = i % n + 1
+		acc += (p[j] - p[i]).Magnitude
+		i = j
+		if i == k then break end
+	end
+	local up, d = hr.CFrame.UpVector, p[i] - pos
+	d -= up * d:Dot(up)
+	if d.Magnitude < 0.1 then return Vector3.new(0, 0, -1) end
+	d = d.Unit
+	local x = d:Dot(hr.CFrame.RightVector)
+	if d:Dot(hr.CFrame.LookVector) < 0 then x = x >= 0 and 1 or -1 end
+	return Vector3.new(math.clamp(x * 2.5, -1, 1), 0, -1)
+end
+
+local function rg2(on)
+	if not rcm then return end
+	if on then
+		rcm.GetMoveVector = function() return st.rmv or Vector3.zero end
+	else
+		rcm.GetMoveVector = nil
+	end
+end
+
+local function ru2(hr)
+	if not rpa then return end
+	local now = workspace:GetServerTimeNow()
+	local it, re, ef, ee = lp:GetAttribute(rpa.Item), lp:GetAttribute(rpa.RollEndsAt), lp:GetAttribute(rpa.Effect), lp:GetAttribute(rpa.EffectEndsAt)
+	if type(it) ~= "string" or (type(re) == "number" and now < re) or (type(ef) == "string" and type(ee) == "number" and now < ee) then return end
+	local up, f = hr.CFrame.UpVector, hr.CFrame.LookVector
+	f -= up * f:Dot(up)
+	pcall(function() rm.MountRace.PowerUp:FireServer("Use", hr.Position, f.Magnitude > 0.01 and f.Unit or hr.CFrame.LookVector) end)
+	lg("Race | Used " .. it)
+end
+
+local function rl(g)
+	local p, tr, k, nu = nil, nil, nil, 0
+	while ge.__SaeAf == st and st.ra and st.rg == g do
+		local t, hr = rk2(), rt()
+		st.rx = t ~= nil
+		local fin = type(lp:GetAttribute("RaceFinishTime")) == "number"
+		local ph, go = t and t:GetAttribute("RacePhase"), t and t:GetAttribute("RaceGoAt")
+		if t and hr and not fin and ph == "Racing" and (type(go) ~= "number" or workspace:GetServerTimeNow() >= go) then
+			if tr ~= t then tr, p, k = t, rp3(t), nil end
+			if p then
+				local bd
+				if k then k, bd = rn(p, hr.Position, k, 12) end
+				if not k or bd > 80 then k = rn(p, hr.Position, 1, #p - 1) end
+				st.rmv = rv3(p, k, hr)
+				if not st.rv then
+					st.rv = true
+					rg2(true)
+					lg("Racing")
+				end
+				if os.clock() >= nu then
+					nu = os.clock() + 0.5
+					ru2(hr)
+				end
+			else
+				lg("Race Failed: No Track Path")
+			end
+		else
+			if st.rv then
+				st.rv, st.rmv = false, nil
+				rg2(false)
+			end
+			if t and fin then
+				lg("Race Finished | Place " .. tostring(lp:GetAttribute("RaceFinishPlace")))
+			elseif t then
+				lg("Race | " .. tostring(ph))
+			else
+				lg("Race | Waiting For Race")
+			end
+		end
+		ru.Heartbeat:Wait()
+	end
+	st.rx, st.rmv = false, nil
+	if st.rv and ge.__SaeAf == st then rg2(false) end
+	st.rv = false
+end
+
 local function bg(g)
 	if not (bb and bw and bq) then lg("Butterfly Failed: No Module") return end
 	if not kv() then lg("Key Check Failed: No Valid Key") return end
@@ -1567,6 +1695,12 @@ local function bg(g)
 	end
 	while ge.__SaeAf == st and st.bf and st.bi == g do
 		local nc, tc = bn()
+		if st.rx then
+			st.bx = false
+			ed()
+			task.wait(1)
+			continue
+		end
 		st.bx = nc and ba() and true or false
 		if not nc and not wu() then
 			ed()
@@ -2713,6 +2847,12 @@ et:Button({Name = "Teleport To Station", Callback = function()
 	local ok, wy = bu()
 	lg(ok and "At Station" or tostring(wy))
 	W:Notify({Title = "Teleport To Station", Text = ok and "At Station" or tostring(wy), Error = not ok})
+end})
+et:Section({Name = "Race"})
+et:Toggle({Name = "Auto Race", Default = false, Flag = "arc", Callback = function(v)
+	st.ra = v == true
+	st.rg += 1
+	if st.ra then task.spawn(rl, st.rg) end
 end})
 
 local mi = W:Tab({Name = "Misc", Icon = "four-squares-grid"})
