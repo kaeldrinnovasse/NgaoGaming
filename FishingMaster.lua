@@ -795,7 +795,8 @@ local function wy(f, id, mp, h, o)
 	if cj then cj:Stop() end
 	local r = h.Parent and h.Parent:FindFirstChild("HumanoidRootPart")
 	if not r then return nil, "Warp Failed: No Character" end
-	local sp, cf, ok = md("Shared", "Lib", "SpawnPointDialogue"), CFrame.new(r.Position + Vector3.new(0, 1000, 0)), false
+	local sp, cf, ok, rg = md("Shared", "Lib", "SpawnPointDialogue"), CFrame.new(r.Position + Vector3.new(0, 1000, 0)), false, false
+	o.rc = rv.IslandRegionController.RegionChanged.OnClientEvent:Connect(function(x) if x == id then rg = true end end)
 	o.hb = game:GetService("RunService").Heartbeat:Connect(function()
 		if r.Parent then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, cf end
 	end)
@@ -804,6 +805,9 @@ local function wy(f, id, mp, h, o)
 	task.wait(0.6)
 	cf = CFrame.new(mp + Vector3.new(4, 3, 0))
 	task.wait(0.2)
+	local d0 = os.clock() + 3
+	repeat task.wait() until rg or os.clock() > d0 or f.st ~= "Running"
+	o.rc:Disconnect()
 	local dl = os.clock() + 4.5
 	while not ok and os.clock() < dl and f.st == "Running" do
 		local b, dn = {}, false
@@ -849,10 +853,11 @@ local function wx(f, id)
 			if not h then task.wait(0.2) end
 		until h or os.clock() > dl or f.st ~= "Running"
 		if not h then continue end
-		local o: {hb: RBXScriptConnection?} = {}
+		local o: {hb: RBXScriptConnection?, rc: RBXScriptConnection?} = {}
 		local s
 		s, ok, e = pcall(wy, f, id, mp, h, o)
 		if o.hb then o.hb:Disconnect() end
+		if o.rc then o.rc:Disconnect() end
 		if not s then ok, e = nil, `Warp Failed: {ok}` end
 		if ok or f.st ~= "Running" then break end
 		zx(`[Warp] {id}: {e or "Warp Failed"}, Retrying`)
