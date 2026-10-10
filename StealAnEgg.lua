@@ -36,7 +36,7 @@ if ge.__SaeAf then
 		if rawget(c, "GetMoveVector") then c.GetMoveVector = nil end
 	end)
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, ra = false, rg = 0, rx = false, rv = false, rmv = nil, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, ra = false, rg = 0, rx = false, rv = false, rmv = nil, ss = false, sg = 0, sx = false, sc3 = 0, sb = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -928,11 +928,11 @@ local function lo(g)
 	while not st.gr and ge.__SaeAf == st do task.wait(0.1) end
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
-		if (st.bx or st.rx) and not cr() then
+		if (st.bx or st.rx or st.sx) and not cr() then
 			if not st.fp then
 				st.fp = true
 				un()
-				lg(st.rx and "Paused For Race" or "Paused For Butterflies")
+				lg(st.rx and "Paused For Race" or st.sx and "Paused For Star" or "Paused For Butterflies")
 			end
 			task.wait(1)
 			continue
@@ -1626,7 +1626,12 @@ local function ru2(hr)
 end
 
 local function rl(g)
-	local p, tr, k, nu = nil, nil, nil, 0
+	local p, tr, k, nu, lm = nil, nil, nil, 0, nil
+	local function l2(m)
+		if m == lm then return end
+		lm = m
+		lg(m)
+	end
 	while ge.__SaeAf == st and st.ra and st.rg == g do
 		local t, hr = rk2(), rt()
 		st.rx = t ~= nil
@@ -1642,14 +1647,14 @@ local function rl(g)
 				if not st.rv then
 					st.rv = true
 					rg2(true)
-					lg("Racing")
+					l2("Racing")
 				end
 				if os.clock() >= nu then
 					nu = os.clock() + 0.5
 					ru2(hr)
 				end
 			else
-				lg("Race Failed: No Track Path")
+				l2("Race Failed: No Track Path")
 			end
 		else
 			if st.rv then
@@ -1657,11 +1662,11 @@ local function rl(g)
 				rg2(false)
 			end
 			if t and fin then
-				lg("Race Finished | Place " .. tostring(lp:GetAttribute("RaceFinishPlace")))
+				l2("Race Finished | Place " .. tostring(lp:GetAttribute("RaceFinishPlace")))
 			elseif t then
-				lg("Race | " .. tostring(ph))
+				l2("Race | " .. tostring(ph))
 			else
-				lg("Race | Waiting For Race")
+				l2("Race | Waiting For Race")
 			end
 		end
 		ru.Heartbeat:Wait()
@@ -1669,6 +1674,137 @@ local function rl(g)
 	st.rx, st.rmv = false, nil
 	if st.rv and ge.__SaeAf == st then rg2(false) end
 	st.rv = false
+end
+
+local function sb()
+	local f = workspace:FindFirstChild("ShootingStarClient")
+	local p = f and f:FindFirstChild("CatchPrompt", true)
+	return p and p:IsA("ProximityPrompt") and p.Parent and p.Parent:IsA("BasePart") and p or nil
+end
+
+local function sk(p, ck)
+	local h, hu = rt()
+	if not h or not hu then return false, "No Character" end
+	local z0, z1 = cz()
+	if z0 and (h.Position.Z < z0 or h.Position.Z > z1) then
+		local ok, wy = mv(Vector3.new(h.Position.X, h.Position.Y, math.clamp(h.Position.Z, z0, z1)), ck, 10)
+		if not ok then return false, wy end
+		h, hu = rt()
+		if not h or not hu then return false, "No Character" end
+	end
+	local q = p.Parent.Position
+	if (q - h.Position).Magnitude > 60 then
+		local y = math.max(h.Position.Y, q.Y) + 50
+		local ok, wy = mv(Vector3.new(h.Position.X, y, h.Position.Z), ck, 5, st.fm)
+		if not ok then return false, wy end
+		local a = Vector3.new(q.X, y, z0 and math.clamp(q.Z, z0, z1) or q.Z)
+		ok, wy = mv(a, ck, (a - h.Position).Magnitude / math.max(hu.WalkSpeed * st.fm, 16) + 10, st.fm)
+		if not ok then return false, wy end
+	end
+	local t = os.clock()
+	while os.clock() - t < 25 do
+		if not p.Parent then return false, "Star Gone" end
+		local hr = rt()
+		if not hr then return false, "No Character" end
+		if (p.Parent.Position - hr.Position).Magnitude <= 6 then return true end
+		local ok, wy = mv(p.Parent.Position + Vector3.new(0, 2, 0), function()
+			local r = ck and ck()
+			if r then return r end
+			local h2 = rt()
+			if not p.Parent then return "Star Gone" end
+			if h2 and (p.Parent.Position - h2.Position).Magnitude <= 6 then return "Near" end
+			return nil
+		end, 2, st.fm)
+		if not ok and wy ~= "Near" and wy ~= "Move Failed: Timeout" then return false, wy end
+	end
+	return false, "Chase Timeout"
+end
+
+local function sh(p)
+	local hr = rt()
+	local cn = ru.Heartbeat:Connect(function()
+		local h = rt()
+		local _, hu = rt()
+		if not (h and hu and p.Parent) then return end
+		local d = p.Parent.Position + Vector3.new(0, 2, 0) - h.Position
+		h.AssemblyLinearVelocity = d.Magnitude > 2 and d.Unit * math.min(hu.WalkSpeed * st.fm, d.Magnitude * 10) or Vector3.zero
+	end)
+	st.cn[#st.cn + 1] = cn
+	local t = os.clock()
+	while p.Parent and not p.Enabled and os.clock() - t < 6 do task.wait(0.1) end
+	if not p.Parent then cn:Disconnect() return false, "Star Gone" end
+	if not p.Enabled then cn:Disconnect() return false, "Not Noticed" end
+	local n0 = st.sc3
+	pcall(function() p:InputHoldBegin() end)
+	task.wait(p.HoldDuration + 0.25)
+	pcall(function() p:InputHoldEnd() end)
+	t = os.clock()
+	repeat task.wait(0.1) until st.sc3 > n0 or os.clock() - t > 4
+	cn:Disconnect()
+	if hr and hr.Parent then hr.AssemblyLinearVelocity = Vector3.zero end
+	return st.sc3 > n0, "Not Claimed"
+end
+
+local function sq2(g)
+	local lm
+	local function l2(m)
+		if m == lm then return end
+		lm = m
+		lg(m)
+	end
+	local ok0, c0 = pcall(function() return rm.ShootingStar.Claimed.OnClientEvent:Connect(function() st.sc3 += 1 end) end)
+	if ok0 and c0 then st.cn[#st.cn + 1] = c0 end
+	local function ck() if not st.ss or st.sg ~= g or ge.__SaeAf ~= st or st.rx then return "Stopped" end return nil end
+	while ge.__SaeAf == st and st.ss and st.sg == g do
+		local p = sb()
+		st.sx = p ~= nil and not st.rx
+		if not st.sx then
+			l2(p and "Star | Waiting For Race" or "Star | Waiting For Star")
+			task.wait(1)
+			continue
+		end
+		if cr() or (st.on and not st.fp) or (st.bo and not st.sb) then
+			l2("Star | Waiting For Control")
+			task.wait(0.5)
+			continue
+		end
+		if dl() == 0 or bw2() then
+			l2("Star | Waiting For Day")
+			task.wait(0.5)
+			continue
+		end
+		if st.bt or tm() then
+			lt()
+			task.wait(1)
+		end
+		st.bo, st.sb, st.pv = true, true, true
+		if not sw() then
+			st.bo, st.sb, st.pv = false, false, false
+			l2("Star | Waiting To Swap")
+			task.wait(0.5)
+			continue
+		end
+		l2("Star | Flying To Star")
+		local ok, wy = sk(p, ck)
+		if ok then
+			l2("Star | Catching")
+			ok, wy = sh(p)
+		end
+		l2(ok and "Star Caught" or fp("Star Failed", wy))
+		fz(false)
+		if fs() then hm(false) end
+		local _, h2 = rt()
+		local t = os.clock()
+		while h2 and h2.Parent and h2.FloorMaterial == Enum.Material.Air and os.clock() - t < 3 do task.wait(0.1) end
+		un()
+		st.bo, st.sb, st.pv = false, false, false
+		task.wait(ok and 2 or 1)
+	end
+	st.sx = false
+	if st.sb then
+		un()
+		st.bo, st.sb, st.pv = false, false, false
+	end
 end
 
 local function bg(g)
@@ -1695,7 +1831,7 @@ local function bg(g)
 	end
 	while ge.__SaeAf == st and st.bf and st.bi == g do
 		local nc, tc = bn()
-		if st.rx then
+		if st.rx or st.sx then
 			st.bx = false
 			ed()
 			task.wait(1)
@@ -2847,6 +2983,12 @@ et:Button({Name = "Teleport To Station", Callback = function()
 	local ok, wy = bu()
 	lg(ok and "At Station" or tostring(wy))
 	W:Notify({Title = "Teleport To Station", Text = ok and "At Station" or tostring(wy), Error = not ok})
+end})
+et:Section({Name = "Shooting Star"})
+et:Toggle({Name = "Auto Shooting Star", Default = false, Flag = "ass", Callback = function(v)
+	st.ss = v == true
+	st.sg += 1
+	if st.ss then task.spawn(sq2, st.sg) end
 end})
 et:Section({Name = "Race"})
 et:Toggle({Name = "Auto Race", Default = false, Flag = "arc", Callback = function(v)
