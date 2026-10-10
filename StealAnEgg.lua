@@ -36,7 +36,7 @@ if ge.__SaeAf then
 		if rawget(c, "GetMoveVector") then c.GetMoveVector = nil end
 	end)
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, ra = false, rg = 0, rx = false, rv = false, rmv = nil, ss = false, sg = 0, sx = false, sc3 = 0, sb = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, ra = false, rg = 0, rx = false, rv = false, rmv = nil, ss = false, sg = 0, sx = false, sc3 = 0, sb = false, gx = false, gg = 0, lx = false, lb = false, tq = false, th = 0, tx = false, tb = false, rsh = 0, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -928,11 +928,11 @@ local function lo(g)
 	while not st.gr and ge.__SaeAf == st do task.wait(0.1) end
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
-		if (st.bx or st.rx or st.sx) and not cr() then
+		if (st.bx or st.rx or st.sx or st.lx or st.tx) and not cr() then
 			if not st.fp then
 				st.fp = true
 				un()
-				lg(st.rx and "Paused For Race" or st.sx and "Paused For Star" or "Paused For Butterflies")
+				lg(st.rx and "Paused For Race" or st.sx and "Paused For Star" or st.lx and "Paused For Red Light" or st.tx and "Paused For T-Rex" or "Paused For Butterflies")
 			end
 			task.wait(1)
 			continue
@@ -1587,22 +1587,47 @@ local function rn(p, pos, k, w)
 	return bi, bd
 end
 
-local function rv3(p, k, hr)
-	local n, pos = #p, hr.Position
-	local la, i, acc = 30 + hr.AssemblyLinearVelocity.Magnitude * 0.35, k, 0
-	while acc < la do
-		local j = i % n + 1
-		acc += (p[j] - p[i]).Magnitude
-		i = j
-		if i == k then break end
+local function rv3(p, k, hr, hl)
+	local n, pos, sp = #p, hr.Position, hr.AssemblyLinearVelocity.Magnitude
+	local function at(la)
+		local i, acc = k, 0
+		while acc < la do
+			local j = i % n + 1
+			acc += (p[j] - p[i]).Magnitude
+			i = j
+			if i == k then break end
+		end
+		return p[i]
 	end
-	local up, d = hr.CFrame.UpVector, p[i] - pos
-	d -= up * d:Dot(up)
-	if d.Magnitude < 0.1 then return Vector3.new(0, 0, -1) end
-	d = d.Unit
-	local x = d:Dot(hr.CFrame.RightVector)
-	if d:Dot(hr.CFrame.LookVector) < 0 then x = x >= 0 and 1 or -1 end
-	return Vector3.new(math.clamp(x * 2.5, -1, 1), 0, -1)
+	local up, lv, rv = hr.CFrame.UpVector, hr.CFrame.LookVector, hr.CFrame.RightVector
+	local function fl(v)
+		v -= up * v:Dot(up)
+		return v.Magnitude > 0.1 and v.Unit or nil
+	end
+	local a = at(20 + sp * 0.2)
+	local fw = fl(lv) or lv
+	local bz
+	for _, z in hl or {} do
+		local rl2 = z[1] - pos
+		rl2 -= up * rl2:Dot(up)
+		local al = rl2:Dot(fw)
+		if al > -2 and al < 40 + sp * 1.2 then
+			local lt2, cl = rl2:Dot(rv), z[2] + 4
+			if math.abs(lt2) < cl and (not bz or al < bz[1]) then bz = {al, z[1], cl} end
+		end
+	end
+	if bz then
+		local s1, s2 = bz[2] + rv * (bz[3] + 1), bz[2] - rv * (bz[3] + 1)
+		a = (s1 - a).Magnitude <= (s2 - a).Magnitude and s1 or s2
+	end
+	local d = fl(a - pos)
+	if not d then return Vector3.new(0, 0, -1) end
+	local x = d:Dot(rv)
+	if d:Dot(lv) < 0 then x = x >= 0 and 1 or -1 end
+	local f, z = fl(at(50 + sp * 0.5) - pos), -1
+	local c = f and f:Dot(lv) or 1
+	if c < 0.5 and sp > 60 then z = 0.6 elseif c < 0.8 and sp > 85 then z = 0 end
+	return Vector3.new(math.clamp(x * 2.5, -1, 1), 0, z)
 end
 
 local function rg2(on)
@@ -1619,6 +1644,7 @@ local function ru2(hr)
 	local now = workspace:GetServerTimeNow()
 	local it, re, ef, ee = lp:GetAttribute(rpa.Item), lp:GetAttribute(rpa.RollEndsAt), lp:GetAttribute(rpa.Effect), lp:GetAttribute(rpa.EffectEndsAt)
 	if type(it) ~= "string" or (type(re) == "number" and now < re) or (type(ef) == "string" and type(ee) == "number" and now < ee) then return end
+	if it == "Shield" and os.clock() > st.rsh then return end
 	local up, f = hr.CFrame.UpVector, hr.CFrame.LookVector
 	f -= up * f:Dot(up)
 	pcall(function() rm.MountRace.PowerUp:FireServer("Use", hr.Position, f.Magnitude > 0.01 and f.Unit or hr.CFrame.LookVector) end)
@@ -1627,6 +1653,47 @@ end
 
 local function rl(g)
 	local p, tr, k, nu, lm = nil, nil, nil, 0, nil
+	local hz, er, sr, dr2, sp3, tsp = {}, 5.5, 9, 9, {}, nil
+	pcall(function()
+		local tu = require(rs.Data.RacePowerUps).Tuning
+		er, sr, dr2 = tonumber(tu.EggRadius) or 5.5, tonumber(tu.SpikeRadius) or 9, tonumber(tu.DrillaRadius) or 9
+	end)
+	local oc, cc = pcall(function()
+		return rm.MountRace.PowerUpMoment.OnClientEvent:Connect(function(kd2, a, b, c, _, e)
+			if kd2 == "Egg" and a ~= nil and typeof(c) == "CFrame" then
+				hz[a] = c.Position
+			elseif (kd2 == "EggEnd" or kd2 == "Clear") and a ~= nil then
+				hz[a] = nil
+			elseif ((kd2 == "PodLock" or kd2 == "DrillaWarn") and b == lp) or (kd2 == "Drilla" and e == lp) then
+				st.rsh, nu = os.clock() + 2, 0
+			end
+		end)
+	end)
+	if oc and cc then st.cn[#st.cn + 1] = cc end
+	local function hl2()
+		local o = {}
+		for _, v in hz do o[#o + 1] = {v, er} end
+		local fx = workspace:FindFirstChild("RacePowerUpFX")
+		for _, x in fx and fx:GetChildren() or {} do
+			local r2 = (x.Name == "Spike" and sr) or ((x.Name == "Warning" or x.Name == "Drilla") and dr2) or (x.Name == "Splat" and er) or nil
+			if r2 and x:IsA("PVInstance") then
+				local ok, pv = pcall(function() return x:GetPivot().Position end)
+				if ok then o[#o + 1] = {pv, r2} end
+			end
+		end
+		if tsp ~= tr then
+			tsp, sp3 = tr, {}
+			for _, x in cl:GetTagged("RaceSlowPad") do
+				if tr and x:IsA("BasePart") and x:IsDescendantOf(tr) then sp3[#sp3 + 1] = {x.Position, math.max(x.Size.X, x.Size.Z) / 2} end
+			end
+		end
+		for _, v in sp3 do o[#o + 1] = v end
+		local cm = workspace.CurrentCamera
+		for _, x in cm and cm:GetChildren() or {} do
+			if x.Name == "KrakenMark" and x:IsA("BasePart") then o[#o + 1] = {x.Position, x.Size.Y / 2} end
+		end
+		return o
+	end
 	local function l2(m)
 		if m == lm then return end
 		lm = m
@@ -1643,7 +1710,7 @@ local function rl(g)
 				local bd
 				if k then k, bd = rn(p, hr.Position, k, 12) end
 				if not k or bd > 80 then k = rn(p, hr.Position, 1, #p - 1) end
-				st.rmv = rv3(p, k, hr)
+				st.rmv = rv3(p, k, hr, hl2())
 				if not st.rv then
 					st.rv = true
 					rg2(true)
@@ -1671,6 +1738,7 @@ local function rl(g)
 		end
 		ru.Heartbeat:Wait()
 	end
+	if oc and cc then pcall(function() cc:Disconnect() end) end
 	st.rx, st.rmv = false, nil
 	if st.rv and ge.__SaeAf == st then rg2(false) end
 	st.rv = false
@@ -1807,6 +1875,308 @@ local function sq2(g)
 	end
 end
 
+local function gl()
+	local v = workspace:GetAttribute("RLGL_Light")
+	return type(v) == "string" and v or "Rise"
+end
+
+local function ge2()
+	return workspace:GetAttribute("Event_RedLightGreenLight") == true and typeof(workspace:GetAttribute("RLGL_EggPosition")) == "Vector3"
+end
+
+local function gr2(ep)
+	local p = workspace:GetAttribute(ep)
+	if typeof(p) ~= "Vector3" then return nil end
+	local ok, s = pcall(es.ReadFieldEggs)
+	local b, bd = nil, 25
+	for _, r in ok and type(s) == "table" and s.Records or {} do
+		if typeof(r.BoundsCFrame) == "CFrame" then
+			local d = (r.BoundsCFrame.Position - p).Magnitude
+			if d < bd then b, bd = r, d end
+		end
+	end
+	return b
+end
+
+local function gm(tg, sp, ck, to, gt, aj)
+	local t0, dn, wy = os.clock(), nil, nil
+	local cn = ru.PreSimulation:Connect(function(d)
+		if dn ~= nil then return end
+		local hr, hm = rt()
+		if ge.__SaeAf ~= st then dn, wy = false, "Stopped" return end
+		if not hr or not hm or hm.Health <= 0 then dn, wy = false, "Character Lost" return end
+		fz(hm.FloorMaterial == Enum.Material.Air)
+		local r = ck and ck()
+		if r then dn, wy = false, r return end
+		if os.clock() - t0 > to then dn, wy = false, "Timeout" return end
+		local g = Vector3.new(0, workspace.Gravity * d * 0.5, 0)
+		hr.AssemblyAngularVelocity = Vector3.zero
+		if gt and not gt() then
+			hr.AssemblyLinearVelocity = g
+			return
+		end
+		local a2 = aj and aj(hr.Position, tg)
+		local v = (a2 or tg) - hr.Position
+		local m = v.Magnitude
+		if m <= 1 and not a2 then
+			hr.AssemblyLinearVelocity = g
+			dn = true
+			return
+		end
+		hr.AssemblyLinearVelocity = v.Unit * math.min(sp(), m / math.max(d, 1 / 240)) + g
+	end)
+	st.cn[#st.cn + 1] = cn
+	while dn == nil do ru.Heartbeat:Wait() end
+	cn:Disconnect()
+	return dn, wy
+end
+
+local function gb()
+	local ok, g = pcall(function() return require(rs.Data.Gears).Directory end)
+	for _, c in {lp.Character, lp:FindFirstChildOfClass("Backpack")} do
+		for _, t in c and c:GetChildren() or {} do
+			local n = t:IsA("Tool") and t.Name:gsub("%s*%b[]$", "")
+			if n and ok and type(g) == "table" and type(g[n]) == "table" and g[n].BatControllerData then return t end
+		end
+	end
+	return nil
+end
+
+local function gh(p, gt)
+	local hr, hu = rt()
+	local tr = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+	if not (hr and tr) then return false, "No Target" end
+	if (tr.Position - hr.Position).Magnitude > 14 or (gt and not gt()) then return false, "Not Ready" end
+	local t = gb()
+	if not t then return false, "No Bat" end
+	if t.Parent ~= lp.Character and hu then
+		pcall(function() hu:EquipTool(t) end)
+		task.wait(0.1)
+	end
+	pcall(function() t:Activate() end)
+	return true
+end
+
+local function gq(g, c)
+	local lm, nb = nil, 0
+	local function l2(m)
+		if m == lm then return end
+		lm = m
+		lg(m)
+	end
+	local function ck()
+		if not c.on(g) or ge.__SaeAf ~= st or st.rx or not c.ev() then return "Stopped" end
+		return nil
+	end
+	local function gm2(a, sp2, ck3, to2)
+		return gm(a, sp2, ck3, to2, c.gt, c.aj)
+	end
+	local function own(on)
+		if on then
+			st.bo, st[c.fb], st.pv = true, true, true
+			return sw()
+		end
+		local _, hu = rt()
+		if hu then pcall(function() hu:UnequipTools() end) end
+		fz(false)
+		local t = os.clock()
+		while hu and hu.Parent and hu.FloorMaterial == Enum.Material.Air and os.clock() - t < 3 do task.wait(0.1) end
+		un()
+		st.bo, st[c.fb], st.pv = false, false, false
+		return true
+	end
+	while ge.__SaeAf == st and c.on(g) do
+		st[c.fx] = c.ev() and not st.rx
+		if st[c.fx] and c.pre then c.pre() end
+		if not st[c.fx] then
+			if st[c.fb] then own(false) end
+			l2(c.n .. " | Waiting For Event")
+			task.wait(1)
+			continue
+		end
+		local lv0 = c.lv and lp:GetAttribute(c.lv)
+		if type(lv0) == "number" and lv0 <= 0 then
+			if st[c.fb] then own(false) end
+			l2(c.n .. " | No Lives")
+			task.wait(1)
+			continue
+		end
+		local r = gr2(c.ep)
+		local o1, cs0 = pcall(es.ReadCarryState)
+		local mine = o1 and type(cs0) == "table" and cs0.IsCarrying == true and workspace:GetAttribute(c.cu) == lp.UserId
+		if not st[c.fb] then
+			if (cr() and not mine) or (st.on and not st.fp) or (st.bo and not st[c.fb]) then
+				l2(c.n .. " | Waiting For Control")
+				task.wait(0.5)
+				continue
+			end
+			if st.bt or tm() then
+				lt()
+				task.wait(1)
+			end
+			if not own(true) then
+				st.bo, st[c.fb], st.pv = false, false, false
+				l2(c.n .. " | Waiting To Swap")
+				task.wait(0.5)
+				continue
+			end
+		end
+		local _, hu = rt()
+		local ws = hu and hu.WalkSpeed or 16
+		if mine then
+			local sm = tonumber(cs0.SpeedMultiplier) or 0.5
+			local function vs() return ws * sm end
+			local l, h = sp(), rt()
+			if l and h then
+				local lv, lq = l.CFrame.LookVector, l.Position
+				local q = h.Position - lv * (lv:Dot(h.Position - lq) - 48)
+				local z0, z1 = cz()
+				local en = Vector3.new(q.X, lq.Y + 3, z0 and math.clamp(q.Z, z0, z1) or q.Z)
+				local y = math.max(h.Position.Y, lq.Y + 45)
+				local function ck2()
+					local c = ck()
+					if c then return c end
+					if not cr() then return "Dropped" end
+					return nil
+				end
+				l2(c.n .. " | Carrying Home")
+				local ok, wy = gm2(Vector3.new(h.Position.X, y, h.Position.Z), vs, ck2, 30)
+				if ok then ok, wy = gm2(Vector3.new(en.X, y, en.Z), vs, ck2, (en - h.Position).Magnitude / math.max(vs(), 8) * 3 + 30) end
+				if ok then ok, wy = gm2(en, vs, ck2, 30) end
+				if ok then ok, wy = gm2(en - lv * 70, vs, ck2, 40) end
+				l2(ok and c.n .. " | Walked In" or c.n .. " | " .. tostring(wy))
+				if not cr() then
+					task.wait(2)
+					if not c.ev() or not gr2(c.ep) then l2(c.n .. " Delivered") end
+				end
+			end
+		elseif r then
+			local cu = workspace:GetAttribute(c.cu)
+			local cp = type(cu) == "number" and cu ~= lp.UserId and ps:GetPlayerByUserId(cu) or nil
+			local function vs() return ws * st.fm end
+			if cp then
+				local tr = cp.Character and cp.Character:FindFirstChild("HumanoidRootPart")
+				if tr then
+					l2(c.n .. " | Chasing " .. cp.Name)
+					gm2(tr.Position + Vector3.new(0, 2, 0), vs, function()
+						local c = ck()
+						if c then return c end
+						local h = rt()
+						if h and (tr.Position - h.Position).Magnitude <= 8 then return "Near" end
+						return nil
+					end, 3)
+					if os.clock() >= nb and gh(cp, c.gt) then
+						nb = os.clock() + 0.7
+						l2(c.n .. " | Hit " .. cp.Name)
+					end
+				else
+					task.wait(0.2)
+				end
+			else
+				local p = r.BoundsCFrame.Position
+				l2(c.n .. " | Flying To Egg")
+				local h = rt()
+				local ok = true
+				if h and (p - h.Position).Magnitude > 60 then
+					local y = math.max(h.Position.Y, p.Y) + 50
+					ok = gm2(Vector3.new(h.Position.X, y, h.Position.Z), vs, ck, 20)
+					if ok then ok = gm2(Vector3.new(p.X, y, p.Z), vs, ck, (p - h.Position).Magnitude / math.max(vs(), 16) * 3 + 30) end
+				end
+				if ok then ok = gm2(p + Vector3.new(0, 3, 0), vs, ck, 20) end
+				if ok then
+					while c.gt and not c.gt() and ck() == nil do task.wait(0.05) end
+					l2(c.n .. " | Taking Egg")
+					local o2, wy = tk({u = r.Uid, r = r})
+					l2(o2 and c.n .. " | Egg Taken" or c.n .. " | " .. tostring(wy))
+				end
+			end
+		else
+			l2(c.n .. " | No Egg")
+			task.wait(0.5)
+		end
+		task.wait(0.05)
+	end
+	st[c.fx] = false
+	if st[c.fb] then own(false) end
+end
+
+local lc = {n = "Red Light", fx = "lx", fb = "lb", ep = "RLGL_EggPosition", cu = "RLGL_CarrierUserId", lv = "RLGL_Lives", ev = ge2, gt = function() return gl() == "Green" end, on = function(g) return st.gx and st.gg == g end}
+
+local trh = (function()
+	local ok, r = pcall(function() return require(rs.Shared.Modules.TrexRunHerd) end)
+	return ok and type(r) == "table" and r or nil
+end)()
+
+local tw = {}
+
+local function tw2(l)
+	table.clear(tw)
+	for _, w in type(l) == "table" and l or {} do
+		if type(w) == "table" and type(w.Id) == "number" then tw[w.Id] = w end
+	end
+end
+
+pcall(function()
+	st.cn[#st.cn + 1] = rm.TrexRun.Wave.OnClientEvent:Connect(function(w)
+		if type(w) == "table" and type(w.Id) == "number" then tw[w.Id] = w end
+	end)
+	st.cn[#st.cn + 1] = rm.TrexRun.Herd.OnClientEvent:Connect(tw2)
+end)
+
+local function te2()
+	return workspace:GetAttribute("Event_TrexRun") == true and typeof(workspace:GetAttribute("TrexRun_EggPosition")) == "Vector3"
+end
+
+local function ta2(pos)
+	if not trh then return nil end
+	local co = trh.ReadCourse(workspace)
+	if not co then return nil end
+	local now = workspace:GetServerTimeNow()
+	local dp, lt = trh.Locate(co, pos)
+	local bad, thr, hw = {}, false, co.LaneWidth * 0.5 + 4
+	for id, w in tw do
+		if trh.IsExpired(w, co, now) then
+			tw[id] = nil
+		elseif trh.IsMoving(w, now) and type(w.Lanes) == "table" then
+			local ah = (dp - trh.DepthAt(w, now)) * w.Direction
+			if ah > -10 and ah < (tonumber(w.Speed) or 150) * 1.2 + 30 then
+				for k in w.Lanes do
+					local la = trh.TrexLateral(co, w, k)
+					bad[#bad + 1] = la
+					if math.abs(la - lt) < hw then thr = true end
+				end
+			end
+		end
+	end
+	if not thr then return nil end
+	local best, bd
+	for ln = 1, co.Lanes do
+		local c0 = trh.LaneOffset(co, ln)
+		local ok = true
+		for _, la in bad do
+			if math.abs(la - c0) < hw then
+				ok = false
+				break
+			end
+		end
+		if ok and (not bd or math.abs(c0 - lt) < bd) then best, bd = c0, math.abs(c0 - lt) end
+	end
+	if not best then return nil end
+	local q = trh.Point(co, dp, best)
+	return Vector3.new(q.X, pos.Y, q.Z)
+end
+
+local nf = 0
+
+local function tp2()
+	if next(tw) ~= nil or os.clock() < nf then return end
+	nf = os.clock() + 3
+	local ok, l = pcall(function() return rm.TrexRun.FetchHerd:InvokeServer() end)
+	if ok then tw2(l) end
+end
+
+local tc2 = {n = "T-Rex", fx = "tx", fb = "tb", ep = "TrexRun_EggPosition", cu = "TrexRun_CarrierUserId", lv = nil, ev = te2, gt = nil, aj = ta2, pre = tp2, on = function(g) return st.tq and st.th == g end}
+
 local function bg(g)
 	if not (bb and bw and bq) then lg("Butterfly Failed: No Module") return end
 	if not kv() then lg("Key Check Failed: No Valid Key") return end
@@ -1831,7 +2201,7 @@ local function bg(g)
 	end
 	while ge.__SaeAf == st and st.bf and st.bi == g do
 		local nc, tc = bn()
-		if st.rx or st.sx then
+		if st.rx or st.sx or st.lx or st.tx then
 			st.bx = false
 			ed()
 			task.wait(1)
@@ -2984,13 +3354,22 @@ et:Button({Name = "Teleport To Station", Callback = function()
 	lg(ok and "At Station" or tostring(wy))
 	W:Notify({Title = "Teleport To Station", Text = ok and "At Station" or tostring(wy), Error = not ok})
 end})
-et:Section({Name = "Shooting Star"})
+et:Section({Name = "Admin"})
 et:Toggle({Name = "Auto Shooting Star", Default = false, Flag = "ass", Callback = function(v)
 	st.ss = v == true
 	st.sg += 1
 	if st.ss then task.spawn(sq2, st.sg) end
 end})
-et:Section({Name = "Race"})
+et:Toggle({Name = "Auto Red Light Green Light", Default = false, Flag = "arl", Callback = function(v)
+	st.gx = v == true
+	st.gg += 1
+	if st.gx then task.spawn(gq, st.gg, lc) end
+end})
+et:Toggle({Name = "Auto T-Rex Run", Default = false, Flag = "atx", Callback = function(v)
+	st.tq = v == true
+	st.th += 1
+	if st.tq then task.spawn(gq, st.th, tc2) end
+end})
 et:Toggle({Name = "Auto Race", Default = false, Flag = "arc", Callback = function(v)
 	st.ra = v == true
 	st.rg += 1
