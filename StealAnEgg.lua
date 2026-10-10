@@ -32,7 +32,7 @@ if ge.__SaeAf then
 	for _, c in ge.__SaeAf.uc or {} do pcall(function() c:Disconnect() end) end
 	for h in ge.__SaeAf.uh or {} do pcall(function() h:SetStateEnabled(Enum.HumanoidStateType.Physics, true) end) end
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -47,7 +47,7 @@ local function rt()
 	return c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChildOfClass("Humanoid")
 end
 
-local kf, ky, ex, kl = "Avenoric/Keys/StealAnEgg.txt", "NGAO-GQCJ-ARQZ", 1791626763, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
+local kf, ky, ex, kl = "Avenoric/Keys/StealAnEgg.txt", "NGAO-VRWS-SWKQ", 1791725089, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
 local kc = {t = 0, v = false}
 local function kv()
 	if os.clock() < kc.t then return kc.v end
@@ -921,6 +921,7 @@ local function wq()
 end
 
 local function lo(g)
+	while not st.gr and ge.__SaeAf == st do task.wait(0.1) end
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
 		if st.bx and not cr() then
@@ -2744,6 +2745,7 @@ tz:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = bo()
 	W:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e, Error = not ok and e ~= "Already On"})
 end})
+st.gr = true
 
 local gi = (function()
 	local dc, p = crypt and crypt.base64decode or base64_decode, "Avenoric/Assets/NgaoLogo.png"
