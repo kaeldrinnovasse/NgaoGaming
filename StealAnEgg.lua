@@ -1587,7 +1587,7 @@ local function rn(p, pos, k, w)
 	return bi, bd
 end
 
-local function rv3(p, k, hr, hl)
+local function rv3(p, k, hr, hl, al)
 	local n, pos, sp = #p, hr.Position, hr.AssemblyLinearVelocity.Magnitude
 	local function at(la)
 		local i, acc = k, 0
@@ -1619,6 +1619,16 @@ local function rv3(p, k, hr, hl)
 	if bz then
 		local s1, s2 = bz[2] + rv * (bz[3] + 1), bz[2] - rv * (bz[3] + 1)
 		a = (s1 - a).Magnitude <= (s2 - a).Magnitude and s1 or s2
+	else
+		local bt3
+		for _, z in al or {} do
+			local rl3 = z[1] - pos
+			local hy = rl3:Dot(up)
+			rl3 -= up * hy
+			local ag = rl3:Dot(fw)
+			if ag > 8 and ag < 40 + sp * 0.8 and math.abs(hy) < 20 and math.abs(rl3:Dot(rv)) < z[2] and (not bt3 or ag < bt3[1]) then bt3 = {ag, z[1]} end
+		end
+		if bt3 then a = bt3[2] end
 	end
 	local d = fl(a - pos)
 	if not d then return Vector3.new(0, 0, -1) end
@@ -1627,7 +1637,7 @@ local function rv3(p, k, hr, hl)
 	local f, z = fl(at(50 + sp * 0.5) - pos), -1
 	local c = f and f:Dot(lv) or 1
 	if c < 0.5 and sp > 60 then z = 0.6 elseif c < 0.8 and sp > 85 then z = 0 end
-	return Vector3.new(math.clamp(x * 2.5, -1, 1), 0, z)
+	return Vector3.new(math.clamp(x * 2.5, -1, 1), 0, z), bz ~= nil and bz[1] > 4 and bz[1] < 45
 end
 
 local function rg2(on)
@@ -1651,9 +1661,159 @@ local function ru2(hr)
 	lg("Race | Used " .. it)
 end
 
+local rrs, rre = (function()
+	local ok, a, b = pcall(function()
+		return require(rs.Shared.Util.RaceRallySchedule), require(rs.Shared.Util.RaceRallyEligibility)
+	end)
+	if ok then return a, b end
+	return nil, nil
+end)()
+
+local function rj2()
+	local je = workspace:GetAttribute("RaceRallyJoinEndsAt")
+	if type(je) ~= "number" or je - workspace:GetServerTimeNow() < 1.5 then return false end
+	local w = workspace:FindFirstChild("World")
+	local pt = w and w:FindFirstChild("RaceRallyPortal")
+	if not (pt and pt:FindFirstChild("Hitbox")) then return false end
+	local ok, sv2 = pcall(sv.Await)
+	local sp4 = ok and type(sv2) == "table" and sv2.SpeedPower
+	if rre and type(rre.IsEligible) == "function" then
+		local o2, e = pcall(rre.IsEligible, sp4)
+		if o2 and e == false then return false end
+	end
+	return true
+end
+
+local function rj3()
+	local w = workspace:FindFirstChild("World")
+	local pt = w and w:FindFirstChild("RaceRallyPortal")
+	local hb = pt and pt:FindFirstChild("Hitbox")
+	local h = rt()
+	if not (hb and hb:IsA("BasePart") and h) then return false end
+	if st.bt or tm() then
+		lt()
+		task.wait(1)
+		h = rt()
+		if not h then return false end
+	end
+	local function ck()
+		local je = workspace:GetAttribute("RaceRallyJoinEndsAt")
+		if type(je) ~= "number" or je - workspace:GetServerTimeNow() < 0.5 then return "Move Failed: Join Closed" end
+		return nil
+	end
+	local function fy(q, to)
+		local ok, wy = mv(q, ck, to, st.fm)
+		if not ok then lg("Race | " .. tostring(wy)) end
+		return ok
+	end
+	local z0, z1 = cz()
+	local tg = hb.Position
+	st.bo = true
+	if z0 then
+		local hz = math.clamp(h.Position.Z, z0, z1)
+		if hz ~= h.Position.Z and not fy(Vector3.new(h.Position.X, h.Position.Y, hz), 10) then st.bo = false return false end
+	end
+	h = rt()
+	if not h then st.bo = false return false end
+	local ar2 = w:FindFirstChild("Areas")
+	local wl = ar2 and ar2:FindFirstChild("WallStartCollision")
+	if wl and wl:IsA("BasePart") and wl.CanCollide then
+		local lk = wl.CFrame.LookVector
+		if (h.Position - wl.Position):Dot(lk) * (tg - wl.Position):Dot(lk) < 0 then
+			lg("Race | Waiting For Wall")
+			repeat task.wait(0.2) until not wl.CanCollide or ck()
+			local r = ck()
+			if r then lg("Race | " .. r) st.bo = false return false end
+			h = rt()
+			if not h then st.bo = false return false end
+		end
+	end
+	local a, b = Vector3.new(h.Position.X, 0, h.Position.Z), Vector3.new(tg.X, 0, tg.Z)
+	local y, dh = math.max(h.Position.Y, tg.Y) + 50, (b - a).Magnitude
+	local u = dh > 0.1 and (b - a).Unit or Vector3.zero
+	for _, p in dh > 200 and {a + u * 100, b - u * 100} or {a + u * dh * 0.5} do
+		local hr, hu = rt()
+		local q = Vector3.new(p.X, y, p.Z)
+		if not fy(q, hr and hu and (q - hr.Position).Magnitude / math.max(hu.WalkSpeed * st.fm, 16) + 10 or 30) then st.bo = false return false end
+	end
+	fy(tg, 10)
+	st.bo = false
+	h = rt()
+	if not h then return false end
+	pcall(function()
+		firetouchinterest(h, hb, 0)
+		task.wait(0.1)
+		firetouchinterest(h, hb, 1)
+	end)
+	local t1 = os.clock()
+	repeat task.wait(0.1) until type(lp:GetAttribute("RaceId")) == "string" or os.clock() - t1 > 5
+	return type(lp:GetAttribute("RaceId")) == "string"
+end
+
+local function rs3()
+	local now = workspace:GetServerTimeNow()
+	local function tf(x)
+		x = math.max(0, math.floor(x))
+		return string.format("%02d:%02d", x // 60, x % 60)
+	end
+	if type(lp:GetAttribute("RaceId")) == "string" then
+		local fp2 = lp:GetAttribute("RaceFinishPlace")
+		if type(fp2) == "number" then return "Race Finished | Place " .. fp2 end
+		return string.format("Racing | Lap %s | Place %s", tostring(lp:GetAttribute("RaceLap") or "-"), tostring(lp:GetAttribute("RacePlace") or "-"))
+	end
+	local je = workspace:GetAttribute("RaceRallyJoinEndsAt")
+	if type(je) == "number" and je > now then return "Race Rally Open: " .. tf(je - now) .. " Left" end
+	if workspace:GetAttribute("RaceRallyRunning") == true then return "Race Rally Running" end
+	if rrs and type(rrs.IsScheduled) == "function" then
+		local ok, on = pcall(rrs.IsScheduled)
+		if ok and on then
+			local o2, a = pcall(rrs.NextOpening, now)
+			if o2 and type(a) == "number" then return "Next Race Rally: " .. tf(a - now) end
+		end
+	end
+	return "Race Rally: Off"
+end
+
+local hs2 = game:GetService("HttpService")
+
+local function rmc(hr)
+	if typeof(filtergc) ~= "function" or not hr then return nil end
+	local ok, l = pcall(filtergc, "table", {Keys = {"LastJumpAt", "IgnoreGroundUntil", "TravelDirection"}}, false)
+	if not ok or type(l) ~= "table" then return nil end
+	for _, t in l do
+		local rg3 = type(t) == "table" and rawget(t, "Rig")
+		if type(rg3) == "table" and rawget(rg3, "Root") == hr then
+			local mt = getmetatable(t)
+			local ix = type(mt) == "table" and rawget(mt, "__index")
+			local jf = rawget(t, "Jump") or (type(mt) == "table" and rawget(mt, "Jump")) or (type(ix) == "table" and rawget(ix, "Jump"))
+			if type(jf) == "function" then return t, jf end
+		end
+	end
+	return nil
+end
+
 local function rl(g)
 	local p, tr, k, nu, lm = nil, nil, nil, 0, nil
+	local mc, mj, nj = nil, nil, 0
 	local hz, er, sr, dr2, sp3, tsp = {}, 5.5, 9, 9, {}, nil
+	local hl2, lsp, lft = nil, {}, nil
+	pcall(function()
+		local d = hs2:JSONDecode(readfile("SaeRaceSpots.json"))
+		if type(d) == "table" then lsp = d end
+	end)
+	local function lsv()
+		pcall(function() writefile("SaeRaceSpots.json", hs2:JSONEncode(lsp)) end)
+	end
+	local function lad(q)
+		local nm = tr and tr.Name or "?"
+		lsp[nm] = lsp[nm] or {}
+		for _, v in lsp[nm] do
+			if (Vector3.new(v[1], v[2], v[3]) - q).Magnitude < 12 then return end
+		end
+		table.insert(lsp[nm], {math.floor(q.X), math.floor(q.Y), math.floor(q.Z)})
+		lsv()
+		lg(string.format("Race | Learned Egg Spot %d,%d,%d", q.X, q.Y, q.Z))
+	end
 	pcall(function()
 		local tu = require(rs.Data.RacePowerUps).Tuning
 		er, sr, dr2 = tonumber(tu.EggRadius) or 5.5, tonumber(tu.SpikeRadius) or 9, tonumber(tu.DrillaRadius) or 9
@@ -1662,15 +1822,59 @@ local function rl(g)
 		return rm.MountRace.PowerUpMoment.OnClientEvent:Connect(function(kd2, a, b, c, _, e)
 			if kd2 == "Egg" and a ~= nil and typeof(c) == "CFrame" then
 				hz[a] = c.Position
+				local h = rt()
+				if h and b ~= lp and (c.Position - h.Position).Magnitude < 45 then st.rsh, nu = os.clock() + 1.5, 0 end
 			elseif (kd2 == "EggEnd" or kd2 == "Clear") and a ~= nil then
 				hz[a] = nil
 			elseif ((kd2 == "PodLock" or kd2 == "DrillaWarn") and b == lp) or (kd2 == "Drilla" and e == lp) then
 				st.rsh, nu = os.clock() + 2, 0
+			elseif kd2 == "Hit" and a == lp then
+				local h = rt()
+				local nh = {}
+				if h and b == "Egg" then
+					local bq, bd3 = nil, 35
+					for _, v in hz do
+						local d = (v - h.Position).Magnitude
+						if d < bd3 then bq, bd3 = v, d end
+					end
+					if bq then lad(bq) end
+				end
+				if h then
+					for _, z in hl2() do
+						local d = (z[1] - h.Position).Magnitude
+						if d < 120 then nh[#nh + 1] = string.format("%.0f@%.0f", z[2], d) end
+					end
+				end
+				lg(string.format("Race | Hit By %s at %s | Near %s", tostring(b), h and string.format("%d,%d,%d", h.Position.X, h.Position.Y, h.Position.Z) or "?", #nh > 0 and table.concat(nh, ",") or "None"))
 			end
 		end)
 	end)
 	if oc and cc then st.cn[#st.cn + 1] = cc end
-	local function hl2()
+	local bxs, bps, tsb = {}, {}, nil
+	local function al2()
+		if tsb ~= tr then
+			tsb, bxs, bps = tr, {}, {}
+			for _, x in cl:GetTagged("RacePowerUpSpawn") do
+				local pd = tr and x:IsDescendantOf(tr) and x:FindFirstChild("Pad")
+				if pd and pd:IsA("BasePart") then bxs[#bxs + 1] = {x, pd} end
+			end
+			for _, x in cl:GetTagged("RaceBoostPad") do
+				local pd = tr and x:IsDescendantOf(tr) and x:FindFirstChild("Pad")
+				if pd and pd:IsA("BasePart") then bps[#bps + 1] = pd end
+			end
+		end
+		local o, now = {}, workspace:GetServerTimeNow()
+		for _, pd in bps do o[#o + 1] = {pd.Position, 40} end
+		local it = rpa and lp:GetAttribute(rpa.Item)
+		if type(it) ~= "string" then
+			for _, b in bxs do
+				local ra4 = rpa and b[1]:GetAttribute(rpa.BoxReadyAt)
+				if type(ra4) ~= "number" or ra4 <= now then o[#o + 1] = {b[2].Position, 20} end
+			end
+		end
+		return o
+	end
+	hl2 = function()
 		local o = {}
 		for _, v in hz do o[#o + 1] = {v, er} end
 		local fx = workspace:FindFirstChild("RacePowerUpFX")
@@ -1688,6 +1892,7 @@ local function rl(g)
 			end
 		end
 		for _, v in sp3 do o[#o + 1] = v end
+		for _, v in tr and lsp[tr.Name] or {} do o[#o + 1] = {Vector3.new(v[1], v[2], v[3]), er + 2} end
 		local cm = workspace.CurrentCamera
 		for _, x in cm and cm:GetChildren() or {} do
 			if x.Name == "KrakenMark" and x:IsA("BasePart") then o[#o + 1] = {x.Position, x.Size.Y / 2} end
@@ -1710,7 +1915,16 @@ local function rl(g)
 				local bd
 				if k then k, bd = rn(p, hr.Position, k, 12) end
 				if not k or bd > 80 then k = rn(p, hr.Position, 1, #p - 1) end
-				st.rmv = rv3(p, k, hr, hl2())
+				local jp2
+				st.rmv, jp2 = rv3(p, k, hr, hl2(), al2())
+				if jp2 and os.clock() >= nj then
+					nj = os.clock() + 0.4
+					if not mc or rawget(rawget(mc, "Rig") or {}, "Root") ~= hr then mc, mj = rmc(hr) end
+					if mc and mj then
+						local o4 = pcall(mj, mc)
+						if o4 then lg("Race | Jumped Hazard") end
+					end
+				end
 				if not st.rv then
 					st.rv = true
 					rg2(true)
@@ -1730,8 +1944,23 @@ local function rl(g)
 			end
 			if t and fin then
 				l2("Race Finished | Place " .. tostring(lp:GetAttribute("RaceFinishPlace")))
+				local ft = lp:GetAttribute("RaceFinishTime")
+				if lft ~= ft then
+					lft = ft
+					task.wait(1.5)
+					local ok3 = pcall(function() rm.MountRace.AskLeave:FireServer() end)
+					l2(ok3 and "Race | Returning Home" or "Race | Leave Failed")
+				end
 			elseif t then
 				l2("Race | " .. tostring(ph))
+			elseif rj2() then
+				st.rx = true
+				if cr() or (st.on and not st.fp) or st.bo then
+					l2("Race | Waiting To Join Rally")
+				else
+					l2("Race | Joining Rally")
+					l2(rj3() and "Race | Joined Rally" or "Race | Join Failed")
+				end
 			else
 				l2("Race | Waiting For Race")
 			end
@@ -2088,6 +2317,8 @@ local function gq(g, c)
 					l2(c.n .. " | Taking Egg")
 					local o2, wy = tk({u = r.Uid, r = r})
 					l2(o2 and c.n .. " | Egg Taken" or c.n .. " | " .. tostring(wy))
+					local t2 = os.clock()
+					while o2 and workspace:GetAttribute(c.cu) ~= lp.UserId and os.clock() - t2 < 1.5 do task.wait(0.05) end
 				end
 			end
 		else
@@ -3354,12 +3585,25 @@ et:Button({Name = "Teleport To Station", Callback = function()
 	lg(ok and "At Station" or tostring(wy))
 	W:Notify({Title = "Teleport To Station", Text = ok and "At Station" or tostring(wy), Error = not ok})
 end})
-et:Section({Name = "Admin"})
+et:Section({Name = "Race & Star"})
+local xr = et:Label({Text = rs3()})
+task.spawn(function()
+	while ge.__SaeAf == st do
+		pcall(function() xr:Set(rs3()) end)
+		task.wait(1)
+	end
+end)
 et:Toggle({Name = "Auto Shooting Star", Default = false, Flag = "ass", Callback = function(v)
 	st.ss = v == true
 	st.sg += 1
 	if st.ss then task.spawn(sq2, st.sg) end
 end})
+et:Toggle({Name = "Auto Race", Default = false, Flag = "arc", Callback = function(v)
+	st.ra = v == true
+	st.rg += 1
+	if st.ra then task.spawn(rl, st.rg) end
+end})
+et:Section({Name = "Admin"})
 et:Toggle({Name = "Auto Red Light Green Light", Default = false, Flag = "arl", Callback = function(v)
 	st.gx = v == true
 	st.gg += 1
@@ -3369,11 +3613,6 @@ et:Toggle({Name = "Auto T-Rex Run", Default = false, Flag = "atx", Callback = fu
 	st.tq = v == true
 	st.th += 1
 	if st.tq then task.spawn(gq, st.th, tc2) end
-end})
-et:Toggle({Name = "Auto Race", Default = false, Flag = "arc", Callback = function(v)
-	st.ra = v == true
-	st.rg += 1
-	if st.ra then task.spawn(rl, st.rg) end
 end})
 
 local mi = W:Tab({Name = "Misc", Icon = "four-squares-grid"})
