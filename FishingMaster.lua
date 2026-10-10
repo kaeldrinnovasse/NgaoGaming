@@ -986,9 +986,16 @@ local function sa()
 	return n
 end
 
+local function bq()
+	local ev, pl = rv.EventController and rv.EventController._active_events, md("Data", "Catalog", "Boss").Pools
+	for k in type(ev) == "table" and ev or {} do
+		if pl[k] then return true end
+	end
+	return false
+end
+
 local function br(f)
-	local ev = rv.EventController and rv.EventController._active_events
-	if type(ev) ~= "table" or next(ev) == nil then
+	if not bq() then
 		f.bx = nil
 		return nil
 	end
@@ -1120,8 +1127,7 @@ local function hz(f, y)
 end
 
 local function bo(f)
-	local ev = rv.EventController and rv.EventController._active_events
-	if type(ev) ~= "table" or next(ev) == nil then f.s.bc = false end
+	if not bq() then f.s.bc = false end
 	if f.s.bc or (tonumber(pd().LastBossKillSlot) or 0) >= workspace:GetServerTimeNow() // 2400 * 2400 then return nil end
 	if os.clock() < (f.bl or 0) then return nil end
 	local x = br(f)
