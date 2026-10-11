@@ -51,7 +51,7 @@ local function rt()
 	return c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChildOfClass("Humanoid")
 end
 
-local kf, ky, ex, kl = "Avenoric/Keys/StealAnEgg.txt", "NGAO-VRWS-SWKQ", 1791725089, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
+local kf, ky, ex, kl = "Avenoric/Keys/StealAnEgg.txt", "NGAO-WSQS-KAGM", 1791814044, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
 local kc = {t = 0, v = false}
 local function kv()
 	if os.clock() < kc.t then return kc.v end
@@ -1577,6 +1577,73 @@ local function rp3(t)
 	return #o >= 3 and o or nil
 end
 
+local function rm4(t)
+	local p = rp3(t)
+	if not p then return nil end
+	local rp = RaycastParams.new()
+	rp.FilterType = Enum.RaycastFilterType.Include
+	rp.FilterDescendantsInstances = {t}
+	local lb, jb = {}, {}
+	for _, x in cl:GetTagged("RaceLoop") do
+		if x:IsDescendantOf(t) and x:IsA("Model") then
+			local cf, sz = x:GetBoundingBox()
+			lb[#lb + 1] = {cf, sz}
+		end
+	end
+	for _, x in cl:GetTagged("RaceJump") do
+		local s, e = x:IsDescendantOf(t) and x:FindFirstChild("Start"), x:FindFirstChild("End")
+		if s and e then jb[#jb + 1] = {s.Position, e.Position} end
+	end
+	local function fx(q)
+		for _, b in lb do
+			local l = b[1]:PointToObjectSpace(q)
+			if math.abs(l.X) <= b[2].X / 2 + 5 and math.abs(l.Y) <= b[2].Y / 2 + 5 and math.abs(l.Z) <= b[2].Z / 2 + 5 then return true end
+		end
+		for _, j in jb do
+			local ab, aq = Vector3.new(j[2].X - j[1].X, 0, j[2].Z - j[1].Z), Vector3.new(q.X - j[1].X, 0, q.Z - j[1].Z)
+			if (aq - ab * math.clamp(aq:Dot(ab) / ab:Dot(ab), 0, 1)).Magnitude < 45 then return true end
+		end
+		return false
+	end
+	local function wa(o, d, nm)
+		local s = 0
+		for _ = 1, 4 do
+			local h = workspace:Raycast(o, d * 150, rp)
+			if not h then return nil end
+			s += (h.Position - o).Magnitude
+			if math.abs(h.Normal:Dot(nm)) < 0.6 then return s end
+			o = h.Position + d * 0.5
+			s += 0.5
+		end
+		return nil
+	end
+	local c, r, hw, n = {}, {}, {}, #p
+	for i = 1, n do
+		local a, b = p[i], p[i % n + 1]
+		local m = math.max(1, math.floor((b - a).Magnitude / 8))
+		local th = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+		th = th.Magnitude > 0.01 and th.Unit or Vector3.new(0, 0, 1)
+		for s = 0, m - 1 do
+			local q = a:Lerp(b, s / m)
+			local fh = workspace:Raycast(q + Vector3.new(0, 25, 0), Vector3.new(0, -70, 0), rp)
+			local fp3, nm = q, Vector3.new(0, 1, 0)
+			if fh and fh.Normal.Y > 0.5 then fp3, nm = fh.Position, fh.Normal end
+			local rv = th:Cross(nm)
+			rv = Vector3.new(rv.X, 0, rv.Z)
+			rv = rv.Magnitude > 0.01 and rv.Unit or Vector3.new(1, 0, 0)
+			local wr, wl = wa(fp3 + nm * 3, rv, nm), wa(fp3 + nm * 3, -rv, nm)
+			local j = #c + 1
+			r[j] = rv
+			if wr and wl and not fx(q) then
+				c[j], hw[j] = fp3 + rv * ((wr - wl) / 2), (wr + wl) / 2
+			else
+				c[j] = q
+			end
+		end
+	end
+	return #c >= 3 and {c = c, r = r, h = hw} or nil
+end
+
 local function rn(p, pos, k, w)
 	local n, bi, bd = #p, k, math.huge
 	for j = 0, w do
@@ -1587,17 +1654,18 @@ local function rn(p, pos, k, w)
 	return bi, bd
 end
 
-local function rv3(p, k, hr, hl, al)
+local function rv3(p, k, hr, hl, al, m)
 	local n, pos, sp = #p, hr.Position, hr.AssemblyLinearVelocity.Magnitude
 	local function at(la)
 		local i, acc = k, 0
-		while acc < la do
+		while true do
 			local j = i % n + 1
-			acc += (p[j] - p[i]).Magnitude
+			local sl = (p[j] - p[i]).Magnitude
+			if acc + sl >= la and sl > 0 then return p[i]:Lerp(p[j], (la - acc) / sl) end
+			acc += sl
 			i = j
-			if i == k then break end
+			if i == k then return p[i] end
 		end
-		return p[i]
 	end
 	local up, lv, rv = hr.CFrame.UpVector, hr.CFrame.LookVector, hr.CFrame.RightVector
 	local function fl(v)
@@ -1616,9 +1684,18 @@ local function rv3(p, k, hr, hl, al)
 			if math.abs(lt2) < cl and (not bz or al < bz[1]) then bz = {al, z[1], cl} end
 		end
 	end
+	local function cp(q)
+		if not m then return q end
+		local ka = rn(p, q, k, 70)
+		local h4, r4 = m.h[ka], m.r[ka]
+		if not (h4 and r4) then return q end
+		local lm = math.max(h4 - 10, 0)
+		return p[ka] + r4 * math.clamp((q - p[ka]):Dot(r4), -lm, lm)
+	end
 	if bz then
-		local s1, s2 = bz[2] + rv * (bz[3] + 1), bz[2] - rv * (bz[3] + 1)
-		a = (s1 - a).Magnitude <= (s2 - a).Magnitude and s1 or s2
+		local s1, s2 = cp(bz[2] + rv * (bz[3] + 1)), cp(bz[2] - rv * (bz[3] + 1))
+		local g1, g2 = (s1 - bz[2]).Magnitude, (s2 - bz[2]).Magnitude
+		if math.abs(g1 - g2) > 2 then a = g1 > g2 and s1 or s2 else a = (s1 - a).Magnitude <= (s2 - a).Magnitude and s1 or s2 end
 	else
 		local bt3
 		for _, z in al or {} do
@@ -1628,7 +1705,7 @@ local function rv3(p, k, hr, hl, al)
 			local ag = rl3:Dot(fw)
 			if ag > 8 and ag < 40 + sp * 0.8 and math.abs(hy) < 20 and math.abs(rl3:Dot(rv)) < z[2] and (not bt3 or ag < bt3[1]) then bt3 = {ag, z[1]} end
 		end
-		if bt3 then a = bt3[2] end
+		if bt3 then a = cp(bt3[2]) end
 	end
 	local d = fl(a - pos)
 	if not d then return Vector3.new(0, 0, -1) end
@@ -1637,7 +1714,7 @@ local function rv3(p, k, hr, hl, al)
 	local f, z = fl(at(50 + sp * 0.5) - pos), -1
 	local c = f and f:Dot(lv) or 1
 	if c < 0.5 and sp > 60 then z = 0.6 elseif c < 0.8 and sp > 85 then z = 0 end
-	return Vector3.new(math.clamp(x * 2.5, -1, 1), 0, z), bz ~= nil and bz[1] > 4 and bz[1] < 45
+	return Vector3.new(math.clamp(x * 2.5, -1, 1), 0, z), bz ~= nil and bz[1] > 4 and bz[1] < 45, d
 end
 
 local function rg2(on)
@@ -1706,15 +1783,19 @@ local function rj3()
 		if not ok then lg("Race | " .. tostring(wy)) end
 		return ok
 	end
+	local function ed()
+		st.bo = false
+		fz(false)
+	end
 	local z0, z1 = cz()
 	local tg = hb.Position
 	st.bo = true
 	if z0 then
 		local hz = math.clamp(h.Position.Z, z0, z1)
-		if hz ~= h.Position.Z and not fy(Vector3.new(h.Position.X, h.Position.Y, hz), 10) then st.bo = false return false end
+		if hz ~= h.Position.Z and not fy(Vector3.new(h.Position.X, h.Position.Y, hz), 10) then ed() return false end
 	end
 	h = rt()
-	if not h then st.bo = false return false end
+	if not h then ed() return false end
 	local ar2 = w:FindFirstChild("Areas")
 	local wl = ar2 and ar2:FindFirstChild("WallStartCollision")
 	if wl and wl:IsA("BasePart") and wl.CanCollide then
@@ -1723,9 +1804,9 @@ local function rj3()
 			lg("Race | Waiting For Wall")
 			repeat task.wait(0.2) until not wl.CanCollide or ck()
 			local r = ck()
-			if r then lg("Race | " .. r) st.bo = false return false end
+			if r then lg("Race | " .. r) ed() return false end
 			h = rt()
-			if not h then st.bo = false return false end
+			if not h then ed() return false end
 		end
 	end
 	local a, b = Vector3.new(h.Position.X, 0, h.Position.Z), Vector3.new(tg.X, 0, tg.Z)
@@ -1734,10 +1815,10 @@ local function rj3()
 	for _, p in dh > 200 and {a + u * 100, b - u * 100} or {a + u * dh * 0.5} do
 		local hr, hu = rt()
 		local q = Vector3.new(p.X, y, p.Z)
-		if not fy(q, hr and hu and (q - hr.Position).Magnitude / math.max(hu.WalkSpeed * st.fm, 16) + 10 or 30) then st.bo = false return false end
+		if not fy(q, hr and hu and (q - hr.Position).Magnitude / math.max(hu.WalkSpeed * st.fm, 16) + 10 or 30) then ed() return false end
 	end
 	fy(tg, 10)
-	st.bo = false
+	ed()
 	h = rt()
 	if not h then return false end
 	pcall(function()
@@ -1793,8 +1874,22 @@ local function rmc(hr)
 end
 
 local function rl(g)
-	local p, tr, k, nu, lm = nil, nil, nil, 0, nil
-	local mc, mj, nj = nil, nil, 0
+	local p, tr, k, nu, lm, mq, mt = nil, nil, nil, 0, nil, nil, nil
+	local function bm(t)
+		if mt == t then return end
+		mt, mq = t, rm4(t)
+		lg(mq and ("Race | Map Ready " .. #mq.c) or "Race | Map Failed")
+	end
+	local mc, mj, nj, sk = nil, nil, 0, {}
+	local o5, ts5 = pcall(function() return require(rs.Shared.Flags.MountRaceFlags).TopSpeed:Get() * 2.9 end)
+	ts5 = o5 and type(ts5) == "number" and ts5 or 391
+	local pt, rd, ry, rc, rs5, rl, tp0 = nil, nil, nil, nil, 400, 0, nil
+	local function bp(t)
+		local a = t:FindFirstChild("AttachmentTrack")
+		if not a then return nil end
+		local ok, m = pcall(function() return require(rs.Shared.Modules.RaceTrackPath).new(a) end)
+		return ok and type(m) == "table" and type(m.Length) == "number" and m or nil
+	end
 	local hz, er, sr, dr2, sp3, tsp = {}, 5.5, 9, 9, {}, nil
 	local hl2, lsp, lft = nil, {}, nil
 	pcall(function()
@@ -1910,13 +2005,86 @@ local function rl(g)
 		local fin = type(lp:GetAttribute("RaceFinishTime")) == "number"
 		local ph, go = t and t:GetAttribute("RacePhase"), t and t:GetAttribute("RaceGoAt")
 		if t and hr and not fin and ph == "Racing" and (type(go) ~= "number" or workspace:GetServerTimeNow() >= go) then
-			if tr ~= t then tr, p, k = t, rp3(t), nil end
-			if p then
+			if tr ~= t then
+				bm(t)
+				tr, k, rd, rc, rl, tp0 = t, nil, nil, nil, 0, nil
+				p = mq and mq.c or rp3(t)
+				pt = bp(t)
+				lg(pt and string.format("Race | Rail Ready %d", pt.Length) or "Race | Rail Failed")
+			end
+			if pt then
+				local nw = os.clock()
+				local dt = rc and math.min(nw - rc, 0.2) or 0
+				rc = nw
+				local cf
+				if rd then
+					rd += rs5 * dt
+					cf = pt:FrameAt(rd)
+					if tp0 and (hr.Position - tp0).Magnitude > 45 then rd = nil end
+				end
+				if not rd then
+					rd, rl = pt:Project(hr.Position, 0, 0, pt.Length), 0
+					cf = pt:FrameAt(rd)
+					ry = (hr.Position - cf.Position):Dot(cf.UpVector)
+					if ry < 2 or ry > 30 then ry = 6 end
+				end
+				local lo, hi = 0, 0
+				if mq and mt == t then
+					k = rn(mq.c, cf.Position, k or 1, k and 12 or #mq.c - 1)
+					local h5 = mq.h[k]
+					if h5 then
+						local of = (mq.c[k] - cf.Position):Dot(cf.RightVector)
+						lo, hi = of - h5 + 12, of + h5 - 12
+						if lo > hi then lo, hi = of, of end
+					end
+				end
+				local zz, lt3 = hl2(), math.clamp(0, lo, hi)
+				for _, c3 in {0, 18, -18, 34, -34} do
+					local c4, ok5 = math.clamp(c3, lo, hi), true
+					for _, la in {30, 70, 110} do
+						local f3 = pt:FrameAt(rd + la)
+						local q3 = f3.Position + f3.UpVector * ry + f3.RightVector * c4
+						for _, z3 in zz do
+							if (z3[1] - q3).Magnitude < z3[2] + 8 then ok5 = false break end
+						end
+						if not ok5 then break end
+					end
+					if ok5 then lt3 = c4 break end
+				end
+				rl += math.clamp(lt3 - rl, -80 * dt, 80 * dt)
+				rl = math.clamp(rl, lo, hi)
+				local tp = cf.Position + cf.UpVector * ry + cf.RightVector * rl
+				tp0 = tp
+				hr.CFrame = CFrame.lookAt(tp, tp + cf.LookVector, cf.UpVector)
+				hr.AssemblyLinearVelocity = cf.LookVector * rs5
+				hr.AssemblyAngularVelocity = Vector3.zero
+				st.rmv = Vector3.new(0, 0, -1)
+				if mc and rawget(rawget(mc, "Rig") or {}, "Root") == hr then
+					local ss, u5 = rawget(mc, "SpeedScales"), rawget(mc, "Up")
+					if type(ss) == "table" then ss[sk] = 2.9 end
+					local h6 = typeof(u5) == "Vector3" and cf.LookVector - u5 * cf.LookVector:Dot(u5) or cf.LookVector
+					if h6.Magnitude > 0.1 then
+						rawset(mc, "Heading", h6.Unit)
+						rawset(mc, "TravelDirection", h6.Unit)
+					end
+					rawset(mc, "Speed", ts5)
+				end
+				if not st.rv then
+					st.rv = true
+					rg2(true)
+					l2("Racing")
+				end
+				if os.clock() >= nu then
+					nu = os.clock() + 0.5
+					ru2(hr)
+					if not mc or rawget(rawget(mc, "Rig") or {}, "Root") ~= hr then mc, mj = rmc(hr) end
+				end
+			elseif p then
 				local bd
 				if k then k, bd = rn(p, hr.Position, k, 12) end
 				if not k or bd > 80 then k = rn(p, hr.Position, 1, #p - 1) end
-				local jp2
-				st.rmv, jp2 = rv3(p, k, hr, hl2(), al2())
+				local jp2, dv
+				st.rmv, jp2, dv = rv3(p, k, hr, hl2(), al2(), mt == t and mq or nil)
 				if jp2 and os.clock() >= nj then
 					nj = os.clock() + 0.4
 					if not mc or rawget(rawget(mc, "Rig") or {}, "Root") ~= hr then mc, mj = rmc(hr) end
@@ -1933,6 +2101,24 @@ local function rl(g)
 				if os.clock() >= nu then
 					nu = os.clock() + 0.5
 					ru2(hr)
+					if not mc or rawget(rawget(mc, "Rig") or {}, "Root") ~= hr then mc, mj = rmc(hr) end
+				end
+				local ss = mc and rawget(mc, "SpeedScales")
+				if type(ss) == "table" then
+					local bu, bs = rawget(mc, "BoostUntil"), rawget(mc, "BoostScale")
+					ss[sk] = (type(bu) == "number" and os.clock() < bu and type(bs) == "number" and bs > 0) and 2.9 / bs or 2.9
+				end
+				local up = mc and dv and rawget(rawget(mc, "Rig") or {}, "Root") == hr and rawget(mc, "Grounded") == true and rawget(mc, "StickMinRatio") == nil and rawget(mc, "Up")
+				if typeof(up) == "Vector3" then
+					local h2 = dv - up * dv:Dot(up)
+					if h2.Magnitude > 0.1 then
+						h2 = h2.Unit
+						rawset(mc, "Heading", h2)
+						rawset(mc, "TravelDirection", h2)
+						local sv = rawget(mc, "Speed")
+						if type(sv) == "number" and sv < ts5 then rawset(mc, "Speed", ts5) end
+						st.rmv = Vector3.new(0, 0, -1)
+					end
 				end
 			else
 				l2("Race Failed: No Track Path")
@@ -1952,6 +2138,7 @@ local function rl(g)
 					l2(ok3 and "Race | Returning Home" or "Race | Leave Failed")
 				end
 			elseif t then
+				bm(t)
 				l2("Race | " .. tostring(ph))
 			elseif rj2() then
 				st.rx = true
