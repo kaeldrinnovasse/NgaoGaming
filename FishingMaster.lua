@@ -992,11 +992,14 @@ local function sa()
 end
 
 local function bq()
-	local ev, pl = rv.EventController and rv.EventController._active_events, md("Data", "Catalog", "Boss").Pools
-	for k in type(ev) == "table" and ev or {} do
-		if pl[k] then return true end
+	local ev, pl, up, sa = rv.EventController and rv.EventController._active_events, md("Data", "Catalog", "Boss").Pools, false, nil
+	for k, v in type(ev) == "table" and ev or {} do
+		if pl[k] then
+			local t = type(v) == "table" and tonumber(v.started_at)
+			up, sa = true, t and math.max(sa or 0, t) or sa
+		end
 	end
-	return false
+	return up, sa
 end
 
 local function br(f)
@@ -1132,8 +1135,9 @@ local function hz(f, y)
 end
 
 local function bo(f)
-	if not bq() then f.s.bc = false end
-	if f.s.bc or (tonumber(pd().LastBossKillSlot) or 0) >= workspace:GetServerTimeNow() // 2400 * 2400 then return nil end
+	local up, sa = bq()
+	if not up then f.s.bc = false end
+	if f.s.bc or (tonumber(pd().LastBossKillSlot) or 0) >= (sa or workspace:GetServerTimeNow() // 2400 * 2400) then return nil end
 	if os.clock() < (f.bl or 0) then return nil end
 	local x = br(f)
 	if not x then return nil end
@@ -3981,7 +3985,10 @@ local function bh()
 			if os.clock() >= nr then
 				nr, im = os.clock() + 1, nil
 				task.spawn(function()
-					local o, v = pcall(function() return (tonumber(pd().LastBossKillSlot) or 0) >= workspace:GetServerTimeNow() // 2400 * 2400 end)
+					local o, v = pcall(function()
+						local _, sa = bq()
+						return (tonumber(pd().LastBossKillSlot) or 0) >= (sa or workspace:GetServerTimeNow() // 2400 * 2400)
+					end)
 					kh = o and v == true
 				end)
 				for _, x in game:GetService("CollectionService"):GetTagged("BossRegion") do
