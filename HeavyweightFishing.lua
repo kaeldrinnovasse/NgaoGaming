@@ -19,14 +19,8 @@ end
 local st = {on = false, g = 0, si = "Beginning Isle", ba = "Basic Bait", at = false, xu = nil, fb = false, cn = {}, n = 0, sd = 0, ms = "Idle", lf = nil, cu = nil, rc = nil, gc = nil}
 ge.__HwAf = st
 
-local kf, ky, ex, kl = "Avenoric/Keys/HeavyweightFishing.txt", "NGAO-M6UG-77AM", 1791782851, "https://linkfree.click/s/ngao-gaming-hubz1u17yvmv1pacnw"
-local kc = {t = 0, v = false}
-local function kv()
-	if os.clock() < kc.t then return kc.v end
-	local o, s = pcall(readfile, kf)
-	kc.v, kc.t = o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky and workspace:GetServerTimeNow() < ex, os.clock() + 30
-	return kc.v
-end
+local L
+local function kv() return L ~= nil and L:Keyed() end
 
 local function fgc()
 	for _, c in getconnections(ev.FishingMinigame.OnClientEvent) do
@@ -476,7 +470,7 @@ local function fs()
 	end)
 end
 
-local L = (function()
+L = (function()
 local ps, uis, tws, gs, hs = game:GetService("Players"), game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("GuiService"), game:GetService("HttpService")
 local ge = getgenv and getgenv() or _G
 local c = {bg = Color3.fromRGB(37, 37, 34), cd = Color3.fromRGB(47, 47, 43), hv = Color3.fromRGB(58, 58, 54), pr = Color3.fromRGB(68, 68, 63), tx = Color3.fromRGB(244, 240, 232), dm = Color3.fromRGB(168, 164, 156), ac = Color3.fromRGB(76, 194, 255), er = Color3.fromRGB(214, 106, 94)}
@@ -569,8 +563,226 @@ local function inv(u)
 	end
 end
 
+local kr, ka = "^NGAO%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]$", nil
+
+local function fv(s)
+	local hi, lo = 0xcbf29ce4, 0x84222325
+	for i = 1, #s do
+		lo = bit32.bxor(lo, string.byte(s, i))
+		local p = lo * 435
+		hi = (hi * 435 + p // 4294967296 + bit32.lshift(lo, 8)) % 4294967296
+		lo = p % 4294967296
+	end
+	return string.format("%08x%08x", hi, lo)
+end
+L.Digest = fv
+
+local function gd(v)
+	if type(v) ~= "string" then return false end
+	local s, t, n = v:gsub("[ %-]", ""), {}, 0
+	if #s < 16 then return false end
+	for ch in s:lower():gmatch(".") do
+		if not t[ch] then t[ch], n = true, n + 1 end
+	end
+	return n >= 4
+end
+
+local function hw()
+	for _, nm in {"gethwid", "get_hwid"} do
+		local f = ge[nm]
+		if type(f) == "function" then
+			local a, v = pcall(f)
+			if a and gd(v) then return v end
+		end
+	end
+	local e, w = pcall(function() return game:GetService("RbxAnalyticsService"):GetClientId() end)
+	if e and gd(w) then return w end
+	local b, u = pcall(function() return ps.LocalPlayer.UserId end)
+	return b and type(u) == "number" and "U" .. u or nil
+end
+
+local function dv()
+	local v, d = nil, false
+	task.spawn(function()
+		local a, r = pcall(hw)
+		v, d = a and r or nil, true
+	end)
+	while not d do task.wait() end
+	return v and fv(v)
+end
+
+function L.Http(u)
+	local f = ge.request or ge.http_request or (type(ge.http) == "table" and ge.http.request)
+	if type(f) == "function" then
+		local a, r = pcall(f, {Url = u, Method = "GET"})
+		if a and type(r) == "table" and r.StatusCode == 200 and type(r.Body) == "string" then return r.Body end
+	end
+	local b, s = pcall(function() return game:HttpGet(u, true) end)
+	return b and type(s) == "string" and s or nil
+end
+
+local function ak(o, k, d)
+	local u, v, dn = `{o.Server}/api/check?h={hs:UrlEncode(o.Hub)}&k={hs:UrlEncode(k)}&d={hs:UrlEncode(d)}&n={hs:GenerateGUID(false)}`, nil, false
+	task.spawn(function()
+		local a, b = pcall(L.Http, u)
+		if a and type(b) == "string" then
+			local e, j = pcall(function() return hs:JSONDecode(b) end)
+			if e then v = j end
+		end
+		dn = true
+	end)
+	local t = os.clock()
+	while not dn and os.clock() - t < 10 do task.wait() end
+	if not dn or type(v) ~= "table" then return nil end
+	if v.ok == true and type(v.ex) == "number" then return {true, v.ex} end
+	if v.ok == false and table.find({"Bad Request", "Wrong Key", "Wrong Hub", "Wrong Device", "Key Expired"}, v.err) then return {false, v.err} end
+	return nil
+end
+
+local function rk(p)
+	if not (isfile and isfile(p)) then return nil end
+	local a, s = pcall(readfile, p)
+	if not (a and type(s) == "string") then return nil end
+	local k, x = s:match("^%s*(%S+)%s*\n%s*(%d+)%s*$")
+	if k and k:match(kr) then return k, tonumber(x) end
+	return nil
+end
+
+local function gr(x)
+	local a, n = pcall(function() return workspace:GetServerTimeNow() end)
+	return a and type(n) == "number" and type(x) == "number" and n < x and x <= n + 259200
+end
+
+local function gc(o, lk)
+	local sg = gui()
+	L.GateGui = sg
+	bt({Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(), BackgroundTransparency = 0.5, Parent = sg})
+	local f = mk("Frame", {Size = UDim2.fromOffset(300, 180), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 2, Parent = sg}, {rc(12), sk(0.85), pd(20, 20, 20, 20)})
+	local sc = mk("UIScale", {Parent = f})
+	fit(sg, f, sc, 300, 180)
+	local u = {sg = sg, cn = sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() fit(sg, f, sc, 300, 180) end)}
+	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, TextSize = 16, Size = UDim2.new(1, 0, 0, 20), Parent = f})
+	tl({Text = "Enter your key to continue", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 16), Parent = f})
+	local bx = mk("Frame", {Position = UDim2.fromOffset(0, 48), Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(6), sk(0.9)})
+	local st = bx:FindFirstChildOfClass("UIStroke")
+	u.tb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), Font = fn, TextSize = 14, TextColor3 = c.tx, PlaceholderText = "Key", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = bx})
+	u.ml = tl({Text = "", TextSize = 12, TextColor3 = c.er, Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 16), Visible = false, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
+	u.sb = bt({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = lk and UDim2.new(0.5, -4, 0, 32) or UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.ac, BackgroundTransparency = 0, Font = fb, TextSize = 13, TextColor3 = c.bg, Text = "Submit", Parent = f}, {rc(6)})
+	if lk then
+		u.gk = bt({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(0.5, -4, 0, 32), BackgroundColor3 = c.cd, BackgroundTransparency = 0, Font = fn, TextSize = 13, TextColor3 = c.tx, Text = "Get Key", Parent = f}, {rc(6), sk(0.9)})
+		hov(u.gk, function() return c.cd end)
+	end
+	u.tb.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
+	u.tb.FocusLost:Connect(function() tw(st, {Color = c.tx, Transparency = 0.9}) end)
+	function u.m(s, col) u.ml.Text, u.ml.TextColor3, u.ml.Visible = s, col or c.er, true end
+	function u.x()
+		u.cn:Disconnect()
+		u.sg:Destroy()
+		if L.GateGui == u.sg then L.GateGui = nil end
+	end
+	return u
+end
+
+local function sgt(o)
+	local sv, hb = o.Server, o.Hub
+	if type(sv) ~= "string" or not sv:match("^https://[%w%.%-]+$") then error("Gate Failed: Bad Server", 0) end
+	if type(hb) ~= "string" or not hb:match("^[a-z]+$") then error("Gate Failed: Bad Hub", 0) end
+	if o.Link ~= nil then error("Gate Failed: Link And Server", 0) end
+	if o.Config == nil then error("Gate Failed: No Config", 0) end
+	if not cfn(o.Config) then error("Gate Failed: Bad Config", 0) end
+	local mx = o.Max == nil and 24 or tonumber(o.Max)
+	if not (mx and mx >= 1) then error("Gate Failed: Bad Max", 0) end
+	local dg = dv()
+	if not dg then error("Gate Failed: No Device Id", 0) end
+	local tk, pv, kp = {}, ge.__AvG, `Avenoric/Keys/{o.Config}.txt`
+	if type(pv) == "table" and pv.sg then pcall(function() pv.sg:Destroy() end) end
+	ge.__AvG = tk
+	local lk, kk, kx = `{sv}/k/{hb}?d={dg}`, rk(kp)
+	local u, lc, by, got
+	local function ac(k, x, w)
+		if w then pcall(function() mkd(kp); writefile(kp, k .. "\n" .. x) end) end
+		ka = {p = kp, t = os.clock() + 30, v = true}
+	end
+	local function fin()
+		if u then u.x() end
+		if ge.__AvG == tk then tk.sg = nil end
+	end
+	local function rs(e) return e == "Bad Request" and "Key Check Failed: Bad Request" or e end
+	local function sub()
+		if by or lc or not u then return end
+		local s = (u.tb.Text:gsub("^%s+", ""):gsub("%s+$", "")):upper()
+		if s == "" then u.m("Enter A Key"); return end
+		if not s:match(kr) then u.m("Wrong Key"); return end
+		by, u.sb.Text = true, "Checking..."
+		local v = ak(o, s, dg)
+		by, u.sb.Text = false, "Submit"
+		if ge.__AvG ~= tk then return end
+		if not v then u.m("Key Server Unreachable"); return end
+		if not v[1] then u.m(rs(v[2])); return end
+		ac(s, v[2], true)
+		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
+		got = s
+	end
+	local function sh()
+		if u then return end
+		u = gc(o, true)
+		tk.sg = u.sg
+		u.tb:GetPropertyChangedSignal("Text"):Connect(function() if u.tb.Text ~= lk and #u.tb.Text > mx then u.tb.Text = u.tb.Text:sub(1, mx) end end)
+		u.tb.FocusLost:Connect(function(en) if en then sub() end end)
+		u.sb.Activated:Connect(sub)
+		u.gk.Activated:Connect(function()
+			for _, nm in {"setclipboard", "toclipboard"} do
+				local f = ge[nm]
+				if type(f) == "function" and pcall(f, lk) then u.m("Link Copied", c.dm); return end
+			end
+			u.tb.Text = lk
+			u.m("Copy The Link From The Box", c.dm)
+		end)
+	end
+	if kk then
+		local v, dn = nil, false
+		task.spawn(function() v, dn = ak(o, kk, dg), true end)
+		local t = os.clock()
+		while not dn do
+			if not u and ge.__AvG == tk and os.clock() - t >= 2 then
+				sh()
+				lc, u.sb.TextTransparency = true, 0.5
+				u.m("Checking Key...", c.dm)
+			end
+			task.wait()
+		end
+		lc = false
+		if u then u.sb.TextTransparency = 0 end
+		if ge.__AvG ~= tk then
+			if u then u.x() end
+			error("Gate Failed: Replaced", 0)
+		end
+		if v and v[1] then ac(kk, v[2], true); fin(); return kk end
+		if v then
+			sh()
+			u.m(rs(v[2]))
+		elseif gr(kx) then
+			ac(kk, kx, false)
+			fin()
+			return kk
+		else
+			sh()
+			u.m("Key Server Unreachable")
+		end
+	else
+		sh()
+	end
+	repeat task.wait() until got ~= nil
+	fin()
+	return got
+end
+
 function L:Gate(o)
 	o = o or {}
+	if o.Server ~= nil then
+		if o.Check ~= nil then error("Gate Failed: Check And Server", 0) end
+		return sgt(o)
+	end
 	if type(o.Check) ~= "function" then error("Gate Failed: No Check", 0) end
 	if not cfn(o.Config) then error("Gate Failed: Bad Config", 0) end
 	local mx = o.Max == nil and 24 or tonumber(o.Max)
@@ -583,55 +795,40 @@ function L:Gate(o)
 			if ok2 and r == true then return s end
 		end
 	end
-	local sg = gui()
-	L.GateGui = sg
-	bt({Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(), BackgroundTransparency = 0.5, Parent = sg})
-	local f = mk("Frame", {Size = UDim2.fromOffset(300, 180), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 2, Parent = sg}, {rc(12), sk(0.85), pd(20, 20, 20, 20)})
-	local sc = mk("UIScale", {Parent = f})
-	fit(sg, f, sc, 300, 180)
-	local cn = sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() fit(sg, f, sc, 300, 180) end)
-	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, TextSize = 16, Size = UDim2.new(1, 0, 0, 20), Parent = f})
-	tl({Text = "Enter your key to continue", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 16), Parent = f})
-	local bx = mk("Frame", {Position = UDim2.fromOffset(0, 48), Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(6), sk(0.9)})
-	local st = bx:FindFirstChildOfClass("UIStroke")
-	local tb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), Font = fn, TextSize = 14, TextColor3 = c.tx, PlaceholderText = "Key", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = bx})
-	local ml = tl({Text = "", TextSize = 12, TextColor3 = c.er, Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 16), Visible = false, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
-	local sb = bt({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = o.Link and UDim2.new(0.5, -4, 0, 32) or UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.ac, BackgroundTransparency = 0, Font = fb, TextSize = 13, TextColor3 = c.bg, Text = "Submit", Parent = f}, {rc(6)})
-	tb:GetPropertyChangedSignal("Text"):Connect(function() if #tb.Text > mx then tb.Text = tb.Text:sub(1, mx) end end)
-	local busy, got = false, nil
-	local function msg(s, col) ml.Text, ml.TextColor3, ml.Visible = s, col or c.er, true end
+	local u, busy, got = gc(o, o.Link), false, nil
+	u.tb:GetPropertyChangedSignal("Text"):Connect(function() if #u.tb.Text > mx then u.tb.Text = u.tb.Text:sub(1, mx) end end)
 	local function sub()
 		if busy then return end
-		local s = (tb.Text:gsub("^%s+", ""):gsub("%s+$", ""))
-		if s == "" then msg("Enter A Key"); return end
-		busy, sb.Text = true, "Checking..."
+		local s = (u.tb.Text:gsub("^%s+", ""):gsub("%s+$", ""))
+		if s == "" then u.m("Enter A Key"); return end
+		busy, u.sb.Text = true, "Checking..."
 		local ok, r, m = pcall(o.Check, s)
-		busy, sb.Text = false, "Submit"
-		if not ok then msg("Key Check Failed: " .. tostring(r)); return end
-		if r ~= true then msg(m and tostring(m) or "Wrong Key"); return end
+		busy, u.sb.Text = false, "Submit"
+		if not ok then u.m("Key Check Failed: " .. tostring(r)); return end
+		if r ~= true then u.m(m and tostring(m) or "Wrong Key"); return end
 		if kp then pcall(function() mkd(kp); writefile(kp, s) end) end
 		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
 		got = s
 	end
-	tb.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
-	tb.FocusLost:Connect(function(en)
-		tw(st, {Color = c.tx, Transparency = 0.9})
-		if en then sub() end
-	end)
-	sb.Activated:Connect(sub)
-	if o.Link then
-		local gk = bt({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(0.5, -4, 0, 32), BackgroundColor3 = c.cd, BackgroundTransparency = 0, Font = fn, TextSize = 13, TextColor3 = c.tx, Text = "Get Key", Parent = f}, {rc(6), sk(0.9)})
-		hov(gk, function() return c.cd end)
-		gk.Activated:Connect(function()
+	u.tb.FocusLost:Connect(function(en) if en then sub() end end)
+	u.sb.Activated:Connect(sub)
+	if u.gk then
+		u.gk.Activated:Connect(function()
 			if setclipboard then setclipboard(tostring(o.Link)) end
-			msg("Link Copied", c.dm)
+			u.m("Link Copied", c.dm)
 		end)
 	end
 	repeat task.wait() until got ~= nil
-	cn:Disconnect()
-	sg:Destroy()
-	L.GateGui = nil
+	u.x()
 	return got
+end
+
+function L:Keyed()
+	if not ka then return false end
+	if os.clock() < ka.t then return ka.v end
+	local a, s = pcall(readfile, ka.p)
+	ka.v, ka.t = a and type(s) == "string" and ((s:match("^[^\n]*") or ""):match("^%s*(.-)%s*$") or ""):match(kr) ~= nil, os.clock() + 30
+	return ka.v
 end
 
 function L:Window(o)
@@ -1222,13 +1419,8 @@ for _, k in {"__HwG", "__HwB", "__HwD"} do
 	if ge[k] then pcall(ge[k].Destroy, ge[k]) end
 	ge[k] = nil
 end
-task.defer(function() ge.__HwD = L.GateGui end)
-L:Gate({Title = "Ngao - Gaming Hub", Link = kl, Discord = "https://discord.gg/fTQF5TvfEJ", Config = "HeavyweightFishing", Check = function(s)
-	if workspace:GetServerTimeNow() >= ex then return false, "Key Expired" end
-	return s == ky, "Wrong Key"
-end})
-ge.__HwD = nil
-kc.t = 0
+if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
+L:Gate({Title = "Ngao - Gaming Hub", Server = "https://getkey.kaeldrinnovasse.workers.dev", Hub = "hf", Discord = "https://discord.gg/fTQF5TvfEJ", Config = "HeavyweightFishing"})
 
 local sg = Instance.new("ScreenGui")
 sg.Name, sg.ResetOnSpawn, sg.IgnoreGuiInset, sg.ZIndexBehavior, sg.DisplayOrder = game:GetService("HttpService"):GenerateGUID(false), false, mg.IgnoreGuiInset, mg.ZIndexBehavior, 50
