@@ -51,14 +51,8 @@ local function rt()
 	return c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChildOfClass("Humanoid")
 end
 
-local kf, ky, ex, kl = "Avenoric/Keys/StealAnEgg.txt", "NGAO-WSQS-KAGM", 1791814044, "https://linkfree.click/s/ngao-gaming-hubz1u17pnmuqgaym9"
-local kc = {t = 0, v = false}
-local function kv()
-	if os.clock() < kc.t then return kc.v end
-	local o, s = pcall(readfile, kf)
-	kc.v, kc.t = o and type(s) == "string" and s:match("^%s*(.-)%s*$") == ky and workspace:GetServerTimeNow() < ex, os.clock() + 30
-	return kc.v
-end
+local L
+local function kv() return L ~= nil and L:Keyed() end
 
 local function sp()
 	local w = workspace:FindFirstChild("World") or workspace:FindFirstChild("__OBJECTS")
@@ -1594,14 +1588,15 @@ local function rm4(t)
 		local s, e = x:IsDescendantOf(t) and x:FindFirstChild("Start"), x:FindFirstChild("End")
 		if s and e then jb[#jb + 1] = {s.Position, e.Position} end
 	end
-	local function fx(q)
+	local function fx(q, uy)
 		for _, b in lb do
 			local l = b[1]:PointToObjectSpace(q)
-			if math.abs(l.X) <= b[2].X / 2 + 5 and math.abs(l.Y) <= b[2].Y / 2 + 5 and math.abs(l.Z) <= b[2].Z / 2 + 5 then return true end
+			if uy < 0.9 and math.abs(l.X) <= b[2].X / 2 + 5 and math.abs(l.Y) <= b[2].Y / 2 + 5 and math.abs(l.Z) <= b[2].Z / 2 + 5 then return true end
 		end
 		for _, j in jb do
 			local ab, aq = Vector3.new(j[2].X - j[1].X, 0, j[2].Z - j[1].Z), Vector3.new(q.X - j[1].X, 0, q.Z - j[1].Z)
-			if (aq - ab * math.clamp(aq:Dot(ab) / ab:Dot(ab), 0, 1)).Magnitude < 45 then return true end
+			local u = aq:Dot(ab) / ab:Dot(ab)
+			if (aq - ab * math.clamp(u, 0, 1)).Magnitude < (u > 1 and 10 or 45) then return true end
 		end
 		return false
 	end
@@ -1617,7 +1612,11 @@ local function rm4(t)
 		end
 		return nil
 	end
-	local c, r, hw, n = {}, {}, {}, #p
+	local c, r, hw, n, u0, ac = {}, {}, {}, #p, {}, t:FindFirstChild("AttachmentTrack")
+	for i = 1, n do
+		local x = ac and ac:FindFirstChild(tostring(i))
+		u0[i] = x and x:IsA("Attachment") and x.WorldCFrame.UpVector or Vector3.yAxis
+	end
 	for i = 1, n do
 		local a, b = p[i], p[i % n + 1]
 		local m = math.max(1, math.floor((b - a).Magnitude / 8))
@@ -1634,7 +1633,7 @@ local function rm4(t)
 			local wr, wl = wa(fp3 + nm * 3, rv, nm), wa(fp3 + nm * 3, -rv, nm)
 			local j = #c + 1
 			r[j] = rv
-			if wr and wl and not fx(q) then
+			if wr and wl and not fx(q, u0[i]:Lerp(u0[i % n + 1], s / m).Y) then
 				c[j], hw[j] = fp3 + rv * ((wr - wl) / 2), (wr + wl) / 2
 			else
 				c[j] = q
@@ -1730,8 +1729,10 @@ local function ru2(hr)
 	if not rpa then return end
 	local now = workspace:GetServerTimeNow()
 	local it, re, ef, ee = lp:GetAttribute(rpa.Item), lp:GetAttribute(rpa.RollEndsAt), lp:GetAttribute(rpa.Effect), lp:GetAttribute(rpa.EffectEndsAt)
+	if it ~= "Shield" then st.rsq = nil end
 	if type(it) ~= "string" or (type(re) == "number" and now < re) or (type(ef) == "string" and type(ee) == "number" and now < ee) then return end
-	if it == "Shield" and os.clock() > st.rsh then return end
+	st.rsq = st.rsq or os.clock()
+	if it == "Shield" and os.clock() > st.rsh and os.clock() - st.rsq < 3 then return end
 	local up, f = hr.CFrame.UpVector, hr.CFrame.LookVector
 	f -= up * f:Dot(up)
 	pcall(function() rm.MountRace.PowerUp:FireServer("Use", hr.Position, f.Magnitude > 0.01 and f.Unit or hr.CFrame.LookVector) end)
@@ -1754,6 +1755,9 @@ local function rj2()
 	if not (pt and pt:FindFirstChild("Hitbox")) then return false end
 	local ok, sv2 = pcall(sv.Await)
 	local sp4 = ok and type(sv2) == "table" and sv2.SpeedPower
+	local rw = workspace:GetAttribute("RaceRallyWindow")
+	local lw = ok and type(sv2) == "table" and type(sv2.RaceRally) == "table" and sv2.RaceRally.LastRacedWindow
+	if rw ~= nil and lw == rw then return false end
 	if rre and type(rre.IsEligible) == "function" then
 		local o2, e = pcall(rre.IsEligible, sp4)
 		if o2 and e == false then return false end
@@ -1883,7 +1887,7 @@ local function rl(g)
 	local mc, mj, nj, sk = nil, nil, 0, {}
 	local o5, ts5 = pcall(function() return require(rs.Shared.Flags.MountRaceFlags).TopSpeed:Get() * 2.9 end)
 	ts5 = o5 and type(ts5) == "number" and ts5 or 391
-	local pt, rd, ry, rc, rs5, rl, tp0 = nil, nil, nil, nil, 400, 0, nil
+	local pt, rd, ry, rc, rl, tp0, lk, lkt = nil, nil, nil, nil, 0, nil, nil, 0
 	local function bp(t)
 		local a = t:FindFirstChild("AttachmentTrack")
 		if not a then return nil end
@@ -1891,7 +1895,7 @@ local function rl(g)
 		return ok and type(m) == "table" and type(m.Length) == "number" and m or nil
 	end
 	local hz, er, sr, dr2, sp3, tsp = {}, 5.5, 9, 9, {}, nil
-	local hl2, lsp, lft = nil, {}, nil
+	local hl2, lsp, lft, sdc, sdt = nil, {}, nil, {}, nil
 	pcall(function()
 		local d = hs2:JSONDecode(readfile("SaeRaceSpots.json"))
 		if type(d) == "table" then lsp = d end
@@ -1907,14 +1911,24 @@ local function rl(g)
 		end
 		table.insert(lsp[nm], {math.floor(q.X), math.floor(q.Y), math.floor(q.Z)})
 		lsv()
+		sdt = nil
 		lg(string.format("Race | Learned Egg Spot %d,%d,%d", q.X, q.Y, q.Z))
+	end
+	local function sdl()
+		if sdt == pt then return sdc end
+		sdt, sdc = pt, {}
+		for _, v in pt and tr and lsp[tr.Name] or {} do
+			local d, e = pt:Project(Vector3.new(v[1], v[2], v[3]), 0, 0, pt.Length)
+			if e < 25 then sdc[#sdc + 1] = d % pt.Length end
+		end
+		return sdc
 	end
 	pcall(function()
 		local tu = require(rs.Data.RacePowerUps).Tuning
 		er, sr, dr2 = tonumber(tu.EggRadius) or 5.5, tonumber(tu.SpikeRadius) or 9, tonumber(tu.DrillaRadius) or 9
 	end)
 	local oc, cc = pcall(function()
-		return rm.MountRace.PowerUpMoment.OnClientEvent:Connect(function(kd2, a, b, c, _, e)
+		return rm.MountRace.PowerUpMoment.OnClientEvent:Connect(function(kd2, a, b, c, hq5, e)
 			if kd2 == "Egg" and a ~= nil and typeof(c) == "CFrame" then
 				hz[a] = c.Position
 				local h = rt()
@@ -1926,14 +1940,7 @@ local function rl(g)
 			elseif kd2 == "Hit" and a == lp then
 				local h = rt()
 				local nh = {}
-				if h and b == "Egg" then
-					local bq, bd3 = nil, 35
-					for _, v in hz do
-						local d = (v - h.Position).Magnitude
-						if d < bd3 then bq, bd3 = v, d end
-					end
-					if bq then lad(bq) end
-				end
+				if h and b == "Egg" then lad(typeof(hq5) == "Vector3" and hq5 or h.Position) end
 				if h then
 					for _, z in hl2() do
 						local d = (z[1] - h.Position).Magnitude
@@ -1987,7 +1994,6 @@ local function rl(g)
 			end
 		end
 		for _, v in sp3 do o[#o + 1] = v end
-		for _, v in tr and lsp[tr.Name] or {} do o[#o + 1] = {Vector3.new(v[1], v[2], v[3]), er + 2} end
 		local cm = workspace.CurrentCamera
 		for _, x in cm and cm:GetChildren() or {} do
 			if x.Name == "KrakenMark" and x:IsA("BasePart") then o[#o + 1] = {x.Position, x.Size.Y / 2} end
@@ -2003,7 +2009,9 @@ local function rl(g)
 		local t, hr = rk2(), rt()
 		st.rx = t ~= nil
 		local fin = type(lp:GetAttribute("RaceFinishTime")) == "number"
-		local ph, go = t and t:GetAttribute("RacePhase"), t and t:GetAttribute("RaceGoAt")
+		local hx = t and t:FindFirstChild("RaceHeats")
+		local ht = hx and hx:FindFirstChild(tostring(lp:GetAttribute("RaceHeat"))) or t
+		local ph, go = ht and ht:GetAttribute("RacePhase"), ht and ht:GetAttribute("RaceGoAt")
 		if t and hr and not fin and ph == "Racing" and (type(go) ~= "number" or workspace:GetServerTimeNow() >= go) then
 			if tr ~= t then
 				bm(t)
@@ -2016,17 +2024,32 @@ local function rl(g)
 				local nw = os.clock()
 				local dt = rc and math.min(nw - rc, 0.2) or 0
 				rc = nw
+				local sp5, ss0 = ts5 / 2.9, mc and rawget(mc, "SpeedScales")
+				if type(ss0) == "table" then
+					ss0[sk] = nil
+					local bu, bs = rawget(mc, "BoostUntil"), rawget(mc, "BoostScale")
+					if type(bu) == "number" and os.clock() < bu and type(bs) == "number" then sp5 *= bs end
+					for _, x in ss0 do
+						if type(x) == "number" then sp5 *= x end
+					end
+				end
 				local cf
-				if rd then
-					rd += rs5 * dt
+				local se = lp:GetAttribute("RacePowerUpStunEndsAt")
+				local sn = type(se) == "number" and workspace:GetServerTimeNow() < se
+				if rd and not sn then
+					rd += sp5 * dt
 					cf = pt:FrameAt(rd)
-					if tp0 and (hr.Position - tp0).Magnitude > 45 then rd = nil end
+					if tp0 and (hr.Position - tp0).Magnitude > 45 then rd, rl = pt:Project(hr.Position, rd, 60, 200), 0 cf = pt:FrameAt(rd) end
 				end
 				if not rd then
 					rd, rl = pt:Project(hr.Position, 0, 0, pt.Length), 0
 					cf = pt:FrameAt(rd)
 					ry = (hr.Position - cf.Position):Dot(cf.UpVector)
 					if ry < 2 or ry > 30 then ry = 6 end
+				end
+				if sn then
+					rd, tp0 = pt:Project(hr.Position, rd, 60, 200), nil
+					cf = pt:FrameAt(rd)
 				end
 				local lo, hi = 0, 0
 				if mq and mt == t then
@@ -2038,36 +2061,62 @@ local function rl(g)
 						if lo > hi then lo, hi = of, of end
 					end
 				end
-				local zz, lt3 = hl2(), math.clamp(0, lo, hi)
-				for _, c3 in {0, 18, -18, 34, -34} do
-					local c4, ok5 = math.clamp(c3, lo, hi), true
-					for _, la in {30, 70, 110} do
+				local zz, lt3, cd5, ba = hl2(), math.clamp(0, lo, hi), {0, 18, -18, 34, -34}, nil
+				for _, z in al2() do
+					local da = pt:Project(z[1], rd, 0, 260)
+					local ah = da - rd
+					if ah > 8 and ah < 40 + sp5 * 0.8 then
+						local fa = pt:FrameAt(da)
+						local rl5 = z[1] - fa.Position
+						local la = rl5:Dot(fa.RightVector)
+						if math.abs(la) < z[2] + 10 and math.abs(rl5:Dot(fa.UpVector)) < 20 and (not ba or ah < ba[1]) then ba = {ah, la} end
+					end
+				end
+				if ba then table.insert(cd5, 1, ba[2]) end
+				local function fk(c3)
+					local c4 = math.clamp(c3, lo, hi)
+					for la = 0, 110, 10 do
 						local f3 = pt:FrameAt(rd + la)
 						local q3 = f3.Position + f3.UpVector * ry + f3.RightVector * c4
 						for _, z3 in zz do
-							if (z3[1] - q3).Magnitude < z3[2] + 8 then ok5 = false break end
+							if (z3[1] - q3).Magnitude < z3[2] + 8 then return nil end
 						end
-						if not ok5 then break end
 					end
-					if ok5 then lt3 = c4 break end
+					return c4
 				end
+				local cq = fk(cd5[1])
+				if not cq then lkt = os.clock() end
+				local c5 = lk and os.clock() - lkt < 0.8 and fk(lk) or nil
+				if c5 then
+					lt3 = c5
+				elseif cq then
+					lt3 = cq
+				else
+					for i = 2, #cd5 do
+						local c6 = fk(cd5[i])
+						if c6 then lt3 = c6 break end
+					end
+				end
+				lk = lt3
 				rl += math.clamp(lt3 - rl, -80 * dt, 80 * dt)
 				rl = math.clamp(rl, lo, hi)
 				local tp = cf.Position + cf.UpVector * ry + cf.RightVector * rl
-				tp0 = tp
-				hr.CFrame = CFrame.lookAt(tp, tp + cf.LookVector, cf.UpVector)
-				hr.AssemblyLinearVelocity = cf.LookVector * rs5
-				hr.AssemblyAngularVelocity = Vector3.zero
-				st.rmv = Vector3.new(0, 0, -1)
-				if mc and rawget(rawget(mc, "Rig") or {}, "Root") == hr then
+				st.rmv = sn and Vector3.zero or Vector3.new(0, 0, -1)
+				if not sn then
+					tp0 = tp
+					hr.CFrame = CFrame.lookAt(tp, tp + cf.LookVector, cf.UpVector)
+					hr.AssemblyLinearVelocity = cf.LookVector * sp5
+					hr.AssemblyAngularVelocity = Vector3.zero
+				end
+				if not sn and mc and rawget(rawget(mc, "Rig") or {}, "Root") == hr then
 					local ss, u5 = rawget(mc, "SpeedScales"), rawget(mc, "Up")
-					if type(ss) == "table" then ss[sk] = 2.9 end
+					if type(ss) == "table" then ss[sk] = nil end
 					local h6 = typeof(u5) == "Vector3" and cf.LookVector - u5 * cf.LookVector:Dot(u5) or cf.LookVector
 					if h6.Magnitude > 0.1 then
 						rawset(mc, "Heading", h6.Unit)
 						rawset(mc, "TravelDirection", h6.Unit)
 					end
-					rawset(mc, "Speed", ts5)
+					rawset(mc, "Speed", sp5)
 				end
 				if not st.rv then
 					st.rv = true
@@ -2076,6 +2125,14 @@ local function rl(g)
 				end
 				if os.clock() >= nu then
 					nu = os.clock() + 0.5
+					local r5 = rd % pt.Length
+					for _, d in sdl() do
+						if (d - r5) % pt.Length < sp5 * 1.6 then
+							if os.clock() > st.rsh and rpa and lp:GetAttribute(rpa.Item) == "Shield" then lg(string.format("Race | Shield Before Hit Spot %.0f", d)) end
+							st.rsh = os.clock() + 0.6
+							break
+						end
+					end
 					ru2(hr)
 					if not mc or rawget(rawget(mc, "Rig") or {}, "Root") ~= hr then mc, mj = rmc(hr) end
 				end
@@ -2137,6 +2194,8 @@ local function rl(g)
 					local ok3 = pcall(function() rm.MountRace.AskLeave:FireServer() end)
 					l2(ok3 and "Race | Returning Home" or "Race | Leave Failed")
 				end
+			elseif t and ph == "Results" then
+				l2("Race | Heat Ended | No Finish Recorded")
 			elseif t then
 				bm(t)
 				l2("Race | " .. tostring(ph))
@@ -2815,7 +2874,7 @@ task.spawn(function()
 	end
 end)
 
-local L = (function()
+L = (function()
 local ps, uis, tws, gs, hs = game:GetService("Players"), game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("GuiService"), game:GetService("HttpService")
 local ge = getgenv and getgenv() or _G
 local c = {bg = Color3.fromRGB(37, 37, 34), cd = Color3.fromRGB(47, 47, 43), hv = Color3.fromRGB(58, 58, 54), pr = Color3.fromRGB(68, 68, 63), tx = Color3.fromRGB(244, 240, 232), dm = Color3.fromRGB(168, 164, 156), ac = Color3.fromRGB(76, 194, 255), er = Color3.fromRGB(214, 106, 94)}
@@ -2908,8 +2967,226 @@ local function inv(u)
 	end
 end
 
+local kr, ka = "^NGAO%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]$", nil
+
+local function fv(s)
+	local hi, lo = 0xcbf29ce4, 0x84222325
+	for i = 1, #s do
+		lo = bit32.bxor(lo, string.byte(s, i))
+		local p = lo * 435
+		hi = (hi * 435 + p // 4294967296 + bit32.lshift(lo, 8)) % 4294967296
+		lo = p % 4294967296
+	end
+	return string.format("%08x%08x", hi, lo)
+end
+L.Digest = fv
+
+local function gd(v)
+	if type(v) ~= "string" then return false end
+	local s, t, n = v:gsub("[ %-]", ""), {}, 0
+	if #s < 16 then return false end
+	for ch in s:lower():gmatch(".") do
+		if not t[ch] then t[ch], n = true, n + 1 end
+	end
+	return n >= 4
+end
+
+local function hw()
+	for _, nm in {"gethwid", "get_hwid"} do
+		local f = ge[nm]
+		if type(f) == "function" then
+			local a, v = pcall(f)
+			if a and gd(v) then return v end
+		end
+	end
+	local e, w = pcall(function() return game:GetService("RbxAnalyticsService"):GetClientId() end)
+	if e and gd(w) then return w end
+	local b, u = pcall(function() return ps.LocalPlayer.UserId end)
+	return b and type(u) == "number" and "U" .. u or nil
+end
+
+local function dv()
+	local v, d = nil, false
+	task.spawn(function()
+		local a, r = pcall(hw)
+		v, d = a and r or nil, true
+	end)
+	while not d do task.wait() end
+	return v and fv(v)
+end
+
+function L.Http(u)
+	local f = ge.request or ge.http_request or (type(ge.http) == "table" and ge.http.request)
+	if type(f) == "function" then
+		local a, r = pcall(f, {Url = u, Method = "GET"})
+		if a and type(r) == "table" and r.StatusCode == 200 and type(r.Body) == "string" then return r.Body end
+	end
+	local b, s = pcall(function() return game:HttpGet(u, true) end)
+	return b and type(s) == "string" and s or nil
+end
+
+local function ak(o, k, d)
+	local u, v, dn = `{o.Server}/api/check?h={hs:UrlEncode(o.Hub)}&k={hs:UrlEncode(k)}&d={hs:UrlEncode(d)}&n={hs:GenerateGUID(false)}`, nil, false
+	task.spawn(function()
+		local a, b = pcall(L.Http, u)
+		if a and type(b) == "string" then
+			local e, j = pcall(function() return hs:JSONDecode(b) end)
+			if e then v = j end
+		end
+		dn = true
+	end)
+	local t = os.clock()
+	while not dn and os.clock() - t < 10 do task.wait() end
+	if not dn or type(v) ~= "table" then return nil end
+	if v.ok == true and type(v.ex) == "number" then return {true, v.ex} end
+	if v.ok == false and table.find({"Bad Request", "Wrong Key", "Wrong Hub", "Wrong Device", "Key Expired"}, v.err) then return {false, v.err} end
+	return nil
+end
+
+local function rk(p)
+	if not (isfile and isfile(p)) then return nil end
+	local a, s = pcall(readfile, p)
+	if not (a and type(s) == "string") then return nil end
+	local k, x = s:match("^%s*(%S+)%s*\n%s*(%d+)%s*$")
+	if k and k:match(kr) then return k, tonumber(x) end
+	return nil
+end
+
+local function gr(x)
+	local a, n = pcall(function() return workspace:GetServerTimeNow() end)
+	return a and type(n) == "number" and type(x) == "number" and n < x and x <= n + 259200
+end
+
+local function gc(o, lk)
+	local sg = gui()
+	L.GateGui = sg
+	bt({Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(), BackgroundTransparency = 0.5, Parent = sg})
+	local f = mk("Frame", {Size = UDim2.fromOffset(300, 180), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 2, Parent = sg}, {rc(12), sk(0.85), pd(20, 20, 20, 20)})
+	local sc = mk("UIScale", {Parent = f})
+	fit(sg, f, sc, 300, 180)
+	local u = {sg = sg, cn = sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() fit(sg, f, sc, 300, 180) end)}
+	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, TextSize = 16, Size = UDim2.new(1, 0, 0, 20), Parent = f})
+	tl({Text = "Enter your key to continue", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 16), Parent = f})
+	local bx = mk("Frame", {Position = UDim2.fromOffset(0, 48), Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(6), sk(0.9)})
+	local st = bx:FindFirstChildOfClass("UIStroke")
+	u.tb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), Font = fn, TextSize = 14, TextColor3 = c.tx, PlaceholderText = "Key", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = bx})
+	u.ml = tl({Text = "", TextSize = 12, TextColor3 = c.er, Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 16), Visible = false, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
+	u.sb = bt({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = lk and UDim2.new(0.5, -4, 0, 32) or UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.ac, BackgroundTransparency = 0, Font = fb, TextSize = 13, TextColor3 = c.bg, Text = "Submit", Parent = f}, {rc(6)})
+	if lk then
+		u.gk = bt({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(0.5, -4, 0, 32), BackgroundColor3 = c.cd, BackgroundTransparency = 0, Font = fn, TextSize = 13, TextColor3 = c.tx, Text = "Get Key", Parent = f}, {rc(6), sk(0.9)})
+		hov(u.gk, function() return c.cd end)
+	end
+	u.tb.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
+	u.tb.FocusLost:Connect(function() tw(st, {Color = c.tx, Transparency = 0.9}) end)
+	function u.m(s, col) u.ml.Text, u.ml.TextColor3, u.ml.Visible = s, col or c.er, true end
+	function u.x()
+		u.cn:Disconnect()
+		u.sg:Destroy()
+		if L.GateGui == u.sg then L.GateGui = nil end
+	end
+	return u
+end
+
+local function sgt(o)
+	local sv, hb = o.Server, o.Hub
+	if type(sv) ~= "string" or not sv:match("^https://[%w%.%-]+$") then error("Gate Failed: Bad Server", 0) end
+	if type(hb) ~= "string" or not hb:match("^[a-z]+$") then error("Gate Failed: Bad Hub", 0) end
+	if o.Link ~= nil then error("Gate Failed: Link And Server", 0) end
+	if o.Config == nil then error("Gate Failed: No Config", 0) end
+	if not cfn(o.Config) then error("Gate Failed: Bad Config", 0) end
+	local mx = o.Max == nil and 24 or tonumber(o.Max)
+	if not (mx and mx >= 1) then error("Gate Failed: Bad Max", 0) end
+	local dg = dv()
+	if not dg then error("Gate Failed: No Device Id", 0) end
+	local tk, pv, kp = {}, ge.__AvG, `Avenoric/Keys/{o.Config}.txt`
+	if type(pv) == "table" and pv.sg then pcall(function() pv.sg:Destroy() end) end
+	ge.__AvG = tk
+	local lk, kk, kx = `{sv}/k/{hb}?d={dg}`, rk(kp)
+	local u, lc, by, got
+	local function ac(k, x, w)
+		if w then pcall(function() mkd(kp); writefile(kp, k .. "\n" .. x) end) end
+		ka = {p = kp, t = os.clock() + 30, v = true}
+	end
+	local function fin()
+		if u then u.x() end
+		if ge.__AvG == tk then tk.sg = nil end
+	end
+	local function rs(e) return e == "Bad Request" and "Key Check Failed: Bad Request" or e end
+	local function sub()
+		if by or lc or not u then return end
+		local s = (u.tb.Text:gsub("^%s+", ""):gsub("%s+$", "")):upper()
+		if s == "" then u.m("Enter A Key"); return end
+		if not s:match(kr) then u.m("Wrong Key"); return end
+		by, u.sb.Text = true, "Checking..."
+		local v = ak(o, s, dg)
+		by, u.sb.Text = false, "Submit"
+		if ge.__AvG ~= tk then return end
+		if not v then u.m("Key Server Unreachable"); return end
+		if not v[1] then u.m(rs(v[2])); return end
+		ac(s, v[2], true)
+		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
+		got = s
+	end
+	local function sh()
+		if u then return end
+		u = gc(o, true)
+		tk.sg = u.sg
+		u.tb:GetPropertyChangedSignal("Text"):Connect(function() if u.tb.Text ~= lk and #u.tb.Text > mx then u.tb.Text = u.tb.Text:sub(1, mx) end end)
+		u.tb.FocusLost:Connect(function(en) if en then sub() end end)
+		u.sb.Activated:Connect(sub)
+		u.gk.Activated:Connect(function()
+			for _, nm in {"setclipboard", "toclipboard"} do
+				local f = ge[nm]
+				if type(f) == "function" and pcall(f, lk) then u.m("Link Copied", c.dm); return end
+			end
+			u.tb.Text = lk
+			u.m("Copy The Link From The Box", c.dm)
+		end)
+	end
+	if kk then
+		local v, dn = nil, false
+		task.spawn(function() v, dn = ak(o, kk, dg), true end)
+		local t = os.clock()
+		while not dn do
+			if not u and ge.__AvG == tk and os.clock() - t >= 2 then
+				sh()
+				lc, u.sb.TextTransparency = true, 0.5
+				u.m("Checking Key...", c.dm)
+			end
+			task.wait()
+		end
+		lc = false
+		if u then u.sb.TextTransparency = 0 end
+		if ge.__AvG ~= tk then
+			if u then u.x() end
+			error("Gate Failed: Replaced", 0)
+		end
+		if v and v[1] then ac(kk, v[2], true); fin(); return kk end
+		if v then
+			sh()
+			u.m(rs(v[2]))
+		elseif gr(kx) then
+			ac(kk, kx, false)
+			fin()
+			return kk
+		else
+			sh()
+			u.m("Key Server Unreachable")
+		end
+	else
+		sh()
+	end
+	repeat task.wait() until got ~= nil
+	fin()
+	return got
+end
+
 function L:Gate(o)
 	o = o or {}
+	if o.Server ~= nil then
+		if o.Check ~= nil then error("Gate Failed: Check And Server", 0) end
+		return sgt(o)
+	end
 	if type(o.Check) ~= "function" then error("Gate Failed: No Check", 0) end
 	if not cfn(o.Config) then error("Gate Failed: Bad Config", 0) end
 	local mx = o.Max == nil and 24 or tonumber(o.Max)
@@ -2922,55 +3199,40 @@ function L:Gate(o)
 			if ok2 and r == true then return s end
 		end
 	end
-	local sg = gui()
-	L.GateGui = sg
-	bt({Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(), BackgroundTransparency = 0.5, Parent = sg})
-	local f = mk("Frame", {Size = UDim2.fromOffset(300, 180), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 2, Parent = sg}, {rc(12), sk(0.85), pd(20, 20, 20, 20)})
-	local sc = mk("UIScale", {Parent = f})
-	fit(sg, f, sc, 300, 180)
-	local cn = sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() fit(sg, f, sc, 300, 180) end)
-	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, TextSize = 16, Size = UDim2.new(1, 0, 0, 20), Parent = f})
-	tl({Text = "Enter your key to continue", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 16), Parent = f})
-	local bx = mk("Frame", {Position = UDim2.fromOffset(0, 48), Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(6), sk(0.9)})
-	local st = bx:FindFirstChildOfClass("UIStroke")
-	local tb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), Font = fn, TextSize = 14, TextColor3 = c.tx, PlaceholderText = "Key", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = bx})
-	local ml = tl({Text = "", TextSize = 12, TextColor3 = c.er, Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 16), Visible = false, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
-	local sb = bt({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = o.Link and UDim2.new(0.5, -4, 0, 32) or UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.ac, BackgroundTransparency = 0, Font = fb, TextSize = 13, TextColor3 = c.bg, Text = "Submit", Parent = f}, {rc(6)})
-	tb:GetPropertyChangedSignal("Text"):Connect(function() if #tb.Text > mx then tb.Text = tb.Text:sub(1, mx) end end)
-	local busy, got = false, nil
-	local function msg(s, col) ml.Text, ml.TextColor3, ml.Visible = s, col or c.er, true end
+	local u, busy, got = gc(o, o.Link), false, nil
+	u.tb:GetPropertyChangedSignal("Text"):Connect(function() if #u.tb.Text > mx then u.tb.Text = u.tb.Text:sub(1, mx) end end)
 	local function sub()
 		if busy then return end
-		local s = (tb.Text:gsub("^%s+", ""):gsub("%s+$", ""))
-		if s == "" then msg("Enter A Key"); return end
-		busy, sb.Text = true, "Checking..."
+		local s = (u.tb.Text:gsub("^%s+", ""):gsub("%s+$", ""))
+		if s == "" then u.m("Enter A Key"); return end
+		busy, u.sb.Text = true, "Checking..."
 		local ok, r, m = pcall(o.Check, s)
-		busy, sb.Text = false, "Submit"
-		if not ok then msg("Key Check Failed: " .. tostring(r)); return end
-		if r ~= true then msg(m and tostring(m) or "Wrong Key"); return end
+		busy, u.sb.Text = false, "Submit"
+		if not ok then u.m("Key Check Failed: " .. tostring(r)); return end
+		if r ~= true then u.m(m and tostring(m) or "Wrong Key"); return end
 		if kp then pcall(function() mkd(kp); writefile(kp, s) end) end
 		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
 		got = s
 	end
-	tb.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
-	tb.FocusLost:Connect(function(en)
-		tw(st, {Color = c.tx, Transparency = 0.9})
-		if en then sub() end
-	end)
-	sb.Activated:Connect(sub)
-	if o.Link then
-		local gk = bt({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(0.5, -4, 0, 32), BackgroundColor3 = c.cd, BackgroundTransparency = 0, Font = fn, TextSize = 13, TextColor3 = c.tx, Text = "Get Key", Parent = f}, {rc(6), sk(0.9)})
-		hov(gk, function() return c.cd end)
-		gk.Activated:Connect(function()
+	u.tb.FocusLost:Connect(function(en) if en then sub() end end)
+	u.sb.Activated:Connect(sub)
+	if u.gk then
+		u.gk.Activated:Connect(function()
 			if setclipboard then setclipboard(tostring(o.Link)) end
-			msg("Link Copied", c.dm)
+			u.m("Link Copied", c.dm)
 		end)
 	end
 	repeat task.wait() until got ~= nil
-	cn:Disconnect()
-	sg:Destroy()
-	L.GateGui = nil
+	u.x()
 	return got
+end
+
+function L:Keyed()
+	if not ka then return false end
+	if os.clock() < ka.t then return ka.v end
+	local a, s = pcall(readfile, ka.p)
+	ka.v, ka.t = a and type(s) == "string" and ((s:match("^[^\n]*") or ""):match("^%s*(.-)%s*$") or ""):match(kr) ~= nil, os.clock() + 30
+	return ka.v
 end
 
 function L:Window(o)
@@ -3675,13 +3937,8 @@ end
 
 if ge.__SaeD then pcall(function() ge.__SaeD:Destroy() end) end
 ge.__SaeD = nil
-task.defer(function() ge.__SaeD = L.GateGui end)
-L:Gate({Title = "Ngao - Gaming Hub", Link = kl, Discord = "https://discord.gg/fTQF5TvfEJ", Config = "StealAnEgg", Check = function(s)
-	if workspace:GetServerTimeNow() >= ex then return false, "Key Expired" end
-	return s == ky, "Wrong Key"
-end})
-ge.__SaeD = nil
-kc.t = 0
+if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
+L:Gate({Title = "Ngao - Gaming Hub", Server = "https://getkey.kaeldrinnovasse.workers.dev", Hub = "sae", Discord = "https://discord.gg/fTQF5TvfEJ", Config = "StealAnEgg"})
 local W = L:Window({Title = "Ngao - Gaming Hub | Steal An Egg", Config = `StealAnEgg/{lp.Name}`})
 local pg = W:Tab({Name = "General", Icon = "egg"})
 local function rk()
