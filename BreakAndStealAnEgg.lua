@@ -26,7 +26,7 @@ if ge.__BseAf then
 	if ge.__BseAf.cc then ge.__BseAf.cc:Disconnect() end
 	if ge.__BseAf.sc then ge.__BseAf.sc:Disconnect() end
 end
-local st = {bg = true, ic = nil, za = 1, fa = false, fg = 0, fj = nil, id = 1e6, le = nil, mt = nil, ma = nil, hs = {}, pc = nil, lx = nil, lt = 0, rb = false, cc = nil, ck = nil, ra = {}, tb = false, sv = {}, as = false, sb = false, sc = nil, pi = false, ix = nil, nf = nil, ti = false, ua = false, ub = false, uc = false, ud = false, hq = false, hp = -math.huge, eh = false, hj = nil, hd = 3, hz = -math.huge}
+local st = {bg = true, ic = nil, za = 1, fa = false, fg = 0, fj = nil, id = 1e6, le = nil, mt = nil, ma = nil, hs = {}, pc = nil, lx = nil, lt = 0, rb = false, cc = nil, ck = nil, ra = {}, mi = 0, rr = {}, rq = {}, ho = {}, tb = false, sv = {}, as = false, sb = false, sc = nil, pi = false, ix = nil, nf = nil, ti = false, ua = false, ub = false, uc = false, ud = false, hq = false, hp = -math.huge, eh = false, hj = nil, hd = 3, hz = -math.huge}
 ge.__BseAf = st
 st.cc = lp.CharacterAdded:Connect(function(c)
 	st.rb, st.mt = true, nil
@@ -224,7 +224,7 @@ local function nk(v) return (string.gsub(string.lower(v), "%W", "")) end
 local function lf(m) return (tonumber(m:GetAttribute("DespawnAtServerTime")) or 0) - workspace:GetServerTimeNow() end
 local function cp(m) return er.PlacedCashPerSecond(m:GetAttribute("AnimalName") or m.Name, m:GetAttribute("SizeMult"), m:GetAttribute("Mutation"), m:GetAttribute("WeightKg"), m:GetAttribute("Variant")) end
 local function wn(m)
-	if st.ra[m:GetAttribute("Rarity")] then return true end
+	if st.ra[m:GetAttribute("Rarity")] and (st.mi <= 0 or cp(m) >= st.mi) then return true end
 	return st.pi and st.ix ~= nil and not st.ix[nk(tostring(m:GetAttribute("AnimalName") or m.Name))]
 end
 local function zc()
@@ -376,7 +376,7 @@ local function gb(f)
 	t = os.clock()
 	repeat task.wait(0.05) until lp:GetAttribute("Carrying") == nil or os.clock() - t > 4
 	local bd, m, e2 = lp:GetAttribute("Carrying") == nil, nil, nil
-	if bd and st.fa and f.st == "Running" and c:GetAttribute("Ragdolled") then
+	if bd and st.fa and f.st == "Running" and c:GetAttribute("Ragdolled") and not st.rq[1] then
 		m = bp(true)
 		local mc = m and m:GetBoundingBox().Position
 		e2 = not mc and eg(st.za) or nil
@@ -411,9 +411,9 @@ local function gb(f)
 			end
 		end
 		task.wait(0.03)
-	until not c:GetAttribute("Ragdolled") or os.clock() - t > 6
+	until not c:GetAttribute("Ragdolled") or os.clock() - t > 6 or st.rq[1] ~= nil
 	hd:Disconnect()
-	if m and m.Parent and st.fa and f.st == "Running" and not gz(m:GetAttribute("ZoneId")) then
+	if m and m.Parent and st.fa and f.st == "Running" and not st.rq[1] and not gz(m:GetAttribute("ZoneId")) then
 		local n, w = nk(tostring(m:GetAttribute("AnimalName") or m.Name)), m:GetAttribute("WeightKg")
 		t = os.clock()
 		while lp:GetAttribute("Carrying") == nil and os.clock() - t < 1 do
@@ -444,13 +444,14 @@ end
 local function sl(f)
 	while f.st == "Running" do
 		if lp:GetAttribute("Carrying") == nil then
+			if st.rq[1] then return end
 			local m = bp()
 			if not m then
 				st.hs = {}
 				return
 			end
 			local c = m:GetBoundingBox().Position
-			if not (gt(f, gy(c.X, c.Z + (math.abs(c.Z) > 3 and -math.sign(c.Z) or 1) * 4, m)) and tk(m, f, 8)) then return end
+			if not (gt(f, gy(c.X, c.Z + (math.abs(c.Z) > 3 and -math.sign(c.Z) or 1) * 4, m), function() return st.rq[1] ~= nil end) and tk(m, f, 8)) then return end
 		end
 		hm(f)
 		if not st.fa then return end
@@ -466,7 +467,7 @@ local function bk(f, e, ab2)
 		if not q or et.SurfaceDistance(e, q.Position) > r1 then return false end
 		st.le = e
 		local k = hit()
-		local w = os.clock() + (k and 0.47 / rc.SwingMultiplierFor(lp) or 0.1)
+		local w = os.clock() + (k and 0.37 / rc.SwingMultiplierFor(lp) or 0.1)
 		repeat task.wait(0.03) until os.clock() >= w or (st.kh[e] or 1) <= 0
 	end
 	if (st.kh[e] or 1) <= 0 then
@@ -523,6 +524,115 @@ local function tm(f, z)
 	return true
 end
 
+local function fq(n, p)
+	local b, bd
+	for _, q in ps:GetPlayers() do
+		local qr = q ~= lp and nk(tostring(q:GetAttribute("Carrying") or "")) == n and q.Character and q.Character:FindFirstChild("HumanoidRootPart")
+		if qr then
+			local d = (qr.Position - p).Magnitude
+			if not bd or d < bd then b, bd = q, d end
+		end
+	end
+	return b
+end
+
+local function wq()
+	for e in st.kh do
+		local hd = e.Parent and e:GetAttribute("HatchId")
+		if hd then st.ho[hd] = true end
+	end
+	for _, m in cs:GetTagged("AnimalPickup") do
+		local hd = m:GetAttribute("HatchId")
+		if hd and (st.hs[hd] or st.ho[hd]) and m.Parent and wn(m) then st.rr[m] = {n = nk(tostring(m:GetAttribute("AnimalName") or m.Name)), w = m:GetAttribute("WeightKg"), p = m:GetBoundingBox().Position, x = lf(m)} end
+	end
+	for m in st.rr do
+		if not m.Parent then st.rr[m] = nil end
+	end
+end
+
+table.insert(st.pc, cs:GetInstanceRemovedSignal("AnimalPickup"):Connect(function(m)
+	local v = st.rr[m]
+	st.rr[m] = nil
+	if not (v and st.fa and v.x > 1) then return end
+	task.spawn(function()
+		local t = os.clock()
+		repeat
+			if nk(tostring(lp:GetAttribute("Carrying") or "")) == v.n then return end
+			local q = fq(v.n, v.p)
+			if q then
+				table.insert(st.rq, {q = q, n = v.n, w = v.w})
+				return
+			end
+			task.wait(0.03)
+		until os.clock() - t > 1
+	end)
+end))
+
+local function rg(f)
+	local v = table.remove(st.rq, 1)
+	if not v then return end
+	local q, t, ak = v.q, 0, nil
+	while f.st == "Running" and st.fa and not st.hj and q.Parent and lp:GetAttribute("Carrying") == nil do
+		rw()
+		local c, r, h = lc()
+		local pc, _, pk = sp(v.n, v.w)
+		if c and pk then
+			if gt(f, gy(pc.X, pc.Z, pk)) and tk(pk, f, 3) then break end
+		elseif nk(tostring(q:GetAttribute("Carrying") or "")) ~= v.n then
+			break
+		elseif c then
+			local qr = q.Character and q.Character:FindFirstChild("HumanoidRootPart")
+			local nr = qr and (qr.Position - r.Position).Magnitude <= 100
+			if qr and not nr then
+				local tr = ton(f)
+				if tr then
+					task.wait(0.15)
+					rs:WaitForChild("TreadmillSessionRemote"):FireServer()
+					local t0 = os.clock()
+					repeat task.wait(0.03) until not tr.Anchored or os.clock() - t0 > 3
+					nr = not tr.Anchored
+				end
+				c, r, h = lc()
+				qr = q.Character and q.Character:FindFirstChild("HumanoidRootPart")
+			end
+			if nr and c and qr then
+				local b = c:FindFirstChild("Bat") or lp.Backpack:FindFirstChild("Bat")
+				if b and b.Parent ~= c then h:EquipTool(b) end
+				r.AssemblyLinearVelocity = Vector3.zero
+				r.CFrame = CFrame.new(qr.Position - qr.CFrame.LookVector * 3, qr.Position)
+				if not q.Character:GetAttribute("Ragdolled") and not c:GetAttribute("Ragdolled") and os.clock() - t > 0.75 and c:FindFirstChild("Bat") then
+					local an, sa = h:FindFirstChildOfClass("Animator"), rs:FindFirstChild("Assets")
+					sa = sa and sa:FindFirstChild("Animations")
+					sa = sa and sa:FindFirstChild("Bat Swing")
+					if an and sa and sa:IsA("Animation") then
+						if not (ak and ak.c == c) then
+							local o, k = pcall(an.LoadAnimation, an, sa)
+							ak = o and {c = c, k = k} or nil
+						end
+						if ak then pcall(ak.k.Play, ak.k, 0.1, 1, 1.75) end
+					end
+					rs:WaitForChild("BatHitRequest"):FireServer(q)
+					t = os.clock()
+				end
+			end
+		end
+		task.wait(0.1)
+	end
+	if lp:GetAttribute("Carrying") == nil then return end
+	local _, r = lc()
+	local pl, g = op(), nil
+	for _, m in cs:GetTagged("ZoneGuard") do
+		if m:GetAttribute("ZoneId") == (st.ck and st.ck.z) then g = m end
+	end
+	if r and pl and g and (g:GetPivot().Position - r.Position).Magnitude > (pl:GetPivot().Position - r.Position).Magnitude then
+		if not rt(f, gy(rx[1], 0)) then return end
+		local t0 = os.clock()
+		repeat task.wait(0.2) until lp:GetAttribute("Carrying") == nil or f.st ~= "Running" or os.clock() - t0 > 6
+	else
+		hm(f)
+	end
+end
+
 local function fc(f)
 	rw()
 	if st.hj then
@@ -532,6 +642,11 @@ local function fc(f)
 	if lp:GetAttribute("Carrying") ~= nil then
 		fr()
 		hm(f)
+		return
+	end
+	if st.rq[1] then
+		fr()
+		rg(f)
 		return
 	end
 	if st.pi and st.ix and zc() and st.nf then pcall(st.nf) end
@@ -558,7 +673,7 @@ local function fc(f)
 		return
 	end
 	eq(c, h)
-	if bk(f, e, function() return st.fa and du() or e:GetAttribute("ZoneIndex") ~= st.za end) then
+	if bk(f, e, function() return st.fa and (du() or st.rq[1] ~= nil) or e:GetAttribute("ZoneIndex") ~= st.za end) then
 		st.lx, st.lt = e, os.clock()
 		task.spawn(function()
 			local t, hd = os.clock(), nil
@@ -611,6 +726,12 @@ local function af()
 				end
 			end)
 		end
+		task.spawn(function()
+			while st.fg == g and f.st == "Running" do
+				if st.fa then pcall(wq) end
+				task.wait(0.1)
+			end
+		end)
 		while ok and st.fg == g and f.st == "Running" do
 			if not st.fa then
 				local k, e = pcall(function()
@@ -644,6 +765,7 @@ local function hl()
 	local f = {st = "Running"}
 	st.hj = f
 	local fa0 = st.fa
+	st.hf = fa0
 	pcall(md)
 	if st.fj then
 		local t = os.clock()
@@ -1832,6 +1954,10 @@ pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "E
 	for _, x in v or {} do t[x] = true end
 	st.ra = t
 end})
+pa:Dropdown({Name = "Min Income", Options = {"All", "1", "10", "100", "1K", "10K", "100K", "1M", "10M", "100M", "1B", "10B", "100B", "1T"}, Default = "All", Flag = "mi", Callback = function(v)
+	local n, s = string.match(tostring(v), "^(%d+)(%a?)$")
+	st.mi = n and tonumber(n) * (({K = 1e3, M = 1e6, B = 1e9, T = 1e12})[s] or 1) or 0
+end})
 local fz = pa:Toggle({Name = "Auto Farm", Default = false, Flag = "af", Callback = function(v)
 	st.fa = v and kv()
 	if not st.fa then return end
@@ -2014,6 +2140,7 @@ task.spawn(function()
 				warn(`Auto Hell Failed: {e}`)
 				pcall(ru.UnbindFromRenderStep, ru, "BseHellMove")
 				st.hj = nil
+				if st.hf and st.fa and not st.fj then af() end
 			end
 		end
 		task.wait(1)
