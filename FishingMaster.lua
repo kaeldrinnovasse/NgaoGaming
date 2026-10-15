@@ -4000,7 +4000,7 @@ local function lgp()
 	end
 end
 local ts = gw:Tab({Name = "Setting", Icon = "gear"})
-ts:Section({Name = "Language"})
+ts:Section({Name = "GUI"})
 ts:Dropdown({Name = "Select Language", Options = {"Vietnamese", "English"}, Default = "English", Flag = "lg", Callback = function(v)
 	lgv.v = v == "Vietnamese"
 	lgp()
