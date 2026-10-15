@@ -3656,6 +3656,7 @@ local function rh()
 	rk:Set(false)
 end
 
+local lgv = {v = false}
 gt:Section({Name = "Farm"})
 do
 	local bl, tk = gt:Label({Text = "Next Boss: --"}), {}
@@ -3669,7 +3670,10 @@ do
 			return n, md("Data", "Catalog", "Event").Constant.OCCURRENCE_INTERVAL
 		end)
 		if not ok or type(iv) ~= "number" then
-			bl:Set("Next Boss: Unknown")
+			while ge.__FmL == tk do
+				bl:Set(lgv.v and "Boss Tiếp Theo: Không Rõ" or "Next Boss: Unknown")
+				task.wait(1)
+			end
 			return
 		end
 		while ge.__FmL == tk do
@@ -3679,7 +3683,8 @@ do
 				if en[k] then ek, ex = k, math.max(v.expire_at or 0, v.admin_override_expire_at or 0) end
 			end
 			local lf = math.max(0, math.floor((ek and ex or (t // iv + 1) * iv) - t))
-			bl:Set(ek and `Boss Up: {en[ek]} - {lf // 60}:{string.format("%02d", lf % 60)} Left` or `Next Boss: {os.date("%H:%M", math.floor((t // iv + 1) * iv))} - In {lf // 60}:{string.format("%02d", lf % 60)}`)
+			local ms, nh = `{lf // 60}:{string.format("%02d", lf % 60)}`, os.date("%H:%M", math.floor((t // iv + 1) * iv))
+			bl:Set(ek and (lgv.v and `Boss Đang Xuất Hiện: {en[ek]} - Còn {ms}` or `Boss Up: {en[ek]} - {ms} Left`) or (lgv.v and `Boss Tiếp Theo: {nh} - Còn {ms}` or `Next Boss: {nh} - In {ms}`))
 			task.wait(1)
 		end
 	end)
@@ -3982,7 +3987,24 @@ local function zp()
 	return true
 end
 
+local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Language"] = "Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Instant Teleport"] = "Dịch Chuyển Tức Thì", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS"}
+local function lgp()
+	for _, T in gw.Tabs do
+		if T.Name == "Status" then continue end
+		for _, e in T.Rows do
+			if not e.Label then continue end
+			e.en = e.en or e.Name
+			e.Name = lgv.v and lgd[e.en] or e.en
+			e.Label.Text = e.Name
+		end
+	end
+end
 local ts = gw:Tab({Name = "Setting", Icon = "gear"})
+ts:Section({Name = "Language"})
+ts:Dropdown({Name = "Language", Options = {"Vietnamese", "English"}, Default = "English", Flag = "lg", Callback = function(v)
+	lgv.v = v == "Vietnamese"
+	lgp()
+end})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb.on = v == true end})
@@ -4039,9 +4061,10 @@ ts:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = zp()
 	gw:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e})
 end})
+lgp()
 gr = true
 do
-	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"wb", "Instant Teleport"}, {"zy", "Safe"}, {"hf", "Hidden Fishing"}}
+	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"wb", "Instant Teleport"}, {"zy", "Safe"}, {"hf", "Hidden Fishing"}, {"lg", "Language"}}
 	ge.__FmCw = zc
 	task.spawn(function()
 		local lv, nx = {}, 0
