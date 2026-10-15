@@ -26,7 +26,7 @@ if ge.__BseAf then
 	if ge.__BseAf.cc then ge.__BseAf.cc:Disconnect() end
 	if ge.__BseAf.sc then ge.__BseAf.sc:Disconnect() end
 end
-local st = {bg = true, ic = nil, za = 1, fa = false, fg = 0, fj = nil, id = 1e6, le = nil, mt = nil, ma = nil, hs = {}, pc = nil, lx = nil, lt = 0, rb = false, cc = nil, ck = nil, ra = {}, mi = 0, rr = {}, rq = {}, ho = {}, tb = false, sv = {}, as = false, sb = false, sc = nil, pi = false, ix = nil, nf = nil, ti = false, ua = false, ub = false, uc = false, ud = false, hq = false, hp = -math.huge, eh = false, hj = nil, hd = 3, hz = -math.huge}
+local st = {bg = true, ic = nil, za = 1, fa = false, fg = 0, fj = nil, id = 1e6, le = nil, mt = nil, ma = nil, hs = {}, pc = nil, lx = nil, lt = 0, rb = false, cc = nil, ck = nil, ra = {}, mi = 0, sk = 0, rr = {}, rq = {}, ho = {}, tb = false, sv = {}, as = false, sb = false, sc = nil, pi = false, ix = nil, nf = nil, ti = false, ua = false, ub = false, uc = false, ud = false, hq = false, hp = -math.huge, eh = false, hj = nil, hd = 3, hz = -math.huge}
 ge.__BseAf = st
 st.cc = lp.CharacterAdded:Connect(function(c)
 	st.rb, st.mt = true, nil
@@ -804,7 +804,7 @@ local function hl()
 		if lp:GetAttribute("InHell") ~= true then st.hz = os.clock() end
 	end
 	local as = require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("AutoSwingController"))
-	local a0, tg, id, lh, lt = as.IsOn(), nil, 7e6, 0, 0
+	local a0, tg, id, lh, lt, lb = as.IsOn(), nil, 7e6, 0, 0, 0
 	st.ht, st.he = 0, 0
 	pcall(ru.UnbindFromRenderStep, ru, "BseHellMove")
 	ru:BindToRenderStep("BseHellMove", Enum.RenderPriority.Character.Value + 1, function()
@@ -843,7 +843,11 @@ local function hl()
 			local ph = b and b:GetAttribute("Phase")
 			if rp and rp:IsA("BasePart") and (ph == "Active" or ph == "Stunned") then
 				tg, st.hd = rp.Position, 10
-				if not as.IsOn() then as.SetOn(true) end
+				if as.IsOn() then as.SetOn(false) end
+				if c and r and not c:GetAttribute("Ragdolled") and os.clock() - lb >= 0.45 then
+					rs:WaitForChild("BatHitRequest"):FireServer(nil)
+					lb = os.clock()
+				end
 				if c and r and c:GetAttribute("Ragdolled") and os.clock() - lt > 0.5 then
 					local v = (r.Position - rp.Position) * Vector3.new(1, 0, 1)
 					local x = rp.Position + (v.Magnitude > 1 and v.Unit or Vector3.xAxis) * 8
@@ -1977,6 +1981,10 @@ pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "E
 	for _, x in v or {} do t[x] = true end
 	st.sv = t
 end})
+pa:Dropdown({Name = "Sell Below Kg", Options = {"All", "50", "100", "250", "500", "1K", "2.5K", "5K", "10K", "25K", "50K"}, Default = "All", Flag = "sk", Callback = function(v)
+	local n, s = string.match(tostring(v), "^([%d%.]+)(%a?)$")
+	st.sk = n and tonumber(n) * (({K = 1e3})[s] or 1) or 0
+end})
 pa:Toggle({Name = "Auto Sell", Default = false, Flag = "as", Callback = function(v) st.as = v == true end})
 local function sv2(dl)
 	if not st.as or st.sb or next(st.sv) == nil then return end
@@ -1988,7 +1996,8 @@ local function sv2(dl)
 			task.wait(0.5)
 			local l = {}
 			for _, t in lp:WaitForChild("Backpack"):GetChildren() do
-				if #l < 200 and cs:HasTag(t, "AnimalTool") and st.sv[t:GetAttribute("Rarity")] then table.insert(l, t) end
+				local w = tonumber(t:GetAttribute("WeightKg"))
+				if #l < 200 and cs:HasTag(t, "AnimalTool") and st.sv[t:GetAttribute("Rarity")] and (st.sk <= 0 or w and w < st.sk) then table.insert(l, t) end
 			end
 			if #l > 0 then rs:WaitForChild("BackpackSellRemote"):InvokeServer(l) end
 		end)
