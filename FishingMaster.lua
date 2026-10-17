@@ -282,7 +282,7 @@ local function mo(p, s, fk)
 	return j
 end
 
-local ap, hv, aq, xs, xf
+local ap, hv, aq, xf
 
 local function gf(f, p, fk)
 	for _ = 1, 4 do
@@ -291,10 +291,18 @@ local function gf(f, p, fk)
 		local d = p - r.Position
 		if Vector3.new(d.X, 0, d.Z).Magnitude <= 2 then return true end
 		if f.st ~= "Running" then return nil end
-		local j, e = mo(p, 30, fk)
-		if not j then return nil, e end
-		local dl = os.clock() + d.Magnitude / 30 + 5
-		repeat task.wait() until j.st == "Arrived" or j.dn or f.st ~= "Running" or os.clock() > dl
+		local hi, j, e = Vector3.new(d.X, 0, d.Z).Magnitude > 50, nil, nil
+		for i = hi and 1 or 3, 3 do
+			local _, r2 = lc()
+			if not r2 then return nil, "No Character" end
+			local q = i == 1 and Vector3.new(r2.Position.X, 1000, r2.Position.Z) or i == 2 and Vector3.new(p.X, 1000, p.Z) or p
+			if hi and i == 3 then sq(p, 10) end
+			j, e = mo(q, hi and i ~= 2 and 1e6 or 30, fk)
+			if not j then return nil, e end
+			local dl = os.clock() + (q - r2.Position).Magnitude / 30 + 5
+			repeat task.wait() until j.st == "Arrived" or j.dn or f.st ~= "Running" or os.clock() > dl
+			if j.st ~= "Arrived" or f.st ~= "Running" then break end
+		end
 		local why = j.why
 		j:Stop()
 		if why then return nil, why end
@@ -375,30 +383,17 @@ local function tr(f)
 	local hd = f.hf and f.hf() and not f.bu
 	local mv, sp = hd and hv or go, hd and Vector3.new(np.X, math.max(6, np.Y - 9.95), np.Z) or aq(c, np, o.Position)
 	local w, we, s
-	local xo, xq = false, nil
-	if not f.bu then
-		local u = hd and h.Position.Y < -10 and ut(h.Position)
-		if u then
-			mo(u, 1e6)
-			task.wait(0.1)
-		end
-		xo, xq = xs(f, c, np, o)
-	end
-	if xo and (xq == 0 or xq == 3) then
-		w, s = true, xq
-	else
-		for _ = 1, 3 do
-			w, we = mv(f, sp, hd and Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit or Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit, math.min(sp.Y, 10))
-			if hd and not w and f.st == "Running" then zx(`[Hidden] Sell Move Failed: {we or "Unknown"}`) end
-			if not w or f.st ~= "Running" then break end
-			task.wait(0.5)
-			s = rv.SellController:SellAll()
-			zx(`[Sell] SellAll Answer {tostring(s)}`)
-			if s ~= 1 then break end
-		end
+	for _ = 1, 3 do
+		w, we = mv(f, sp, hd and Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit or Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit, math.min(sp.Y, 10))
+		if hd and not w and f.st == "Running" then zx(`[Hidden] Sell Move Failed: {we or "Unknown"}`) end
+		if not w or f.st ~= "Running" then break end
+		task.wait(0.5)
+		s = rv.SellController:SellAll()
+		zx(`[Sell] SellAll Answer {tostring(s)}`)
+		if s ~= 1 then break end
 	end
 	local uo, ue = uk(hl)
-	if f.st == "Running" and not sw and not (hd and xo) then mv(f, hd and f.hp and f.hi == rv.IslandRegionController:GetCurrentIslandId() and f.hp or o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit, math.min(sp.Y, 10)) end
+	if f.st == "Running" and not sw then mv(f, hd and f.hp and f.hi == rv.IslandRegionController:GetCurrentIslandId() and f.hp or o.Position, Vector3.new(o.LookVector.X, 0, o.LookVector.Z).Unit, math.min(sp.Y, 10)) end
 	if sw then f.rp = true end
 	zx(`[Sell] End | Answer {tostring(s)} | Move {w and "Ok" or we or "Stopped"} | Unlock {uo and "Ok" or ue}`)
 	if f.st ~= "Running" then return nil, nil end
@@ -511,10 +506,13 @@ ut = function(p)
 end
 
 hv = function(f, p, fk, ty)
+	local _, r0 = lc()
+	if r0 and ((p - r0.Position) * Vector3.new(1, 0, 1)).Magnitude > 50 then ty = 1000 end
 	for i = 1, 3 do
 		local _, r = lc()
 		if not r then return nil, "No Character" end
 		local q = i == 1 and Vector3.new(r.Position.X, ty, r.Position.Z) or i == 2 and Vector3.new(p.X, ty, p.Z) or p
+		if i == 3 and ty == 1000 then sq(p, 10) end
 		local j, e = mo(q, i == 2 and 30 or 1e6, fk)
 		if not j then return nil, e end
 		local dl = os.clock() + (q - r.Position).Magnitude / 30 + 5
@@ -968,115 +966,6 @@ do
 		end
 		return nil
 	end
-end
-
-local function xn(f, tg, lo)
-	local id, si = ic(), (pd() or {}).SpawnIsland
-	if id ~= "" and si == id then return true end
-	if id ~= "" and ul(id) then
-		zx(`[Hop] {tg} Set Spawn First: Spawn {si or "?"} On {id}`)
-		local ok = wx(f, id)
-		if ok and ic() == id and (pd() or {}).SpawnIsland == id then return true end
-	elseif id ~= "" and lo then
-		zx(`[Hop] {tg} On Locked {id}: Respawn Goes To {si or "?"}`)
-		return true
-	end
-	zx(`[Hop] {tg} Skipped: Spawn {(pd() or {}).SpawnIsland or "?"} On {ic() ~= "" and ic() or "Sea"}`)
-	return false
-end
-
-local function xj(f, c, np, ni)
-	local function ld()
-		local q = ns(ni, np)
-		return q ~= nil and (q - np).Magnitude < 40
-	end
-	local _, r = lc()
-	if not r or ld() then return f.st == "Running" end
-	local sp = aq(c, np, r.Position)
-	local d, t0 = (sp - r.Position).Magnitude, os.clock()
-	local j = mo(sp, 30, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
-	if not j then return f.st == "Running" end
-	zx(`[Hop] {ni} Not Loaded, Flying | {math.floor(d)} Studs`)
-	repeat task.wait(0.1) until ld() or j.st ~= "Moving" or f.st ~= "Running" or os.clock() > t0 + d / 30 + 5
-	j:Stop()
-	local _, r2 = lc()
-	zx(`[Hop] {ni} {ld() and "Loaded" or "Not Loaded"} After {math.floor((os.clock() - t0) * 10) / 10} s | {r2 and math.floor((r2.Position - np).Magnitude) or "?"} Studs Left`)
-	return f.st == "Running"
-end
-
-local function xh(c, np, sp)
-	local r = c and c:FindFirstChild("HumanoidRootPart")
-	if not r then return nil end
-	if cj then cj:Stop() end
-	sp = sp or aq(c, np, r.Position)
-	local h = {r = r, c = c, sp = sp, np = np, t0 = os.clock(), n = 0, cf = CFrame.new(r.Position + Vector3.new(0, 1000, 0))}
-	task.spawn(sq, np, 10)
-	wc(true)
-	h.hb = game:GetService("RunService").Heartbeat:Connect(function()
-		if r.Parent then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, h.cf end
-	end)
-	task.wait(0.3)
-	h.cf = CFrame.new(sp.X, 1000, sp.Z)
-	task.wait(0.6)
-	h.cf = CFrame.lookAt(sp, Vector3.new(np.X, sp.Y, np.Z))
-	return h
-end
-
-local function xr(h, j, fn)
-	local a, b, d
-	local function al() return h.r:IsDescendantOf(workspace) and lp.Character == h.c end
-	while true do
-		h.n += 1
-		local dl = os.clock() + 3.5
-		repeat
-			a, b, d = fn()
-			if a == true then return a, b, d end
-			task.wait(0.1)
-		until os.clock() > dl or not al()
-		if not al() then zx(`[Hop] Character Reset | NPC {zn(h.np)} | Hop Stopped After {h.n} Hops`) end
-		if j.st ~= "Running" or j.fq or not al() then return a, b, d end
-		zx(`[Hop] Retry {h.n} | NPC {zn(h.np)} | Answer {tostring(a)} {tostring(b or "")}`)
-		h.cf = CFrame.new(h.sp.X, 1000, h.sp.Z)
-		task.wait(0.6)
-		h.cf = CFrame.lookAt(h.sp, Vector3.new(h.np.X, h.sp.Y, h.np.Z))
-	end
-end
-
-local function xe(h, ok, tg)
-	if h.hb then h.hb:Disconnect() end
-	local bc, tk, d4, at = md("Controllers", "BackpackController"), false, os.clock() + 6, os.clock() - h.t0
-	while os.clock() < d4 do
-		local q, v = pcall(function() return bc.TeleportToSpawn:Fire() end)
-		tk = q and v == true
-		if tk then break end
-		task.wait(0.5)
-	end
-	local d5, wr = os.clock() + 8, nil
-	repeat
-		task.wait(0.2)
-		_, wr = lc()
-	until tk and wr and (wr.Position - h.sp).Magnitude > 20 or os.clock() > d5
-	wc(false, tk and ok)
-	zx(`[Hop] {tg} | NPC {zn(h.np)} | {ok and "Ok" or "Failed"} After {math.floor(at * 10) / 10} s, {h.n} Hops | Respawn {tk and "Ok" or "Refused"} | At {zn(wr and wr.Position)}`)
-	return tk
-end
-
-xs = function(f, c, np, o)
-	if not xn(f, "Sell") or not xj(f, c, np, "npc_fish_seller") then return false end
-	local h = xh(c, np, aq(c, np, o.Position))
-	if not h then return false end
-	local sc = rv.SellController
-	local ok, g, s = pcall(xr, h, f, function()
-		local _, _, a = sc:Preview()
-		if a == 3 then return true, 3 end
-		if a ~= 0 then return false, a end
-		local q = sc:SellAll()
-		return q == 0 or q == 3, q
-	end)
-	local er = not ok and g or nil
-	if not ok then s = nil end
-	xe(h, s == 0 or s == 3, `Sell | SellAll {tostring(s)}{er and ` | Error {er}` or ""}`)
-	return true, s
 end
 
 local function wn(f, tp, tg)
@@ -1754,7 +1643,7 @@ local function ub(b, v)
 	return true, nil, li
 end
 
-local function uz(f, q, ac, hp)
+local function uz(f, q, ac)
 	local qr, iu = rv.QuestController, q[1]:find("^unlock_island_") ~= nil
 	local tt, px = iu and "Island Guide" or q[9] and "Soul Quest" or "Rod Quest", iu and "Unlock Island Failed" or q[9] and "Soul Quest Failed" or "Rod Quest Failed"
 	local rw2 = ((((md("Data", "Config", "QuestConfig").Data or {})[q[1]] or {}).reward or {}).book) or ""
@@ -1762,16 +1651,7 @@ local function uz(f, q, ac, hp)
 	local v0 = vb()
 	local function dn() return md("Shared", "Lib", "questRules").IsCompleted(pd(), q[1]) or rw2 ~= "" and vb() > v0 or q[9] and ((pd().Inventory or {}).Souls or {})[q[1]] == true end
 	if not ac then
-		local a, m
-		if hp then
-			xr(hp, f, function()
-				a, m = qr:Accept(q[1])
-				local l3 = tostring(m or ""):lower()
-				return a == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range") or l3:find("talk to"))
-			end)
-		else
-			a, m = qr:Accept(q[1])
-		end
+		local a, m = qr:Accept(q[1])
 		zx(`[Quest] Accept {q[1]}: {tostring(a)} {m or ""}`)
 		if a ~= true then
 			f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: {m or "Accept Refused"}`}
@@ -1811,16 +1691,7 @@ local function uz(f, q, ac, hp)
 		end
 		if b == "taiji_hooking_art" then bi2 = bs2 end
 	end
-	local cp, m
-	if hp then
-		xr(hp, f, function()
-			cp, m = qr:Complete(q[1])
-			local l3 = tostring(m or ""):lower()
-			return cp == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range") or l3:find("talk to"))
-		end)
-	else
-		cp, m = qr:Complete(q[1])
-	end
+	local cp, m = qr:Complete(q[1])
 	zx(`[Quest] Complete {q[1]}: {tostring(cp)} {m or ""}`)
 	if cp ~= true then
 		f.qx[q[1]], f.nq = true, {Title = tt, Text = `{px}: {m or "Complete Refused"}`}
@@ -1859,27 +1730,14 @@ local function ug(f, q, ac)
 	local il, ni = ac and q[11] or q[3], ac and q[11] and cd.turnInNpcId or cd.npcId or `npc_{q[1]}`
 	local ok, e = ti(f, il, f.bk())
 	if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
-	local hp, np = not q[1]:find("^unlock_island_") and not f.hf() and xn(f, `Quest {q[1]}`, true), nil
-	if hp then np = xf(ni, il) end
-	if not np then
-		hp, np = false, gn(q, ni, il)
-		if not np then return nil, "No Island Guide" end
-	end
+	local np = gn(q, ni, il)
+	if not np then return nil, "No Island Guide" end
 	local c, rt = lc()
 	if not rt then return nil, "No Character" end
-	if hp then
-		if not xj(f, c, np, ni) then return nil end
-		local h = xh(c, np)
-		if not h then return nil, "No Character" end
-		local s, a, b = pcall(uz, f, q, ac, h)
-		xe(h, s and a == true and not b, `Quest {q[1]}`)
-		if not s then return nil, `Quest Hop Failed: {a}` end
-		return a, b
-	end
 	ok, e = an(f, c, np, rt.Position)
 	if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
 	if f.st ~= "Running" then return nil end
-	return uz(f, q, ac, false)
+	return uz(f, q, ac)
 end
 
 local function uq(f, q)
@@ -2010,24 +1868,10 @@ local function lw(f)
 			pt = fp()
 		end
 		if not (pt and pt:IsA("BasePart")) then return nil, `Lotus Flowers Failed: Spawn {pr.SpawnIndex} Missing` end
-		local a, m
-		local c = lc()
-		local h = c and xn(f, "Lotus Flower") and xh(c, pt.Position, pt.Position + Vector3.new(0, 3, 0))
-		if h then
-			local s2, r1, a2, m2 = pcall(xr, h, f, function()
-				local a3, m3 = cp:Fire()
-				local l3 = tostring(m3 or ""):lower()
-				return a3 == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range")), a3, m3
-			end)
-			if s2 then a, m = a2, m2 else a, m = false, `Hop Error: {r1}` end
-			xe(h, a == true, "Lotus Flower")
-			if f.st ~= "Running" then break end
-		else
-			local ok, e = go(f, pt.Position + Vector3.new(0, 3, 0))
-			if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
-			if f.st ~= "Running" then break end
-			a, m = cp:Fire()
-		end
+		local ok, e = go(f, pt.Position + Vector3.new(0, 3, 0))
+		if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
+		if f.st ~= "Running" then break end
+		local a, m = cp:Fire()
 		zx(`[Lotus] Flower {pr.SpawnIndex}: {tostring(a)} {m or ""}`)
 		if a == true then
 			bf = 0
@@ -2156,11 +2000,10 @@ local function dy(f)
 		if not f.qw.dd then f.qw.dd, f.nq = true, {Title = "Daily Quest", Text = "Daily Quest Done For Today"} end
 		return nil
 	end
-	local hp, ok, e = not f.hf() and xn(f, "Daily"), true, nil
-	local id = hp and ic() or f.fi() or ic()
+	local id = f.fi() or ic()
 	if id == "" or not ul(id) then return nil end
 	zx(`[Daily] Going To {id} For A New Quest | {du.AcceptsLeft(dq, md("Shared", "Lib", "DailyRewardUtil").get_now())} Left`)
-	if not hp then ok, e = ti(f, id, f.bk()) end
+	local ok, e = ti(f, id, f.bk())
 	if not ok then return true, e or f.st == "Running" and "Move Failed" or nil end
 	local w = workspace:FindFirstChild("World")
 	local fo = w and w:FindFirstChild("Islands") and w.Islands:FindFirstChild(id)
@@ -2170,14 +2013,9 @@ local function dy(f)
 		end
 		return nil
 	end
-	local np, g = hp and xf("npc_daily_quest", id) or nf(), rg(id)
-	if not np and g and not hp then
+	local np, g = nf(), rg(id)
+	if not np and g then
 		sq(Vector3.new(g.X, 2, g.Z), 10)
-		np = nf()
-	end
-	if not np and hp then
-		hp, ok, e = false, ti(f, id, f.bk())
-		if not ok then return true, e or f.st == "Running" and "Move Failed" or nil end
 		np = nf()
 	end
 	if not np then
@@ -2186,24 +2024,10 @@ local function dy(f)
 	end
 	local c, rt = lc()
 	if not rt then return nil, "No Character" end
-	local ak, m
-	if hp then
-		if not xj(f, c, np, "npc_daily_quest") then return true end
-		local h = xh(c, np)
-		if not h then return nil, "No Character" end
-		local s, a = pcall(xr, h, f, function()
-			ak, m = rv.QuestController:AcceptDaily()
-			local l3 = tostring(m or ""):lower()
-			return ak == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range") or l3:find("talk to"))
-		end)
-		if not s then ak, m = false, `Hop Error {a}` end
-		xe(h, ak == true, "Daily")
-	else
-		ok, e = an(f, c, np, rt.Position)
-		if not ok then return true, e or f.st == "Running" and "Move Failed" or nil end
-		if f.st ~= "Running" then return true end
-		ak, m = rv.QuestController:AcceptDaily()
-	end
+	ok, e = an(f, c, np, rt.Position)
+	if not ok then return true, e or f.st == "Running" and "Move Failed" or nil end
+	if f.st ~= "Running" then return true end
+	local ak, m = rv.QuestController:AcceptDaily()
 	f.rp = true
 	if ak == true then
 		zx(`[Daily] Accepted: {m}`)
@@ -3768,9 +3592,7 @@ local function fs()
 			mo(gu, 1e6)
 			task.wait(0.1)
 		end
-		local hp, np = xn(f, tg, true), nil
-		if hp then np = xf(ni, il) end
-		if not np then hp, np = false, gn({}, ni, il) end
+		local np = gn({}, ni, il)
 		if not np then
 			f.nq = {Title = tt, Text = `{tt} Failed: No NPC`}
 			return nil
@@ -3784,20 +3606,10 @@ local function fs()
 		end
 		local c, rt = lc()
 		if not rt then return nil, "No Character" end
-		local st, m
-		if hp then
-			if not xj(f, c, np, ni) then return nil end
-			local h = xh(c, np, aq(c, np, rt.Position))
-			if not h then return nil, "No Character" end
-			local sk2, _, a, b = pcall(xr, h, f, fn)
-			st, m = sk2 and a or nil, sk2 and b or nil
-			xe(h, st == 0 or st == true, tg)
-		else
-			ok, e = an(f, c, np, rt.Position)
-			if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
-			if f.st ~= "Running" then return nil end
-			_, st, m = fn()
-		end
+		ok, e = an(f, c, np, rt.Position)
+		if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
+		if f.st ~= "Running" then return nil end
+		local _, st, m = fn()
 		f.rp = true
 		return st, nil, m
 	end
@@ -4865,29 +4677,15 @@ end
 local function ru(j, id, il)
 	local ok, e = ti(j, il, bi[L.Flags.sb] or "truck")
 	if not ok then return nil, e or j.st == "Running" and "Move Failed" or nil end
-	local hp = xn(j, `Rod {id}`, true)
-	local np = hp and xf("npc_rod_shop", il)
-	if not np then hp, np = false, rm(il) end
+	local np = rm(il)
 	if not np then return nil, "No Rod Merchant" end
 	local c, rt = lc()
 	if not rt then return nil, "No Character" end
-	local sp, r = aq(c, np, rt.Position), nil
-	if hp then
-		if not xj(j, c, np, "npc_rod_shop") then return nil end
-		local h = xh(c, np, sp)
-		if not h then return nil, "No Character" end
-		local s, a = pcall(xr, h, j, function()
-			r = rv.FishingRodShopController.PurchaseRod:Fire(id)
-			return r ~= nil
-		end)
-		xe(h, r == true, `Rod {id}`)
-		if not s then return nil, `Purchase Failed: {a}` end
-	else
-		ok, e = go(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
-		if not ok then return nil, e or j.st == "Running" and "Move Failed" or nil end
-		if j.st ~= "Running" then return nil end
-		r = rv.FishingRodShopController.PurchaseRod:Fire(id)
-	end
+	local sp = aq(c, np, rt.Position)
+	ok, e = go(j, sp, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+	if not ok then return nil, e or j.st == "Running" and "Move Failed" or nil end
+	if j.st ~= "Running" then return nil end
+	local r = rv.FishingRodShopController.PurchaseRod:Fire(id)
 	if r == nil then return nil, "No Response" end
 	if r ~= true then return nil, "Purchase Refused" end
 	j.by = true
