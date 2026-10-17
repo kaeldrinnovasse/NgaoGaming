@@ -925,8 +925,10 @@ local function wy(f, id, mp, h, o)
 	return true
 end
 
+local wb = true
+
 local function wx(f, id)
-	if not ul(id) then return nil end
+	if not wb or not ul(id) then return nil end
 	local mp = wm(id)
 	if not mp then return nil, "Warp Failed: No Boat Merchant" end
 	local ok, e = nil, nil
@@ -970,7 +972,7 @@ end
 
 local function wn(f, tp, tg)
 	local _, r = lc()
-	if not r then return nil end
+	if not wb or not r then return nil end
 	local bu, bd = nil, math.huge
 	for id, p in wz do
 		local d = ((p - tp) * Vector3.new(1, 0, 1)).Magnitude
@@ -989,7 +991,7 @@ local function ti(f, id, k)
 	if we then f.nq = {Title = "Teleport", Text = `{we}, Sailing`} end
 	if not ul(id) and (wz[id] or rg(id)) then wn(f, wz[id] or rg(id), id) end
 	if f.st ~= "Running" then return nil end
-	zx(`[Travel] Sail {ic() ~= "" and ic() or "Sea"} -> {id}{we and ` | Warp: {we}` or not ul(id) and " | Island Locked" or ""}`)
+	zx(`[Travel] Sail {ic() ~= "" and ic() or "Sea"} -> {id}{we and ` | Warp: {we}` or not ul(id) and " | Island Locked" or not wb and " | Instant Teleport Off" or ""}`)
 	local function fx(x)
 		zx(`[Travel] Sail To {id} Failed: {x or "Stopped"}`)
 		return nil, x
@@ -5153,7 +5155,7 @@ local function zp()
 	return true
 end
 
-local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS", ["Send Log To Developer"] = "Gửi Log Cho Admin", ["Auto Gear"] = "Tự Động Trang Bị"}
+local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS", ["Send Log To Developer"] = "Gửi Log Cho Admin", ["Auto Gear"] = "Tự Động Trang Bị", ["Instant Teleport"] = "Dịch Chuyển Tức Thì"}
 local function lgp()
 	for _, T in gw.Tabs do
 		if T.Name == "Status" then continue end
@@ -5174,6 +5176,7 @@ end})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Safe", Flag = "zy", Callback = function(v) zy.on = v == true end})
+ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb = v == true end})
 ts:Toggle({Name = "Hidden Fishing", Flag = "hf"})
 ts:Toggle({Name = "Auto Gear", Default = true, Flag = "ag"})
 local jr = false
@@ -5262,7 +5265,7 @@ end
 lgp()
 gr = true
 do
-	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"rw", "Auto Rainbow Boss"}, {"tk", "Auto Raid"}, {"rt", "Select Raid"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"ks", "Skill Quest"}, {"ka", "Auto Skill Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"fm", "Forge Mode"}, {"fg", "Auto Rod Forge"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"zy", "Safe"}, {"hf", "Hidden Fishing"}, {"ag", "Auto Gear"}, {"lg", "Language"}}
+	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"rw", "Auto Rainbow Boss"}, {"tk", "Auto Raid"}, {"rt", "Select Raid"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"ks", "Skill Quest"}, {"ka", "Auto Skill Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"fm", "Forge Mode"}, {"fg", "Auto Rod Forge"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"zy", "Safe"}, {"wb", "Instant Teleport"}, {"hf", "Hidden Fishing"}, {"ag", "Auto Gear"}, {"lg", "Language"}}
 	ge.__FmCw = zc
 	task.spawn(function()
 		local lv, nx = {}, 0
