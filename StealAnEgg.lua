@@ -4,23 +4,35 @@ local ps, rs, ru, cl = game:GetService("Players"), game:GetService("ReplicatedSt
 repeat task.wait() until ps.LocalPlayer
 
 local lp = ps.LocalPlayer
-local es = require(rs:WaitForChild("Client"):WaitForChild("EggState"))
-local ad = require(rs:WaitForChild("Data"):WaitForChild("Assets"))
-local si = require(rs:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("AreaEggSlotIdentity"))
-local cy = require(rs:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("AreaEggCycle"))
-local rg = require(rs:WaitForChild("Shared"):WaitForChild("Modules"):WaitForChild("Ragdoll"))
-local ai = require(rs:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("AssetItems"))
-local er = require(rs:WaitForChild("Shared"):WaitForChild("Util"):WaitForChild("EggRecords"))
-local sv = require(rs:WaitForChild("Shared"):WaitForChild("Save"))
-local rm = require(rs:WaitForChild("Shared"):WaitForChild("Remotes"))
-local hh = require(rs:WaitForChild("Client"):WaitForChild("HiddenUIHandler"))
-local tq = require(rs:WaitForChild("Packages"):WaitForChild("TopBarPlus"))
+local function xl(m)
+	warn("[Sae] " .. m)
+	pcall(appendfile, "SaeLog.txt", string.format("%s %s\n", os.date("%H:%M:%S"), m))
+	pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Ngao - Gaming Hub", Text = m, Duration = 15}) end)
+end
+local es, ad, si, cy, rg, ai, er, sv, rm, hh, tq
+do
+	local o = {}
+	for i, p in {"Client.EggState", "Data.Assets", "Shared.Util.AreaEggSlotIdentity", "Shared.Util.AreaEggCycle", "Shared.Modules.Ragdoll", "Shared.Util.AssetItems", "Shared.Util.EggRecords", "Shared.Save", "Shared.Remotes", "Client.HiddenUIHandler", "Packages.TopBarPlus"} do
+		local x = rs
+		for n in p:gmatch("[^%.]+") do x = x and x:WaitForChild(n, 60) end
+		local ok, m = x ~= nil, nil
+		if ok then ok, m = pcall(require, x) end
+		if not ok or m == nil then xl((x and "Load Failed: Broken " or "Load Failed: Missing ") .. p) return end
+		o[i] = m
+	end
+	es, ad, si, cy, rg, ai, er, sv, rm, hh, tq = table.unpack(o, 1, 11)
+end
 local dr = ad.Directory or ad
-repeat
-	task.wait(0.2)
-	local c = lp.Character
-	local ok, f = pcall(es.HasFieldSnapshot)
-until lp:GetAttribute("ProfileReady") == true and ok and f == true and c and c:FindFirstChild("HumanoidRootPart")
+do
+	local t0 = os.clock()
+	while true do
+		task.wait(0.2)
+		local c, ok, f = lp.Character, pcall(es.HasFieldSnapshot)
+		local w = lp:GetAttribute("ProfileReady") ~= true and "Profile Not Ready" or not (ok and f == true) and "No Field Snapshot" or not (c and c:FindFirstChild("HumanoidRootPart")) and "No Character" or nil
+		if not w then break end
+		if os.clock() - t0 > 60 then xl("Load Failed: " .. w) return end
+	end
+end
 
 local ge = getgenv()
 if ge.__SaeAf then
@@ -36,7 +48,7 @@ if ge.__SaeAf then
 		if rawget(c, "GetMoveVector") then c.GetMoveVector = nil end
 	end)
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, ra = false, rg = 0, rx = false, rv = false, rmv = nil, ss = false, sg = 0, sx = false, sc3 = 0, sb = false, gx = false, gg = 0, lx = false, lb = false, tq = false, th = 0, tx = false, tb = false, rsh = 0, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, dc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, ra = false, rg = 0, rx = false, rv = false, rmv = nil, ss = false, sg = 0, sx = false, sc3 = 0, sb = false, gx = false, gg = 0, lx = false, lb = false, tq = false, th = 0, tx = false, tb = false, rsh = 0, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gc = 0, ct = nil, sr = false, fz = false, nd = false, qc = {}, pv = false, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}, ui = {}, ef = 0}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -44,6 +56,24 @@ local function lg(s)
 	st.ms = s
 	print("[Sae] " .. s)
 	pcall(appendfile, "SaeLog.txt", string.format("%s %s\n", os.date("%H:%M:%S"), s))
+end
+
+local function xs(n, k, m, e)
+	if e ~= nil then m = m .. ": " .. (tostring(e):gsub("^.-:(%d+): ", "Line %1: ")) end
+	lg(m)
+	warn("[Sae] " .. n .. " Stopped: " .. m)
+	task.spawn(function()
+		task.wait()
+		if st.nt then pcall(st.nt, n, m) end
+		local t = st.ui[k]
+		if t and t.v then pcall(t.Set, t, false) end
+	end)
+end
+
+local function xc(c)
+	c:Disconnect()
+	local i = table.find(st.cn, c)
+	if i then table.remove(st.cn, i) end
 end
 
 local function rt()
@@ -97,6 +127,7 @@ local function av(u)
 end
 
 local function cd()
+	if os.clock() < st.ef then return {} end
 	local ok, s = pcall(es.ReadFieldEggs)
 	if not ok or type(s) ~= "table" then return {} end
 	local o, t, ix, oc = {}, os.clock(), {}, {}
@@ -482,7 +513,7 @@ local function mv(tg, ck, to, cp)
 	end)
 	st.cn[#st.cn + 1] = cn
 	while dn == nil do ru.Heartbeat:Wait() end
-	cn:Disconnect()
+	xc(cn)
 	return dn, wy
 end
 
@@ -912,13 +943,13 @@ end
 
 local function wq()
 	local l = cd()
-	if #l == 0 then return "No Eggs" end
+	if #l == 0 then return os.clock() < st.ef and "Egg Bag Full" or "No Eggs" end
 	local d, h, hu = dl(), rt()
 	if d and h and hu and d < math.abs(l[1].p.X - h.Position.X) / math.max(hu.WalkSpeed, 16) + 9 then return "Waiting For Day" end
 	return nil
 end
 
-local function lo(g)
+local function lob(g)
 	while not st.gr and ge.__SaeAf == st do task.wait(0.1) end
 	while ge.__SaeAf == st and st.on and st.g == g do
 		if st.sr then break end
@@ -964,8 +995,7 @@ local function lo(g)
 		if r then
 			st.on, st.sr = false, false
 			un()
-			lg(r)
-			warn("[Sae] Farm Stopped: " .. r)
+			xs("Auto Steal Egg", "ae", r)
 			break
 		end
 		local h, hu = rt()
@@ -977,9 +1007,10 @@ local function lo(g)
 		if not cr() then
 			local l = cd()
 			if #l == 0 then
+				local nm = os.clock() < st.ef and "Egg Bag Full" or "No Eggs"
 				rv()
 				if fs() then
-					lg("No Eggs | Going Home")
+					lg(nm .. " | Going Home")
 					hm(false)
 					continue
 				end
@@ -991,13 +1022,13 @@ local function lo(g)
 				end
 				if os.clock() >= st.mq then
 					st.mq = os.clock() + 3
-					lg("No Eggs | Mounting Treadmill")
+					lg(nm .. " | Mounting Treadmill")
 					un()
 					local ok, wy = mt()
 					lg(ok and "Treadmill Mounted" or tostring(wy))
 					continue
 				end
-				lg("No Eggs")
+				lg(nm)
 				task.wait(1)
 				continue
 			end
@@ -1044,6 +1075,11 @@ local function lo(g)
 				ok, wy = tk(e)
 			end
 			if not ok then
+				if tostring(wy):find("egg inventory is full", 1, true) then
+					st.ef, st.pc = os.clock() + 30, 0
+					lg("Egg Bag Full")
+					continue
+				end
 				if tostring(wy):find("inventory full", 1, true) then
 					lg(tostring(wy))
 					task.wait(1)
@@ -1109,6 +1145,20 @@ local function lo(g)
 	lg("Idle")
 end
 
+local function lo(g)
+	local ok, e = pcall(lob, g)
+	if ok or ge.__SaeAf ~= st or st.g ~= g then return end
+	local p = st.fp
+	st.on, st.sr, st.fp, st.pv = false, false, false, false
+	if not p then
+		local _, hu = rt()
+		local t = os.clock()
+		while hu and hu.Parent and hu.FloorMaterial == Enum.Material.Air and os.clock() - t < 3 do task.wait(0.1) end
+		pcall(un)
+	end
+	xs("Auto Steal Egg", "ae", "Farm Crashed", e)
+end
+
 local ok, c = pcall(function()
 	return es.FieldClaimed:Connect(function(a)
 		if st.on then fv() end
@@ -1132,7 +1182,9 @@ function st.Stop(f)
 		lg("Stopping After Trip")
 		return
 	end
+	local w = st.on
 	st.on, st.sr = false, false
+	if not (w or f) and st.bo then return end
 	local _, hu = rt()
 	local t = os.clock()
 	while hu and hu.Parent and hu.FloorMaterial == Enum.Material.Air and os.clock() - t < 3 do task.wait(0.1) end
@@ -1149,7 +1201,13 @@ local bb, bw, bq = (function()
 	return nil, nil, nil
 end)()
 
+pcall(function()
+	st.cn[#st.cn + 1] = rm.LiveEvents.Began.OnClientEvent:Connect(function(n, d) if n == "ButterflyBloom" and type(d) == "number" then st.be = workspace:GetServerTimeNow() + d end end)
+	st.cn[#st.cn + 1] = rm.LiveEvents.Ended.OnClientEvent:Connect(function(n) if n == "ButterflyBloom" then st.be = nil end end)
+end)
+
 local function ba()
+	if st.be and st.be > workspace:GetServerTimeNow() then return true end
 	if not bb then return false end
 	local ok, a, e = pcall(function() return debug.getupvalue(bb.StartEvent, 1), debug.getupvalue(bb.StartEvent, 2) end)
 	return ok and a == true and type(e) == "number" and e > workspace:GetServerTimeNow()
@@ -1166,6 +1224,7 @@ local function bc()
 		x = math.max(0, math.floor(x))
 		return string.format("%02d:%02d", x // 60, x % 60)
 	end
+	if st.be and st.be > t then return "Butterfly Bloom Active: " .. tf(st.be - t) .. " Left" end
 	if bb then
 		local ok, a, e = pcall(function() return debug.getupvalue(bb.StartEvent, 1), debug.getupvalue(bb.StartEvent, 2) end)
 		if ok and a == true and type(e) == "number" and e > t then return "Butterfly Bloom Active: " .. tf(e - t) .. " Left" end
@@ -1788,12 +1847,12 @@ local function rj3()
 		return ok
 	end
 	local function ed()
-		st.bo = false
+		st.bo, st.rj = false, false
 		fz(false)
 	end
 	local z0, z1 = cz()
 	local tg = hb.Position
-	st.bo = true
+	st.bo, st.rj = true, true
 	if z0 then
 		local hz = math.clamp(h.Position.Z, z0, z1)
 		if hz ~= h.Position.Z and not fy(Vector3.new(h.Position.X, h.Position.Y, hz), 10) then ed() return false end
@@ -1877,7 +1936,7 @@ local function rmc(hr)
 	return nil
 end
 
-local function rl(g)
+local function rlb(g)
 	local p, tr, k, nu, lm, mq, mt = nil, nil, nil, 0, nil, nil, nil
 	local function bm(t)
 		if mt == t then return end
@@ -1951,7 +2010,7 @@ local function rl(g)
 			end
 		end)
 	end)
-	if oc and cc then st.cn[#st.cn + 1] = cc end
+	if oc and cc then st.cn[#st.cn + 1], st.rh = cc, cc end
 	local bxs, bps, tsb = {}, {}, nil
 	local function al2()
 		if tsb ~= tr then
@@ -2185,6 +2244,7 @@ local function rl(g)
 				st.rv, st.rmv = false, nil
 				rg2(false)
 			end
+			if not t then rd, tp0, rc, k = nil, nil, nil, nil end
 			if t and fin then
 				l2("Race Finished | Place " .. tostring(lp:GetAttribute("RaceFinishPlace")))
 				local ft = lp:GetAttribute("RaceFinishTime")
@@ -2213,10 +2273,24 @@ local function rl(g)
 		end
 		ru.Heartbeat:Wait()
 	end
-	if oc and cc then pcall(function() cc:Disconnect() end) end
+	if oc and cc then pcall(xc, cc) end
 	st.rx, st.rmv = false, nil
 	if st.rv and ge.__SaeAf == st then rg2(false) end
 	st.rv = false
+end
+
+local function rl(g)
+	local ok, e = pcall(rlb, g)
+	if ok or ge.__SaeAf ~= st or st.rg ~= g then return end
+	if st.rh then pcall(xc, st.rh) end
+	st.rx, st.rmv, st.rh = false, nil, nil
+	if st.rv then pcall(rg2, false) end
+	st.rv = false
+	if st.rj then
+		st.bo, st.rj = false, false
+		pcall(fz, false)
+	end
+	xs("Auto Race", "arc", "Race Crashed", e)
 end
 
 local function sb()
@@ -2235,6 +2309,7 @@ local function sk(p, ck)
 		h, hu = rt()
 		if not h or not hu then return false, "No Character" end
 	end
+	if not p.Parent then return false, "Star Gone" end
 	local q = p.Parent.Position
 	if (q - h.Position).Magnitude > 60 then
 		local y = math.max(h.Position.Y, q.Y) + 50
@@ -2275,28 +2350,28 @@ local function sh(p)
 	st.cn[#st.cn + 1] = cn
 	local t = os.clock()
 	while p.Parent and not p.Enabled and os.clock() - t < 6 do task.wait(0.1) end
-	if not p.Parent then cn:Disconnect() return false, "Star Gone" end
-	if not p.Enabled then cn:Disconnect() return false, "Not Noticed" end
+	if not p.Parent then xc(cn) return false, "Star Gone" end
+	if not p.Enabled then xc(cn) return false, "Not Noticed" end
 	local n0 = st.sc3
 	pcall(function() p:InputHoldBegin() end)
 	task.wait(p.HoldDuration + 0.25)
 	pcall(function() p:InputHoldEnd() end)
 	t = os.clock()
 	repeat task.wait(0.1) until st.sc3 > n0 or os.clock() - t > 4
-	cn:Disconnect()
+	xc(cn)
 	if hr and hr.Parent then hr.AssemblyLinearVelocity = Vector3.zero end
 	return st.sc3 > n0, "Not Claimed"
 end
 
-local function sq2(g)
+pcall(function() st.cn[#st.cn + 1] = rm.ShootingStar.Claimed.OnClientEvent:Connect(function() st.sc3 += 1 end) end)
+
+local function sqb(g)
 	local lm
 	local function l2(m)
 		if m == lm then return end
 		lm = m
 		lg(m)
 	end
-	local ok0, c0 = pcall(function() return rm.ShootingStar.Claimed.OnClientEvent:Connect(function() st.sc3 += 1 end) end)
-	if ok0 and c0 then st.cn[#st.cn + 1] = c0 end
 	local function ck() if not st.ss or st.sg ~= g or ge.__SaeAf ~= st or st.rx then return "Stopped" end return nil end
 	while ge.__SaeAf == st and st.ss and st.sg == g do
 		local p = sb()
@@ -2348,6 +2423,17 @@ local function sq2(g)
 		un()
 		st.bo, st.sb, st.pv = false, false, false
 	end
+end
+
+local function sq2(g)
+	local ok, e = pcall(sqb, g)
+	if ok or ge.__SaeAf ~= st or st.sg ~= g then return end
+	st.sx = false
+	if st.sb then
+		pcall(un)
+		st.bo, st.sb, st.pv = false, false, false
+	end
+	xs("Auto Shooting Star", "ass", "Star Crashed", e)
 end
 
 local function gl()
@@ -2402,7 +2488,7 @@ local function gm(tg, sp, ck, to, gt, aj)
 	end)
 	st.cn[#st.cn + 1] = cn
 	while dn == nil do ru.Heartbeat:Wait() end
-	cn:Disconnect()
+	xc(cn)
 	return dn, wy
 end
 
@@ -2432,7 +2518,7 @@ local function gh(p, gt)
 	return true
 end
 
-local function gq(g, c)
+local function gqb(g, c)
 	local lm, nb = nil, 0
 	local function l2(m)
 		if m == lm then return end
@@ -2577,7 +2663,23 @@ local function gq(g, c)
 	if st[c.fb] then own(false) end
 end
 
-local lc = {n = "Red Light", fx = "lx", fb = "lb", ep = "RLGL_EggPosition", cu = "RLGL_CarrierUserId", lv = "RLGL_Lives", ev = ge2, gt = function() return gl() == "Green" end, on = function(g) return st.gx and st.gg == g end}
+local function gq(g, c)
+	local ok, e = pcall(gqb, g, c)
+	if ok or ge.__SaeAf ~= st or not c.on(g) then return end
+	st[c.fx] = false
+	if st[c.fb] then
+		local _, hu = rt()
+		if hu then pcall(function() hu:UnequipTools() end) end
+		pcall(fz, false)
+		local t = os.clock()
+		while hu and hu.Parent and hu.FloorMaterial == Enum.Material.Air and os.clock() - t < 3 do task.wait(0.1) end
+		pcall(un)
+		st.bo, st[c.fb], st.pv = false, false, false
+	end
+	xs(c.t, c.k, c.n .. " Crashed", e)
+end
+
+local lc = {t = "Auto Red Light Green Light", k = "arl", n = "Red Light", fx = "lx", fb = "lb", ep = "RLGL_EggPosition", cu = "RLGL_CarrierUserId", lv = "RLGL_Lives", ev = ge2, gt = function() return gl() == "Green" end, on = function(g) return st.gx and st.gg == g end}
 
 local trh = (function()
 	local ok, r = pcall(function() return require(rs.Shared.Modules.TrexRunHerd) end)
@@ -2652,11 +2754,12 @@ local function tp2()
 	if ok then tw2(l) end
 end
 
-local tc2 = {n = "T-Rex", fx = "tx", fb = "tb", ep = "TrexRun_EggPosition", cu = "TrexRun_CarrierUserId", lv = nil, ev = te2, gt = nil, aj = ta2, pre = tp2, on = function(g) return st.tq and st.th == g end}
+local tc2 = {t = "Auto T-Rex Run", k = "atx", n = "T-Rex", fx = "tx", fb = "tb", ep = "TrexRun_EggPosition", cu = "TrexRun_CarrierUserId", lv = nil, ev = te2, gt = nil, aj = ta2, pre = tp2, on = function(g) return st.tq and st.th == g end}
 
-local function bg(g)
-	if not (bb and bw and bq) then lg("Butterfly Failed: No Module") return end
+local function bgb(g)
+	if not (bb and bw and bq) then xs("Auto Butterfly", "abf", "Butterfly Failed: No Module") return end
 	if not kv() then lg("Key Check Failed: No Valid Key") return end
+	if not bs then lg("Butterfly | Auto Swing Not Found") end
 	local by, c0, nx, lw = false, 0, 0, nil
 	local function ed()
 		if not by then return end
@@ -2829,6 +2932,22 @@ local function bg(g)
 	st.bx = false
 	ed()
 	we()
+end
+
+local function bg(g)
+	local ok, e = pcall(bgb, g)
+	if ok or ge.__SaeAf ~= st or st.bi ~= g then return end
+	st.bx = false
+	if st.on and not st.fp then
+		st.bo = false
+	elseif st.bo and not (st.sb or st.lb or st.tb or st.rj) then
+		local _, hu = rt()
+		if hu then pcall(function() hu:UnequipTools() end) end
+		pcall(un)
+		st.pv, st.bo = false, false
+	end
+	pcall(we)
+	xs("Auto Butterfly", "abf", "Butterfly Crashed", e)
 end
 
 local function ht()
@@ -3940,6 +4059,7 @@ ge.__SaeD = nil
 if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
 L:Gate({Title = "Ngao - Gaming Hub", Server = "https://getkey.kaeldrinnovasse.workers.dev", Hub = "sae", Discord = "https://discord.gg/fTQF5TvfEJ", Config = "StealAnEgg"})
 local W = L:Window({Title = "Ngao - Gaming Hub | Steal An Egg", Config = `StealAnEgg/{lp.Name}`})
+st.nt = function(n, m) W:Notify({Title = n, Text = m, Error = true}) end
 local pg = W:Tab({Name = "General", Icon = "egg"})
 local function rk()
 	local m, o = {}, {}
@@ -3988,7 +4108,7 @@ xe = pg:Dropdown({Name = "Select Egg", Options = ra, Multi = true, Default = {},
 	st.mr = rs2(v)
 	if #v > 0 and xa then xa:Set({}) end
 end})
-pg:Toggle({Name = "Auto Steal Egg", Default = false, Flag = "ae", Callback = function(v)
+st.ui.ae = pg:Toggle({Name = "Auto Steal Egg", Default = false, Flag = "ae", Callback = function(v)
 	if v then st.Start() else st.Stop() end
 end})
 local xp = pg:Toggle({Name = "Auto Place Egg", Default = true, Flag = "ape", Callback = function(v) st.ap = v == true end})
@@ -4019,7 +4139,7 @@ task.spawn(function()
 		task.wait(1)
 	end
 end)
-et:Toggle({Name = "Auto Butterfly", Default = false, Flag = "abf", Callback = function(v)
+st.ui.abf = et:Toggle({Name = "Auto Butterfly", Default = false, Flag = "abf", Callback = function(v)
 	st.bf = v == true
 	st.bi += 1
 	if st.bf then task.spawn(bg, st.bi) end
@@ -4037,23 +4157,23 @@ task.spawn(function()
 		task.wait(1)
 	end
 end)
-et:Toggle({Name = "Auto Shooting Star", Default = false, Flag = "ass", Callback = function(v)
+st.ui.ass = et:Toggle({Name = "Auto Shooting Star", Default = false, Flag = "ass", Callback = function(v)
 	st.ss = v == true
 	st.sg += 1
 	if st.ss then task.spawn(sq2, st.sg) end
 end})
-et:Toggle({Name = "Auto Race", Default = false, Flag = "arc", Callback = function(v)
+st.ui.arc = et:Toggle({Name = "Auto Race", Default = false, Flag = "arc", Callback = function(v)
 	st.ra = v == true
 	st.rg += 1
 	if st.ra then task.spawn(rl, st.rg) end
 end})
 et:Section({Name = "Admin"})
-et:Toggle({Name = "Auto Red Light Green Light", Default = false, Flag = "arl", Callback = function(v)
+st.ui.arl = et:Toggle({Name = "Auto Red Light Green Light", Default = false, Flag = "arl", Callback = function(v)
 	st.gx = v == true
 	st.gg += 1
 	if st.gx then task.spawn(gq, st.gg, lc) end
 end})
-et:Toggle({Name = "Auto T-Rex Run", Default = false, Flag = "atx", Callback = function(v)
+st.ui.atx = et:Toggle({Name = "Auto T-Rex Run", Default = false, Flag = "atx", Callback = function(v)
 	st.tq = v == true
 	st.th += 1
 	if st.tq then task.spawn(gq, st.th, tc2) end
