@@ -152,7 +152,8 @@ local function ns(id, p)
 	local b, bd, bx
 	for _, x in game:GetService("CollectionService"):GetTagged("Interactive") do
 		if x:GetAttribute("InteractiveId") == id then
-			local q = x:IsA("Model") and x:GetPivot().Position or x:IsA("BasePart") and x.Position
+			local pa = (x:FindFirstChildWhichIsA("ProximityPrompt", true) or {}).Parent
+			local q = pa and (pa:IsA("BasePart") and pa.Position or pa:IsA("Attachment") and pa.WorldPosition) or x:IsA("Model") and x:GetPivot().Position or x:IsA("BasePart") and x.Position
 			if q and (not bd or (q - p).Magnitude < bd) then b, bd, bx = q, (q - p).Magnitude, x end
 		end
 	end
@@ -372,7 +373,7 @@ local function tr(f)
 		return nil, ue or e
 	end
 	local hd = f.hf and f.hf() and not f.bu
-	local mv, sp = hd and hv or go, hd and Vector3.new(np.X, math.max(6, np.Y - 11.95), np.Z) or aq(c, np, o.Position)
+	local mv, sp = hd and hv or go, hd and Vector3.new(np.X, math.max(6, np.Y - 9.95), np.Z) or aq(c, np, o.Position)
 	local w, we, s
 	local xo, xq = false, nil
 	if not f.bu then
@@ -534,7 +535,7 @@ end
 aq = function(c, np, p, rd, ip)
 	local w = workspace:FindFirstChild("World")
 	local il = w and w:FindFirstChild("Islands")
-	rd = rd or 12
+	rd = rd or 10
 	if not ip and il then
 		ip = RaycastParams.new()
 		ip.FilterType, ip.FilterDescendantsInstances = Enum.RaycastFilterType.Include, {il}
@@ -569,7 +570,7 @@ end
 
 local function an(f, c, np, p, rd)
 	if f.hf() then
-		local sp = Vector3.new(np.X, math.max(6, np.Y - (rd or 12) + 0.05), np.Z)
+		local sp = Vector3.new(np.X, math.max(6, np.Y - (rd or 10) + 0.05), np.Z)
 		return hv(f, sp, nil, math.min(sp.Y, 10))
 	end
 	local sp = aq(c, np, p, rd)
@@ -638,8 +639,8 @@ local function sb(f, m)
 	local c, r, h = lc()
 	if not c then return nil, "No Character" end
 	local ds = m:FindFirstChild("DSeat")
-	local pp = ds and ds:FindFirstChildWhichIsA("ProximityPrompt", true)
-	if not pp then return nil, "No Boat Seat" end
+	local pp = m:FindFirstChild("RaidDrivePrompt", true) or ds and ds:FindFirstChildWhichIsA("ProximityPrompt", true)
+	if not (ds and pp) then return nil, "No Boat Seat" end
 	pq(m, true)
 	if ds.Occupant == h then return true end
 	local q = (r.Position - ds.Position) * Vector3.new(1, 0, 1)
@@ -660,7 +661,7 @@ local function sb(f, m)
 			rv.FishingController.FishCancel:Fire()
 		end
 	until ds.Occupant == h or os.clock() > dl
-	zx(`[Boat] Sit: {ds.Occupant == h and "Ok" or "Timeout"}{lc2 and " (Loot Confirm Sent)" or ""}`)
+	zx(`[Boat] Sit: {ds.Occupant == h and "Ok" or "Timeout"}{pp.Name == "RaidDrivePrompt" and " (Raid Drive)" or ""}{lc2 and " (Loot Confirm Sent)" or ""}`)
 	if ds.Occupant ~= h then return nil, "Sit Timeout" end
 	return true
 end
@@ -749,7 +750,6 @@ local function dv(f, m, id, pt)
 	return true, sh
 end
 
-local wb = {on = true}
 local zy = {on = false, rq = false, nt = 0, ss = 0, fr = {}, wl = {}, hu = {}, nm = {}, hp = -1e9}
 local zj = `Avenoric/Configs/FishingMaster/{lp.Name}_Safe.json`
 pcall(function()
@@ -928,7 +928,7 @@ local function wy(f, id, mp, h, o)
 end
 
 local function wx(f, id)
-	if not (wb.on and ul(id)) then return nil end
+	if not ul(id) then return nil end
 	local mp = wm(id)
 	if not mp then return nil, "Warp Failed: No Boat Merchant" end
 	local ok, e = nil, nil
@@ -958,7 +958,7 @@ local function wx(f, id)
 end
 
 do
-	local xp = {island_starter = {npc_car_merchant = Vector3.new(-37.4, 11.1, 305.9), npc_daily_quest = Vector3.new(-4, 11.1, 305.3), npc_fish_seller = Vector3.new(-31.8, 19.6, 407), npc_gacha_aura = Vector3.new(-55.7, 55.3, 538.6), npc_gacha_book = Vector3.new(-32.8, 19.7, 432.3), npc_gacha_unit = Vector3.new(-177.2, 27, 420.5), npc_premium_skill = Vector3.new(-169.8, 22.2, 489), npc_rod_shop = Vector3.new(-29.7, 12, 354.2)}, island_desert = {npc_car_merchant = Vector3.new(-44.1, 10.1, -935.4), npc_daily_quest = Vector3.new(4.7, 10.4, -1078.1), npc_fish_seller = Vector3.new(35.5, 10.6, -1151.2), npc_rod_shop = Vector3.new(64.9, 10.4, -1130.4), npc_sage_yijiu = Vector3.new(3.6, 75.6, -1264.2), npc_unlock_island_3 = Vector3.new(-56.8, 10, -1021.6), npc_white_tiger = Vector3.new(87.1, 43.4, -1355.9)}, island_lotus = {npc_car_merchant = Vector3.new(1180.8, 11.9, 2392.7), npc_chu_xin_rod = Vector3.new(1096.9, 22.1, 2522.5), npc_daily_quest = Vector3.new(1170.5, 12, 2449), npc_fish_seller = Vector3.new(1142.1, 34, 2621.6), npc_lotus_rod_forge = Vector3.new(1109.1, 35.3, 2653.9), npc_rainbow_bait_crafter = Vector3.new(1010.8, 28.8, 2691.3), npc_super_boss_summoner = Vector3.new(982.4, 24.3, 2634.7), npc_unlock_island_7 = Vector3.new(1125.1, 12, 2416.7)}, island_jungle = {npc_car_merchant = Vector3.new(-1161.1, 10.8, -61.9), npc_daily_quest = Vector3.new(-1302.9, 11.1, -63.2), npc_fish_seller = Vector3.new(-1278.6, 10.9, -182.5), npc_rod_shop = Vector3.new(-1227.4, 11.9, -145.7), npc_unlock_island_2 = Vector3.new(-1268.8, 11.3, -110)}, island_snow = {npc_car_merchant = Vector3.new(1171.7, 9.4, -266.5), npc_daily_quest = Vector3.new(1309.7, 28.3, -361.4), npc_fish_seller = Vector3.new(1264.3, 27.7, -348.6), npc_giang_lao_snow = Vector3.new(1529.4, 143.6, -348.4), npc_phoenix = Vector3.new(1385, 11.7, -513.7), npc_raid_ticket = Vector3.new(1395.4, 27.6, -280.7), npc_rod_shop = Vector3.new(1331.6, 28.5, -330.1), npc_unlock_island_4 = Vector3.new(1239.5, 9.7, -322.6)}, island_volcano = {npc_azure_dragon = Vector3.new(2118.3, 121.9, 1295.5), npc_bamboo_rod = Vector3.new(1945.3, 18.9, 1295.6), npc_car_merchant = Vector3.new(1772.5, 9.2, 1069.3), npc_crimson_bead_rod = Vector3.new(1840.8, 9.8, 1101.2), npc_daily_quest = Vector3.new(1951.7, 9.6, 1071.7), npc_duan_gan_volcano = Vector3.new(1847.4, 12.8, 1227.3), npc_fish_seller = Vector3.new(1929.2, 9.7, 1094.7), npc_unlock_island_5 = Vector3.new(1885.8, 12.2, 1067.6)}, island_fossil = {npc_car_merchant = Vector3.new(-543.2, 10.6, 2172.3), npc_daily_quest = Vector3.new(-663, 15.5, 2316.5), npc_dread_fish_rod = Vector3.new(-886.2, 243.7, 2467.4), npc_fei_tian_fossil = Vector3.new(-872.8, 17.1, 2171.2), npc_fish_seller = Vector3.new(-757.8, 19, 2345.2), npc_ha_dieu_de_fossil = Vector3.new(-675.7, 72.9, 2267.1), npc_supreme_king = Vector3.new(-603.8, 186.4, 2541.9), npc_unlock_island_6 = Vector3.new(-555.2, 9.4, 2230.8)}}
+	local xp = {island_starter = {npc_car_merchant = Vector3.new(-37.4, 11.1, 305.9), npc_daily_quest = Vector3.new(-4, 11.1, 305.3), npc_fish_seller = Vector3.new(-31.8, 19.6, 407), npc_gacha_aura = Vector3.new(-55.7, 55.3, 538.6), npc_gacha_book = Vector3.new(-32.8, 19.7, 432.3), npc_gacha_unit = Vector3.new(-177.2, 27, 420.5), npc_premium_skill = Vector3.new(-169.8, 22.2, 489), npc_rod_shop = Vector3.new(-29.7, 12, 354.2)}, island_desert = {npc_car_merchant = Vector3.new(-44.1, 10.1, -935.4), npc_daily_quest = Vector3.new(4.7, 10.4, -1078.1), npc_fish_seller = Vector3.new(35.5, 10.6, -1151.2), npc_rod_shop = Vector3.new(64.9, 10.4, -1130.4), npc_sage_yijiu = Vector3.new(3.6, 75.6, -1264.2), npc_unlock_island_3 = Vector3.new(-56.8, 10, -1021.6), npc_white_tiger = Vector3.new(87.1, 43.4, -1355.9)}, island_lotus = {npc_car_merchant = Vector3.new(1180.8, 11.9, 2392.7), npc_chu_xin_rod = Vector3.new(1096.9, 22.1, 2522.5), npc_daily_quest = Vector3.new(1170.5, 12, 2449), npc_fish_seller = Vector3.new(1142.1, 34, 2621.6), npc_gacha_aura = Vector3.new(1147.5, 34, 2658.5), npc_gacha_book = Vector3.new(1211.8, 24.5, 2486.5), npc_gacha_unit = Vector3.new(1291.4, 24.3, 2616.4), npc_lotus_rod_forge = Vector3.new(1109.1, 35.3, 2653.9), npc_premium_skill = Vector3.new(1158.8, 34, 2594), npc_rainbow_bait_crafter = Vector3.new(1010.8, 28.8, 2691.3), npc_super_boss_summoner = Vector3.new(982.4, 24.3, 2634.7), npc_unlock_island_7 = Vector3.new(1125.1, 12, 2416.7)}, island_jungle = {npc_car_merchant = Vector3.new(-1161.1, 10.8, -61.9), npc_daily_quest = Vector3.new(-1302.9, 11.1, -63.2), npc_fish_seller = Vector3.new(-1278.6, 10.9, -182.5), npc_rod_shop = Vector3.new(-1227.4, 11.9, -145.7), npc_unlock_island_2 = Vector3.new(-1268.8, 11.3, -110)}, island_snow = {npc_car_merchant = Vector3.new(1171.7, 9.4, -266.5), npc_daily_quest = Vector3.new(1309.7, 28.3, -361.4), npc_fish_seller = Vector3.new(1264.3, 27.7, -348.6), npc_giang_lao_snow = Vector3.new(1529.4, 143.6, -348.4), npc_phoenix = Vector3.new(1385, 11.7, -513.7), npc_raid_ticket = Vector3.new(1395.4, 27.6, -280.7), npc_rod_shop = Vector3.new(1331.6, 28.5, -330.1), npc_unlock_island_4 = Vector3.new(1239.5, 9.7, -322.6)}, island_volcano = {npc_azure_dragon = Vector3.new(2118.3, 121.9, 1295.5), npc_bamboo_rod = Vector3.new(1945.3, 18.9, 1295.6), npc_car_merchant = Vector3.new(1772.5, 9.2, 1069.3), npc_crimson_bead_rod = Vector3.new(1840.8, 9.8, 1101.2), npc_daily_quest = Vector3.new(1951.7, 9.6, 1071.7), npc_duan_gan_volcano = Vector3.new(1847.4, 12.8, 1227.3), npc_fish_seller = Vector3.new(1929.2, 9.7, 1094.7), npc_unlock_island_5 = Vector3.new(1885.8, 12.2, 1067.6)}, island_fossil = {npc_car_merchant = Vector3.new(-543.2, 10.6, 2172.3), npc_daily_quest = Vector3.new(-663, 15.5, 2316.5), npc_dread_fish_rod = Vector3.new(-886.2, 243.7, 2467.4), npc_fei_tian_fossil = Vector3.new(-872.8, 17.1, 2171.2), npc_fish_seller = Vector3.new(-757.8, 19, 2345.2), npc_ha_dieu_de_fossil = Vector3.new(-675.7, 72.9, 2267.1), npc_supreme_king = Vector3.new(-603.8, 186.4, 2541.9), npc_unlock_island_6 = Vector3.new(-555.2, 9.4, 2230.8)}}
 
 	xf = function(id, il, a)
 		if xp[il] and xp[il][id] then return xp[il][id] end
@@ -971,7 +971,6 @@ do
 end
 
 local function xn(f, tg, lo)
-	if not wb.on then return false end
 	local id, si = ic(), (pd() or {}).SpawnIsland
 	if id ~= "" and si == id then return true end
 	if id ~= "" and ul(id) then
@@ -984,6 +983,25 @@ local function xn(f, tg, lo)
 	end
 	zx(`[Hop] {tg} Skipped: Spawn {(pd() or {}).SpawnIsland or "?"} On {ic() ~= "" and ic() or "Sea"}`)
 	return false
+end
+
+local function xj(f, c, np, ni)
+	local function ld()
+		local q = ns(ni, np)
+		return q ~= nil and (q - np).Magnitude < 40
+	end
+	local _, r = lc()
+	if not r or ld() then return f.st == "Running" end
+	local sp = aq(c, np, r.Position)
+	local d, t0 = (sp - r.Position).Magnitude, os.clock()
+	local j = mo(sp, 30, Vector3.new(np.X - sp.X, 0, np.Z - sp.Z).Unit)
+	if not j then return f.st == "Running" end
+	zx(`[Hop] {ni} Not Loaded, Flying | {math.floor(d)} Studs`)
+	repeat task.wait(0.1) until ld() or j.st ~= "Moving" or f.st ~= "Running" or os.clock() > t0 + d / 30 + 5
+	j:Stop()
+	local _, r2 = lc()
+	zx(`[Hop] {ni} {ld() and "Loaded" or "Not Loaded"} After {math.floor((os.clock() - t0) * 10) / 10} s | {r2 and math.floor((r2.Position - np).Magnitude) or "?"} Studs Left`)
+	return f.st == "Running"
 end
 
 local function xh(c, np, sp)
@@ -1042,7 +1060,7 @@ local function xe(h, ok, tg)
 end
 
 xs = function(f, c, np, o)
-	if not xn(f, "Sell") then return false end
+	if not xn(f, "Sell") or not xj(f, c, np, "npc_fish_seller") then return false end
 	local h = xh(c, np, aq(c, np, o.Position))
 	if not h then return false end
 	local sc = rv.SellController
@@ -1061,7 +1079,7 @@ end
 
 local function wn(f, tp, tg)
 	local _, r = lc()
-	if not (wb.on and r) then return nil end
+	if not r then return nil end
 	local bu, bd = nil, math.huge
 	for id, p in wz do
 		local d = ((p - tp) * Vector3.new(1, 0, 1)).Magnitude
@@ -1080,7 +1098,7 @@ local function ti(f, id, k)
 	if we then f.nq = {Title = "Teleport", Text = `{we}, Sailing`} end
 	if not ul(id) and (wz[id] or rg(id)) then wn(f, wz[id] or rg(id), id) end
 	if f.st ~= "Running" then return nil end
-	zx(`[Travel] Sail {ic() ~= "" and ic() or "Sea"} -> {id}{we and ` | Warp: {we}` or not wb.on and " | Instant Teleport Off" or not ul(id) and " | Island Locked" or ""}`)
+	zx(`[Travel] Sail {ic() ~= "" and ic() or "Sea"} -> {id}{we and ` | Warp: {we}` or not ul(id) and " | Island Locked" or ""}`)
 	local function fx(x)
 		zx(`[Travel] Sail To {id} Failed: {x or "Stopped"}`)
 		return nil, x
@@ -1747,7 +1765,7 @@ local function uz(f, q, ac, hp)
 			xr(hp, f, function()
 				a, m = qr:Accept(q[1])
 				local l3 = tostring(m or ""):lower()
-				return a == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range"))
+				return a == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range") or l3:find("talk to"))
 			end)
 		else
 			a, m = qr:Accept(q[1])
@@ -1796,7 +1814,7 @@ local function uz(f, q, ac, hp)
 		xr(hp, f, function()
 			cp, m = qr:Complete(q[1])
 			local l3 = tostring(m or ""):lower()
-			return cp == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range"))
+			return cp == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range") or l3:find("talk to"))
 		end)
 	else
 		cp, m = qr:Complete(q[1])
@@ -1848,6 +1866,7 @@ local function ug(f, q, ac)
 	local c, rt = lc()
 	if not rt then return nil, "No Character" end
 	if hp then
+		if not xj(f, c, np, ni) then return nil end
 		local h = xh(c, np)
 		if not h then return nil, "No Character" end
 		local s, a, b = pcall(uz, f, q, ac, h)
@@ -2166,12 +2185,13 @@ local function dy(f)
 	if not rt then return nil, "No Character" end
 	local ak, m
 	if hp then
+		if not xj(f, c, np, "npc_daily_quest") then return true end
 		local h = xh(c, np)
 		if not h then return nil, "No Character" end
 		local s, a = pcall(xr, h, f, function()
 			ak, m = rv.QuestController:AcceptDaily()
 			local l3 = tostring(m or ""):lower()
-			return ak == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range"))
+			return ak == true or not (l3:find("far") or l3:find("near") or l3:find("close") or l3:find("range") or l3:find("talk to"))
 		end)
 		if not s then ak, m = false, `Hop Error {a}` end
 		xe(h, ak == true, "Daily")
@@ -2461,6 +2481,11 @@ local function ss(f)
 		fc.FishLootConfirm:Fire()
 		fc.FishCancel:Fire()
 		task.wait(1)
+	end
+	if f.ir and f.rss and s.rr == "Swimming" then
+		table.insert(f.rbs, f.rss - Vector3.new(0, 3, 0))
+		zx(`[Raid] Stand {zn(f.rss)}: Swimming, Marked Bad`)
+		f.rsk, f.rss = false, false
 	end
 	if f.ir and f.rsk and (s.rr == "RaidSpotTaken" or s.rr == "RaidNoSpot") then
 		zx(`[Raid] Fish Spot {f.rsk}: {s.rr}, Trying Another`)
@@ -3680,7 +3705,7 @@ local function fs()
 		local dl = os.clock() + 5
 		repeat task.wait(0.1) until o.dn or os.clock() > dl
 	end
-	local f = {st = "Running", s = {cd = {}, sw = 0, bs = 0, rt = 0}, cs = {}, c = 0, rp = true, dn = false, bu = false, qx = {}, qw = {}, nq = false, zv = {sh = ""}, rx = 0, tx = 0, fx = 0, lx = 0, ry = 0, ir = false, rt = {}, rsk = false, rss = false, rcs = false}
+	local f = {st = "Running", s = {cd = {}, sw = 0, bs = 0, rt = 0}, cs = {}, c = 0, rp = true, dn = false, bu = false, qx = {}, qw = {}, nq = false, zv = {sh = ""}, rx = 0, tx = 0, fx = 0, lx = 0, ry = 0, ir = false, rt = {}, rsk = false, rss = false, rcs = false, rbs = {}}
 	function f.ao() return L.Flags.as == true end
 	function f.au() return L.Flags.au == true end
 	function f.qa() return L.Flags.qa == true or L.Flags.ka == true end
@@ -3714,7 +3739,16 @@ local function fs()
 	function f.ab() return L.Flags.ab == true end
 	function f.hf() return L.Flags.hf == true end
 	function f.dq() return L.Flags.dq == true end
-	function f.rn() return L.Flags.rw == true end
+	function f.rn()
+		if L.Flags.rw == true then return true end
+		if L.Flags.ka ~= true then return false end
+		local q, d = f.qs(), pd()
+		local c4 = q and ((d.Quest or {}).Current or {}).Id == q[1] and (md("Data", "Config", "QuestConfig").Data or {})[q[1]] or {}
+		for _, x in c4.drops or {} do
+			if x.fishId == "celestial_rainbow" and md("Shared", "getItemCount")(d, x.itemId) < ((c4.items or {})[x.itemId] or 1) then return true end
+		end
+		return false
+	end
 	function f.tk() return L.Flags.tk == true end
 	function f.nv(il, ni, tg, fn, ux, tt)
 		local ok, e = ti(f, il, f.bk())
@@ -3741,16 +3775,16 @@ local function fs()
 		end
 		local c, rt = lc()
 		if not rt then return nil, "No Character" end
-		local st, m, r4 = nil, nil, md("Data", "Config", "RaidConfig")
-		local rd = table.find({r4.InteractiveIds.TicketNpc, r4.InteractiveIds.StartNpc, r4.InteractiveIds.SecretNpc}, ni) and r4.NpcRadius or nil
+		local st, m
 		if hp then
-			local h = xh(c, np, aq(c, np, rt.Position, rd))
+			if not xj(f, c, np, ni) then return nil end
+			local h = xh(c, np, aq(c, np, rt.Position))
 			if not h then return nil, "No Character" end
 			local sk2, _, a, b = pcall(xr, h, f, fn)
 			st, m = sk2 and a or nil, sk2 and b or nil
 			xe(h, st == 0 or st == true, tg)
 		else
-			ok, e = an(f, c, np, rt.Position, rd)
+			ok, e = an(f, c, np, rt.Position)
 			if not ok then return nil, e or f.st == "Running" and "Move Failed" or nil end
 			if f.st ~= "Running" then return nil end
 			_, st, m = fn()
@@ -3931,11 +3965,11 @@ local function fs()
 				c, r = lc()
 				if not r then return nil, "No Character" end
 			end
-			if (g[2] - r.Position).Magnitude > cf.NpcRadius then
+			if (g[2] - r.Position).Magnitude > 10 then
 				lg(`Going To Raid Guide {nk and `Island {nk}` or "Claim"} | {math.floor((g[2] - r.Position).Magnitude)} Studs`)
 				local i3 = RaycastParams.new()
 				i3.FilterType, i3.FilterDescendantsInstances, i3.RespectCanCollide = Enum.RaycastFilterType.Exclude, {c, workspace:FindFirstChild("Cars"), workspace:FindFirstChild("Ocean")}, true
-				local ok, e = go(f, aq(c, g[2], r.Position, cf.NpcRadius, i3), Vector3.new(g[2].X - r.Position.X, 0, g[2].Z - r.Position.Z).Unit)
+				local ok, e = go(f, aq(c, g[2], r.Position, 10, i3), Vector3.new(g[2].X - r.Position.X, 0, g[2].Z - r.Position.Z).Unit)
 				if not ok then return nil, e or "Move Failed" end
 			end
 			local s2 = (ph == en.Phase.Won and rp.Claim or rp.StartIsland):Fire()
@@ -3973,11 +4007,22 @@ local function fs()
 			local ip = RaycastParams.new()
 			ip.FilterType, ip.FilterDescendantsInstances, ip.RespectCanCollide = Enum.RaycastFilterType.Exclude, {c, workspace:FindFirstChild("Cars"), workspace:FindFirstChild("Ocean")}, true
 			local gp
+			local function fl3(h)
+				if not (h and h.Material ~= Enum.Material.Water and h.Position.Y > q0.Y + 1 and h.Normal.Y > 0.8) then return false end
+				for _, b in f.rbs do
+					if ((b - h.Position) * Vector3.new(1, 0, 1)).Magnitude < 5 then return false end
+				end
+				for _, o in {Vector3.new(1.5, 0, 0), Vector3.new(-1.5, 0, 0), Vector3.new(0, 0, 1.5), Vector3.new(0, 0, -1.5)} do
+					local h2 = workspace:Raycast(h.Position + o + Vector3.new(0, 5, 0), Vector3.new(0, -10, 0), ip)
+					if not (h2 and math.abs(h2.Position.Y - h.Position.Y) < 1 and h2.Normal.Y > 0.7) then return false end
+				end
+				return true
+			end
 			for rr = 12, 72, 6 do
 				for i = 0, 31 do
 					local a = i * math.pi / 16
 					local h = not gp and workspace:Raycast(q0 + Vector3.new(math.cos(a) * rr, 100, math.sin(a) * rr), Vector3.new(0, -200, 0), ip)
-					if h and h.Material ~= Enum.Material.Water and h.Position.Y > q0.Y + 1 then gp = h.Position + Vector3.new(0, 3, 0) end
+					if not gp and fl3(h) then gp = h.Position + Vector3.new(0, 3, 0) end
 				end
 			end
 			local hv2 = not gp
@@ -4371,6 +4416,7 @@ local nz, nl, nj = {
 	{"Boat Merchant - Desert Island", "npc_car_merchant", "island_desert"},
 	{"Daily Quests - Desert Island", "npc_daily_quest", "island_desert"},
 	{"White Tiger Guardian", "npc_white_tiger", "island_desert"},
+	{"Sage Yijiu", "npc_sage_yijiu", "island_desert"},
 	{"Snow Island Guide", "npc_unlock_island_4", "island_snow"},
 	{"Fish Merchant - Snow Island", "npc_fish_seller", "island_snow"},
 	{"Rod Merchant - Snow Island", "npc_rod_shop", "island_snow"},
@@ -4378,6 +4424,7 @@ local nz, nl, nj = {
 	{"Daily Quests - Snow Island", "npc_daily_quest", "island_snow"},
 	{"Phoenix Guardian", "npc_phoenix", "island_snow"},
 	{"Taiji Master", "npc_giang_lao_snow", "island_snow"},
+	{"Ticket Keeper", "npc_raid_ticket", "island_snow"},
 	{"Volcanic Island Guide", "npc_unlock_island_5", "island_volcano"},
 	{"Fish Merchant - Volcanic Island", "npc_fish_seller", "island_volcano"},
 	{"Boat Merchant - Volcanic Island", "npc_car_merchant", "island_volcano"},
@@ -4385,8 +4432,10 @@ local nz, nl, nj = {
 	{"Crimson Bead Craftsman", "npc_crimson_bead_rod", "island_volcano"},
 	{"Bamboo Rod Craftsman", "npc_bamboo_rod", "island_volcano"},
 	{"Azure Dragon Guardian", "npc_azure_dragon", "island_volcano"},
+	{"Duan Gan", "npc_duan_gan_volcano", "island_volcano"},
 	{"Fossil Island Guide", "npc_unlock_island_6", "island_fossil"},
 	{"Fish Merchant - Fossil Island", "npc_fish_seller", "island_fossil"},
+	{"Boat Merchant - Fossil Island", "npc_car_merchant", "island_fossil"},
 	{"Daily Quests - Fossil Island", "npc_daily_quest", "island_fossil"},
 	{"Heaven Piercer Craftsman", "npc_ha_dieu_de_fossil", "island_fossil"},
 	{"Zen Staff Craftsman", "npc_fei_tian_fossil", "island_fossil"},
@@ -4396,6 +4445,10 @@ local nz, nl, nj = {
 	{"Fish Merchant - Lotus Island", "npc_fish_seller", "island_lotus"},
 	{"Boat Merchant - Lotus Island", "npc_car_merchant", "island_lotus"},
 	{"Daily Quests - Lotus Island", "npc_daily_quest", "island_lotus"},
+	{"Skill Master - Lotus Island", "npc_gacha_book", "island_lotus"},
+	{"Auras Dealer - Lotus Island", "npc_gacha_aura", "island_lotus"},
+	{"Unit Summoner - Lotus Island", "npc_gacha_unit", "island_lotus"},
+	{"Skill Market - Lotus Island", "npc_premium_skill", "island_lotus"},
 	{"Chu Xin - Rod Quests", "npc_chu_xin_rod", "island_lotus"},
 	{"Lotus Rod Forger", "npc_lotus_rod_forge", "island_lotus"},
 	{"Rainbow Bait Crafter", "npc_rainbow_bait_crafter", "island_lotus"},
@@ -4412,7 +4465,8 @@ local function ne(v)
 	if not fo then return nil end
 	for _, x in game:GetService("CollectionService"):GetTagged("Interactive") do
 		if x:GetAttribute("InteractiveId") == v[2] and x:IsDescendantOf(fo) then
-			return x:IsA("Model") and x:GetPivot().Position or x:IsA("BasePart") and x.Position or nil
+			local pa = (x:FindFirstChildWhichIsA("ProximityPrompt", true) or {}).Parent
+			return pa and (pa:IsA("BasePart") and pa.Position or pa:IsA("Attachment") and pa.WorldPosition) or x:IsA("Model") and x:GetPivot().Position or x:IsA("BasePart") and x.Position or nil
 		end
 	end
 	return nil
@@ -4810,6 +4864,7 @@ local function ru(j, id, il)
 	if not rt then return nil, "No Character" end
 	local sp, r = aq(c, np, rt.Position), nil
 	if hp then
+		if not xj(j, c, np, "npc_rod_shop") then return nil end
 		local h = xh(c, np, sp)
 		if not h then return nil, "No Character" end
 		local s, a = pcall(xr, h, j, function()
@@ -4928,10 +4983,9 @@ ft = gt:Toggle({Name = "Auto Fish", Flag = "af", Callback = function(v)
 	end
 end})
 gt:Toggle({Name = "Auto Boss", Flag = "ab"})
-gt:Toggle({Name = "Auto Rainbow Boss", Flag = "rw"})
 
 do
-	local qq, qb, kz = {}, {qa = "Auto Rod Quest", ka = "Auto Skill Quest", au = "Auto Unlock Island", dq = "Auto Daily Quest", ya = "Auto Soul Quest"}, {}
+	local qq, qb, kz = {}, {qa = "Auto Rod Quest", ka = "Auto Skill Quest", au = "Auto Unlock Island", dq = "Auto Daily Quest", ya = "Auto Soul Quest", tk = "Auto Raid", rw = "Auto Rainbow Boss", fg = "Auto Rod Forge"}, {}
 	for _, q in qt do
 		if q[12] or q[13] then table.insert(kz, q[4]) end
 	end
@@ -4942,7 +4996,7 @@ do
 				for x, t in qq do
 					if x ~= k and L.Flags[x] == true then
 						t:Set(false)
-						gw:Notify({Title = "Auto Fish", Text = `{qb[x]} Turned Off: One Quest Mode At A Time`})
+						gw:Notify({Title = "Auto Fish", Text = `{qb[x]} Turned Off: One Mode At A Time`})
 					end
 				end
 			end)
@@ -4951,10 +5005,11 @@ do
 	gt:Section({Name = "Quest"})
 	qq.au = gt:Toggle({Name = "Auto Unlock Island", Flag = "au", Callback = qo("au")})
 	qq.dq = gt:Toggle({Name = "Auto Daily Quest", Flag = "dq", Callback = qo("dq")})
+	qq.rw = gt:Toggle({Name = "Auto Rainbow Boss", Flag = "rw", Callback = qo("rw")})
 
 	gt:Section({Name = "Raid"})
 	gt:Dropdown({Name = "Select Raid", Options = {"Solo", "With Friends", "Anyone"}, Default = "Solo", Flag = "rt"})
-	gt:Toggle({Name = "Auto Raid", Flag = "tk"})
+	qq.tk = gt:Toggle({Name = "Auto Raid", Flag = "tk", Callback = qo("tk")})
 
 	gt:Section({Name = "Rod"})
 	gt:Dropdown({Name = "Select Rod Quest", Options = qz, Flag = "qs"})
@@ -4967,6 +5022,10 @@ do
 	gt:Section({Name = "Soul"})
 	gt:Dropdown({Name = "Select Soul Quest", Options = qgz, Default = {}, Multi = true, Flag = "ys"})
 	qq.ya = gt:Toggle({Name = "Auto Soul Quest", Flag = "ya", Callback = qo("ya")})
+
+	gt:Section({Name = "Rod Forge"})
+	gt:Dropdown({Name = "Select Forge Mode", Options = {"Forge Chain", "Reforge V1 To Perfect"}, Default = "Forge Chain", Flag = "fm"})
+	qq.fg = gt:Toggle({Name = "Auto Rod Forge", Flag = "fg", Callback = qo("fg")})
 end
 
 gt:Section({Name = "Sell"})
@@ -5023,9 +5082,6 @@ rk = tq:Toggle({Name = "Auto Buy Rod", Flag = "rb", Callback = function(v)
 		end)
 	elseif ge.__FmR then ge.__FmR.st = "Stopped" end
 end})
-tq:Section({Name = "Rod Forge"})
-tq:Dropdown({Name = "Select Forge Mode", Options = {"Forge Chain", "Reforge V1 To Perfect"}, Default = "Forge Chain", Flag = "fm"})
-tq:Toggle({Name = "Auto Rod Forge", Flag = "fg"})
 
 local tl = gw:Tab({Name = "Teleport", Icon = "person-teleport"})
 tl:Section({Name = "Island"})
@@ -5050,6 +5106,38 @@ nk = tl:Toggle({Name = "Teleport To NPC", Flag = "tv", Callback = function(v)
 		end)
 	elseif ge.__FmT then ge.__FmT.st = "Stopped" end
 end})
+tl:Section({Name = "Server"})
+do
+	local hb = false
+	local function vh(lw)
+		if hb then
+			gw:Notify({Title = "Server", Text = "Hop Failed: Already Hopping"})
+			return
+		end
+		hb = true
+		local ok, r = pcall(function() return hs:JSONDecode((game :: any):HttpGet(`https://games.roblox.com/v1/games/{game.PlaceId}/servers/Public?sortOrder={lw and "Asc" or "Desc"}&limit=100`)) end)
+		local o, e = {}, nil
+		for _, s in ok and type(r) == "table" and type(r.data) == "table" and r.data or {} do
+			if type(s) == "table" and type(s.id) == "string" and s.id ~= game.JobId and tonumber(s.playing) and tonumber(s.maxPlayers) and s.playing < s.maxPlayers - 1 then table.insert(o, s) end
+		end
+		if not (ok and type(r) == "table" and type(r.data) == "table") then e = "Hop Failed: Server List"
+		elseif #o == 0 then e = "Hop Failed: No Server"
+		else
+			if lw then table.sort(o, function(a, b) return a.playing < b.playing end) end
+			local s = lw and o[1] or o[math.random(1, #o)]
+			local tp = game:GetService("TeleportService")
+			zy.hp = os.clock()
+			zx(`[Server] Hop{lw and " Low" or ""} From {game.JobId:sub(1, 8)} To {s.id:sub(1, 8)} | {s.playing}/{s.maxPlayers} Players`, true)
+			local tk, te = pcall(tp.TeleportToPlaceInstance, tp, game.PlaceId, s.id, lp)
+			if tk then task.wait(15) end
+			e = tk and "Hop Failed: Teleport Timeout" or `Hop Failed: {te}`
+		end
+		hb = false
+		gw:Notify({Title = "Server", Text = e})
+	end
+	tl:Button({Name = "Hop Server", Callback = function() task.spawn(vh, false) end})
+	tl:Button({Name = "Hop Low Server", Callback = function() task.spawn(vh, true) end})
+end
 
 local ez, eo = {cs = {}, o = {}, w = {}}, nil
 do
@@ -5252,7 +5340,7 @@ local function zp()
 	return true
 end
 
-local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Instant Teleport"] = "Dịch Chuyển Tức Thì", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS"}
+local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS"}
 local function lgp()
 	for _, T in gw.Tabs do
 		if T.Name == "Status" then continue end
@@ -5272,7 +5360,6 @@ ts:Dropdown({Name = "Select Language", Options = {"Vietnamese", "English"}, Defa
 end})
 ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
-ts:Toggle({Name = "Instant Teleport", Default = true, Flag = "wb", Callback = function(v) wb.on = v == true end})
 ts:Toggle({Name = "Safe", Flag = "zy", Callback = function(v) zy.on = v == true end})
 ts:Toggle({Name = "Hidden Fishing", Flag = "hf"})
 local jr = false
@@ -5329,7 +5416,7 @@ end})
 lgp()
 gr = true
 do
-	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"rw", "Auto Rainbow Boss"}, {"tk", "Auto Raid"}, {"rt", "Select Raid"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"ks", "Skill Quest"}, {"ka", "Auto Skill Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"fm", "Forge Mode"}, {"fg", "Auto Rod Forge"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"wb", "Instant Teleport"}, {"zy", "Safe"}, {"hf", "Hidden Fishing"}, {"lg", "Language"}}
+	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"rw", "Auto Rainbow Boss"}, {"tk", "Auto Raid"}, {"rt", "Select Raid"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"ks", "Skill Quest"}, {"ka", "Auto Skill Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"fm", "Forge Mode"}, {"fg", "Auto Rod Forge"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"zy", "Safe"}, {"hf", "Hidden Fishing"}, {"lg", "Language"}}
 	ge.__FmCw = zc
 	task.spawn(function()
 		local lv, nx = {}, 0
