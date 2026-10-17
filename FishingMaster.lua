@@ -2039,10 +2039,12 @@ end
 
 local function ss(f)
 	local s, fc = f.s, rv.FishingController
-	local gq, gz = pcall(f.lo)
-	if not gq then
-		zx(`[Gear] Error: {gz}`)
-		f.lx = os.clock() + 60
+	if f.ag() then
+		local gq, gz = pcall(f.lo)
+		if not gq then
+			zx(`[Gear] Error: {gz}`)
+			f.lx = os.clock() + 60
+		end
 	end
 	local ks = sk()
 	if #ks == 0 then return "Auto Fish Failed: No Skill Equipped" end
@@ -3857,6 +3859,7 @@ local function fs()
 		return q0
 	end
 	function f.fg() return L.Flags.fg == true end
+	function f.ag() return L.Flags.ag == true end
 	function f.fy()
 		local d, cf = pd(), md("Data", "Config", "RodForgeConfig")
 		local rs3, tg3 = d.Rods or {}, nil
@@ -5150,7 +5153,7 @@ local function zp()
 	return true
 end
 
-local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS"}
+local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS", ["Send Log To Developer"] = "Gửi Log Cho Admin", ["Auto Gear"] = "Tự Động Trang Bị"}
 local function lgp()
 	for _, T in gw.Tabs do
 		if T.Name == "Status" then continue end
@@ -5172,6 +5175,7 @@ ts:Section({Name = "Game"})
 ts:Dropdown({Name = "Select Boat", Options = bn, Default = "Truck", Flag = "sb"})
 ts:Toggle({Name = "Safe", Flag = "zy", Callback = function(v) zy.on = v == true end})
 ts:Toggle({Name = "Hidden Fishing", Flag = "hf"})
+ts:Toggle({Name = "Auto Gear", Default = true, Flag = "ag"})
 local jr = false
 pcall(function() ge.__FmJ:Disconnect() end)
 local gv = game:GetService("GuiService") :: any
@@ -5223,10 +5227,42 @@ ts:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = zp()
 	gw:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e})
 end})
+ts:Section({Name = "Support"})
+do
+	local lt = 0
+	ts:Button({Name = "Send Log To Developer", Callback = function()
+		if os.clock() < lt then
+			gw:Notify({Title = "Support", Text = `Send Log Failed: Wait {math.ceil(lt - os.clock())} s`})
+			return
+		end
+		lt = os.clock() + 300
+		task.spawn(function()
+			local fp = `Avenoric/Configs/FishingMaster/{lp.Name}_Log.txt`
+			zx(`[Support] Send Log | {lp.Name} | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)}`, true)
+			local ok, e = pcall(function()
+				local rq = ge.request or ge.http_request or (type(ge.http) == "table" and ge.http.request)
+				if type(rq) ~= "function" then error("No Request Function", 0) end
+				if not isfile(fp) then error("No Log File", 0) end
+				local s = readfile(fp)
+				local cu = #s > 8e6
+				if cu then s = s:sub(-8e6) end
+				local ex = identifyexecutor and select(2, pcall(identifyexecutor)) or "?"
+				local b = `FmLog{(hs:GenerateGUID(false):gsub("-", ""))}`
+				local pj = hs:JSONEncode({content = `**{lp.Name}** ({lp.UserId}) | Place {game.PlaceVersion} | Server {game.JobId} | {tostring(ex)}{cu and " | Last 8 MB" or ""}`, allowed_mentions = {parse = {}}})
+				local r = rq({Url = "https://discord.com/api/webhooks/1561015132455436318/6NjxnMIKb7-s5KtlU1IIwHvtyTa2YtQlOzwtMg8w-jKxWTzhbRwvrw4CjFV6b3FGBZG6?wait=true", Method = "POST", Headers = {["Content-Type"] = `multipart/form-data; boundary={b}`}, Body = `--{b}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n{pj}\r\n--{b}\r\nContent-Disposition: form-data; name="files[0]"; filename="{lp.Name}_Log.txt"\r\nContent-Type: text/plain\r\n\r\n{s}\r\n--{b}--\r\n`})
+				local sc = type(r) == "table" and r.StatusCode
+				if sc ~= 200 and sc ~= 204 then error(`Http {sc or "No Response"}`, 0) end
+			end)
+			zx(ok and "[Support] Log Sent" or `[Support] Send Log Failed: {e}`, true)
+			if not ok then lt = os.clock() + 10 end
+			gw:Notify({Title = "Support", Text = ok and "Log Sent To Developer" or `Send Log Failed: {e} ({fp})`})
+		end)
+	end})
+end
 lgp()
 gr = true
 do
-	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"rw", "Auto Rainbow Boss"}, {"tk", "Auto Raid"}, {"rt", "Select Raid"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"ks", "Skill Quest"}, {"ka", "Auto Skill Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"fm", "Forge Mode"}, {"fg", "Auto Rod Forge"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"zy", "Safe"}, {"hf", "Hidden Fishing"}, {"lg", "Language"}}
+	local zc, fn = {}, {{"af", "Auto Fish"}, {"ab", "Auto Boss"}, {"rw", "Auto Rainbow Boss"}, {"tk", "Auto Raid"}, {"rt", "Select Raid"}, {"fi", "Farm Island"}, {"qs", "Rod Quest"}, {"qa", "Auto Rod Quest"}, {"ks", "Skill Quest"}, {"ka", "Auto Skill Quest"}, {"au", "Auto Unlock Island"}, {"dq", "Auto Daily Quest"}, {"ys", "Soul Quest"}, {"ya", "Auto Soul Quest"}, {"sr", "Sell Rarity"}, {"as", "Auto Sell"}, {"ur", "Unit Delete Rarity"}, {"ua", "Auto Delete Unit"}, {"xr", "Aura Delete Rarity"}, {"xa", "Auto Delete Aura"}, {"gk", "Gacha"}, {"gr", "Roll"}, {"gs", "Auto Roll"}, {"mm", "Market Skills"}, {"ma", "Auto Buy Skill Market"}, {"rd", "Rod"}, {"rb", "Auto Buy Rod"}, {"fm", "Forge Mode"}, {"fg", "Auto Rod Forge"}, {"si", "Island"}, {"ai", "Auto Island"}, {"sv", "NPC"}, {"tv", "Teleport To NPC"}, {"es", "Rod Skin"}, {"ea", "Aura"}, {"sb", "Boat"}, {"zy", "Safe"}, {"hf", "Hidden Fishing"}, {"ag", "Auto Gear"}, {"lg", "Language"}}
 	ge.__FmCw = zc
 	task.spawn(function()
 		local lv, nx = {}, 0
