@@ -5155,7 +5155,7 @@ local function zp()
 	return true
 end
 
-local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS", ["Send Log To Developer"] = "Gửi Log Cho Admin", ["Auto Gear"] = "Tự Động Trang Bị", ["Instant Teleport"] = "Dịch Chuyển Tức Thì"}
+local lgd = {["Select Farm Island"] = "Chọn Đảo Câu", ["Auto Fish"] = "Tự Động Câu Cá", ["Auto Boss"] = "Tự Động Săn Boss", ["Auto Rainbow Boss"] = "Tự Động Boss Cầu Vồng", ["Auto Raid"] = "Tự Động Raid", ["Select Raid"] = "Chọn Raid", ["Select Forge Mode"] = "Chọn Kiểu Rèn", ["Auto Rod Forge"] = "Tự Động Rèn Cần", ["Select Rod Quest"] = "Chọn Nhiệm Vụ Cần", ["Auto Rod Quest"] = "Tự Động Nhiệm Vụ Cần", ["Select Skill Quest"] = "Chọn Nhiệm Vụ Kỹ Năng", ["Auto Skill Quest"] = "Tự Động Nhiệm Vụ Kỹ Năng", ["Auto Unlock Island"] = "Tự Động Mở Khóa Đảo", ["Auto Daily Quest"] = "Tự Động Nhiệm Vụ Hằng Ngày", ["Select Soul Quest"] = "Chọn Nhiệm Vụ Tộc", ["Auto Soul Quest"] = "Tự Động Nhiệm Vụ Tộc", ["Sell Rarity"] = "Độ Hiếm Cần Bán", ["Auto Sell"] = "Tự Động Bán", ["Delete Rarity"] = "Độ Hiếm Cần Xóa", ["Auto Delete Unit"] = "Tự Động Xóa Unit", ["Auto Delete Aura"] = "Tự Động Xóa Aura", ["Select Gacha"] = "Chọn Gacha", ["Select Roll"] = "Chọn Số Lượt Quay", ["Auto Roll"] = "Tự Động Quay", ["Select Skills"] = "Chọn Kỹ Năng", ["Auto Buy Skill Market"] = "Tự Động Mua Skill Market", ["Select Rod"] = "Chọn Cần Câu", ["Auto Buy Rod"] = "Tự Động Mua Cần", ["Select Island"] = "Chọn Đảo", ["Auto Island"] = "Tự Động Tới Đảo", ["Select NPC"] = "Chọn NPC", ["Teleport To NPC"] = "Dịch Chuyển Tới NPC", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["Rod Skin"] = "Skin Cần Câu", ["Aura"] = "Aura", ["Select Language"] = "Chọn Ngôn Ngữ", ["Select Boat"] = "Chọn Thuyền", ["Safe"] = "An Toàn", ["Hidden Fishing"] = "Câu Cá Ẩn", ["FPS Booster"] = "Tăng FPS", ["Send Log To Developer"] = "Gửi Log Cho Admin", ["Describe The Problem"] = "Mô Tả Lỗi", ["Auto Gear"] = "Tự Động Trang Bị", ["Instant Teleport"] = "Dịch Chuyển Tức Thì"}
 local function lgp()
 	for _, T in gw.Tabs do
 		if T.Name == "Status" then continue end
@@ -5232,16 +5232,21 @@ ts:Button({Name = "FPS Booster", Callback = function()
 end})
 ts:Section({Name = "Support"})
 do
-	local lt = 0
+	local lt, rb = 0, ts:TextBox({Name = "Describe The Problem", Placeholder = "What Went Wrong?"})
 	ts:Button({Name = "Send Log To Developer", Callback = function()
 		if os.clock() < lt then
 			gw:Notify({Title = "Support", Text = `Send Log Failed: Wait {math.ceil(lt - os.clock())} s`})
 			return
 		end
+		local rs = (tostring(rb:Get() or ""):gsub("^%s+", ""):gsub("%s+$", "")):sub(1, 500)
+		if rs == "" then
+			gw:Notify({Title = "Support", Text = "Send Log Failed: Describe The Problem First"})
+			return
+		end
 		lt = os.clock() + 300
 		task.spawn(function()
 			local fp = `Avenoric/Configs/FishingMaster/{lp.Name}_Log.txt`
-			zx(`[Support] Send Log | {lp.Name} | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)}`, true)
+			zx(`[Support] Send Log | {lp.Name} | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)} | Problem: {rs}`, true)
 			local ok, e = pcall(function()
 				local rq = ge.request or ge.http_request or (type(ge.http) == "table" and ge.http.request)
 				if type(rq) ~= "function" then error("No Request Function", 0) end
@@ -5251,13 +5256,13 @@ do
 				if cu then s = s:sub(-8e6) end
 				local ex = identifyexecutor and select(2, pcall(identifyexecutor)) or "?"
 				local b = `FmLog{(hs:GenerateGUID(false):gsub("-", ""))}`
-				local pj = hs:JSONEncode({content = `**{lp.Name}** ({lp.UserId}) | Place {game.PlaceVersion} | Server {game.JobId} | {tostring(ex)}{cu and " | Last 8 MB" or ""}`, allowed_mentions = {parse = {}}})
+				local pj = hs:JSONEncode({content = `**{lp.Name}** ({lp.UserId}) | Place {game.PlaceVersion} | Server {game.JobId} | {tostring(ex)}{cu and " | Last 8 MB" or ""}\nProblem: {rs}`, allowed_mentions = {parse = {}}})
 				local r = rq({Url = "https://discord.com/api/webhooks/1561015132455436318/6NjxnMIKb7-s5KtlU1IIwHvtyTa2YtQlOzwtMg8w-jKxWTzhbRwvrw4CjFV6b3FGBZG6?wait=true", Method = "POST", Headers = {["Content-Type"] = `multipart/form-data; boundary={b}`}, Body = `--{b}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n{pj}\r\n--{b}\r\nContent-Disposition: form-data; name="files[0]"; filename="{lp.Name}_Log.txt"\r\nContent-Type: text/plain\r\n\r\n{s}\r\n--{b}--\r\n`})
 				local sc = type(r) == "table" and r.StatusCode
 				if sc ~= 200 and sc ~= 204 then error(`Http {sc or "No Response"}`, 0) end
 			end)
 			zx(ok and "[Support] Log Sent" or `[Support] Send Log Failed: {e}`, true)
-			if not ok then lt = os.clock() + 10 end
+			if ok then rb:Set("") else lt = os.clock() + 10 end
 			gw:Notify({Title = "Support", Text = ok and "Log Sent To Developer" or `Send Log Failed: {e} ({fp})`})
 		end)
 	end})
