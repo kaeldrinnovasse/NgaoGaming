@@ -1009,7 +1009,7 @@ local function xh(c, np, sp)
 	if not r then return nil end
 	if cj then cj:Stop() end
 	sp = sp or aq(c, np, r.Position)
-	local h = {r = r, sp = sp, np = np, t0 = os.clock(), n = 0, cf = CFrame.new(r.Position + Vector3.new(0, 1000, 0))}
+	local h = {r = r, c = c, sp = sp, np = np, t0 = os.clock(), n = 0, cf = CFrame.new(r.Position + Vector3.new(0, 1000, 0))}
 	task.spawn(sq, np, 10)
 	wc(true)
 	h.hb = game:GetService("RunService").Heartbeat:Connect(function()
@@ -1024,6 +1024,7 @@ end
 
 local function xr(h, j, fn)
 	local a, b, d
+	local function al() return h.r:IsDescendantOf(workspace) and lp.Character == h.c end
 	while true do
 		h.n += 1
 		local dl = os.clock() + 3.5
@@ -1031,8 +1032,9 @@ local function xr(h, j, fn)
 			a, b, d = fn()
 			if a == true then return a, b, d end
 			task.wait(0.1)
-		until os.clock() > dl or not h.r.Parent
-		if j.st ~= "Running" or j.fq or not h.r.Parent then return a, b, d end
+		until os.clock() > dl or not al()
+		if not al() then zx(`[Hop] Character Reset | NPC {zn(h.np)} | Hop Stopped After {h.n} Hops`) end
+		if j.st ~= "Running" or j.fq or not al() then return a, b, d end
 		zx(`[Hop] Retry {h.n} | NPC {zn(h.np)} | Answer {tostring(a)} {tostring(b or "")}`)
 		h.cf = CFrame.new(h.sp.X, 1000, h.sp.Z)
 		task.wait(0.6)
@@ -2071,7 +2073,8 @@ local function lq(f)
 		return nil
 	end
 	local rn = type(ev) == "table" and ev.weather_rainbow_rain
-	local gt, wk = cq.Id == "" or pr.Step == 1 and n >= 10 or pr.Step == 2 and m >= 10 or pr.Step == 3, cq.Id == "unlock_island_7" and pr.Step == 1 and n < 10 and rn
+	if cq.Id == "" and not rn then zv(f, "lq", "norain", "[Lotus] Accept Waiting: No Rainbow Rain") end
+	local gt, wk = cq.Id == "" and rn or pr.Step == 1 and n >= 10 or pr.Step == 2 and m >= 10 or pr.Step == 3, cq.Id == "unlock_island_7" and pr.Step == 1 and n < 10 and rn
 	if wk and (pr.WeatherSlot ~= math.floor(rn.started_at or 0) or type(pr.SpawnIndex) ~= "number" or pr.SpawnIndex < 1) then
 		zv(f, "lq", `t{pr.WeatherSlot}{pr.SpawnIndex}{rn.started_at}`, `[Lotus] No Flower Target | Slot {pr.WeatherSlot} | Index {pr.SpawnIndex} | Rain {rn.started_at}`)
 		wk = false
@@ -2231,7 +2234,9 @@ local function ss(f)
 		return nil, rze
 	end
 	if rz == true then return nil end
-	if f.au() and not rz then
+	local ev = rv.EventController and rv.EventController._active_events
+	local lv = f.au() and not rz and type(ev) == "table" and ev.weather_rainbow_rain
+	if lv then
 		local u, ue = lq(f)
 		if u or ue then return nil, ue end
 	end
@@ -2263,6 +2268,10 @@ local function ss(f)
 		return nil
 	end
 	if not bp then
+		if f.au() and not lv then
+			local u, ue = lq(f)
+			if u or ue then return nil, ue end
+		end
 		for _, q in {f.au() and qn(f) or false, f.qa() and qp(f) or false, f.ya() and qy(f) or false} do
 			local u, ue = uq(f, q or nil)
 			if u or ue then return nil, ue end
@@ -5044,6 +5053,9 @@ local sql = tz:Label({Text = ktx})
 local ytx = `Yq{game:GetService("HttpService"):GenerateGUID(false)}`
 tz:Section({Name = "Soul Quest"})
 local yql = tz:Label({Text = ytx})
+tz:Section({Name = "Rod Forge"})
+local fql = {t = `Fq{game:GetService("HttpService"):GenerateGUID(false)}`}
+fql.l = tz:Label({Text = fql.t})
 tz:Section({Name = "Skill Market"})
 local kql = tz:Label({Text = "Loading..."})
 
@@ -5778,7 +5790,7 @@ local function iq()
 		o.on = false
 		pcall(function() o.sg:Destroy() end)
 	end
-	local tk, lb, rb, ylb, klb = {on = true}, nil, nil, nil, nil
+	local tk, lb, rb, ylb, klb, flb = {on = true}, nil, nil, nil, nil, nil
 	ge.__FmQ = tk
 	local ok0, hu = pcall(gethui)
 	for _, rt in {ok0 and hu or lp.PlayerGui, lp.PlayerGui} do
@@ -5787,6 +5799,7 @@ local function iq()
 			if x:IsA("TextLabel") and x.Text == rtx then rb = x end
 			if x:IsA("TextLabel") and x.Text == ytx then ylb = x end
 			if x:IsA("TextLabel") and x.Text == ktx then klb = x end
+			if x:IsA("TextLabel") and x.Text == fql.t then flb = x end
 		end
 		if lb then break end
 	end
@@ -5794,6 +5807,8 @@ local function iq()
 	if rb then rb.RichText = true end
 	if ylb then ylb.RichText = true end
 	if klb then klb.RichText = true end
+	if flb then flb.RichText = true end
+	fql.l:Set("Loading...")
 	iql:Set("Loading...")
 	rql:Set("Loading...")
 	yql:Set("Loading...")
@@ -5993,13 +6008,60 @@ local function iq()
 		end
 		return t
 	end
-	local function yr(r)
+	local function yr(r, l)
 		local t = {}
 		for _, v in r do
-			local x = v[4] and (ylb and `<b>{v[1]}</b>` or v[1]) or v[2] ~= nil and ylb and `<font color="#{v[2] and "78C882" or "D66A5E"}">{v[1]}</font>` or v[1]
-			table.insert(t, x .. (v[3] and (ylb and ` <font color="#96938C">- {v[3]}</font>` or ` - {v[3]}`) or ""))
+			local x = v[4] and (l and `<b>{v[1]}</b>` or v[1]) or v[2] ~= nil and l and `<font color="#{v[2] and "78C882" or "D66A5E"}">{v[1]}</font>` or v[1]
+			table.insert(t, x .. (v[3] and (l and ` <font color="#96938C">- {v[3]}</font>` or ` - {v[3]}`) or ""))
 		end
 		return table.concat(t, "\n")
+	end
+	local function fd()
+		local d, ct, cf = pd(), md("Data", "Catalog"), md("Data", "Config", "RodForgeConfig")
+		local rs, gf, rv1, hi, tg = d.Rods or {}, md("Shared", "Lib", "RodModifiers").GetForgedStats, L.Flags.fm == "Reforge V1 To Perfect", 0, nil
+		local function rn(id) return (ct.Rod.GetById(id) or {}).name or id end
+		for i, id in cf.Order do
+			if rs[id] ~= nil then hi = i end
+		end
+		local hs = hi > 0 and gf(cf.Order[hi], rs[cf.Order[hi]])
+		local t = {{`Owned: {hi > 0 and `{rn(cf.Order[hi])} ({hs and hs.quality or "?"})` or "None"}`}}
+		if rv1 then
+			local q1 = gf(cf.Order[1], rs[cf.Order[1]])
+			if not (q1 and q1.quality == cf.QualityNames[#cf.QualityNames]) then tg = cf.Order[1] end
+		else
+			tg = cf.Order[hi + 1]
+		end
+		if not tg then
+			table.insert(t, 1, {rv1 and `{rn(cf.Order[1])} Is Perfect` or "Rod Forge Chain Done", nil, nil, true})
+			return t
+		end
+		local rc, st = cf.Recipes[tg], md("Shared", "Lib", "RodForgeRules").GetStatus(d, tg) or {}
+		table.insert(t, 1, {`{rv1 and "Reforge" or "Next"}: {rn(tg)}{st.ready and " (Ready)" or ""}`, nil, nil, true})
+		table.insert(t, {`Lotus Island: {st.hasIsland7 and "Unlocked" or "Locked"}`, st.hasIsland7 == true, "Forge is on Lotus"})
+		if rc.previousRodId then table.insert(t, {`{rn(rc.previousRodId)}: {st.hasPreviousRod and "Owned" or "Missing"}`, st.hasPreviousRod == true, "Used up by the forge"}) end
+		local fi, jg, nr, nj = ((d.Inventory or {}).Fishes or {}), {}, {}, 0
+		for _, x in (ct.Island.GetById("island_jungle") or {}).fishes or {} do jg[x.fishId] = true end
+		for _, u in st.fishUids or {} do
+			local x = fi[u]
+			local fo = x and ct.Fish.GetById(x.fishId)
+			if fo then nr[fo.rarity] = (nr[fo.rarity] or 0) + 1 end
+			if x and jg[x.fishId] then nj += 1 end
+		end
+		local n = #(st.fishUids or {})
+		if rc.fishKind == "Rarities" then
+			for _, r in {"Common", "Uncommon", "Rare", "Epic", "Legendary"} do table.insert(t, {`{r} Fish: {nr[r] or 0} / 1`, (nr[r] or 0) >= 1, "Any island, unlocked"}) end
+		elseif rc.fishKind == "Island7Legendary" then
+			table.insert(t, {`Lotus Legendary Fish: {n} / {rc.fishCount}`, n >= rc.fishCount, "From Lotus Island, unlocked"})
+		elseif rc.fishKind == "Islands23Legendary" then
+			table.insert(t, {`Jungle Legendary Fish: {nj} / {rc.fishCount / 2}`, nj >= rc.fishCount / 2, "From Jungle Island, unlocked"})
+			table.insert(t, {`Desert Legendary Fish: {n - nj} / {rc.fishCount / 2}`, n - nj >= rc.fishCount / 2, "From Desert Island, unlocked"})
+		else
+			table.insert(t, {`Boss Fish: {n} / {rc.fishCount}`, n >= rc.fishCount, "Needs Auto Boss, unlocked"})
+		end
+		if rc.mythicalBookCount > 0 then table.insert(t, {`Mythical Book: {st.bookId and 1 or 0} / {rc.mythicalBookCount}`, st.bookId ~= nil, st.bookId and `{(ct.Skill.GetById(st.bookId) or {}).name or st.bookId} will be used up` or "Unequipped Mythical book"}) end
+		if rc.coinCost > 0 then table.insert(t, {`Coins: {nf(d.Coin or 0)} / {nf(rc.coinCost)}`, (d.Coin or 0) >= rc.coinCost}) end
+		if rc.gemCost > 0 then table.insert(t, {`Gems: {nf(d.Gem or 0)} / {nf(rc.gemCost)}`, (d.Gem or 0) >= rc.gemCost}) end
+		return t
 	end
 	local function kd()
 		local st, ct, t = game:GetService("ReplicatedStorage"):GetAttribute("SkillMarketStock"), md("Data", "Catalog"), {}
@@ -6026,7 +6088,9 @@ local function iq()
 		local ok5, r5 = cx(rd, "ks")
 		if ok5 then sql:Set(rs(r5, klb, "Skill")) end
 		local ok4, r4 = cx(yd)
-		if ok4 and r4 then yql:Set(yr(r4)) end
+		if ok4 and r4 then yql:Set(yr(r4, ylb)) end
+		local ok6, r6 = cx(fd)
+		if ok6 and r6 then fql.l:Set(yr(r6, flb)) end
 		local ok3, r3 = cx(kd)
 		if ok3 then kql:Set(r3) end
 		task.wait(1)
