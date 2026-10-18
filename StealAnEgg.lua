@@ -50,10 +50,10 @@ local function xl(m)
 	zx("[Load] " .. m, true)
 	pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Ngao - Gaming Hub", Text = m, Duration = 15}) end)
 end
-local es, ad, si, cy, rg, ai, er, sv, rm, hh, tq
+local es, ad, si, cy, rg, ai, er, sv, rm
 do
 	local o = {}
-	for i, p in {"Client.EggState", "Data.Assets", "Shared.Util.AreaEggSlotIdentity", "Shared.Util.AreaEggCycle", "Shared.Modules.Ragdoll", "Shared.Util.AssetItems", "Shared.Util.EggRecords", "Shared.Save", "Shared.Remotes", "Client.HiddenUIHandler", "Packages.TopBarPlus"} do
+	for i, p in {"Client.EggState", "Data.Assets", "Shared.Util.AreaEggSlotIdentity", "Shared.Util.AreaEggCycle", "Shared.Modules.Ragdoll", "Shared.Util.AssetItems", "Shared.Util.EggRecords", "Shared.Save", "Shared.Remotes"} do
 		local x = rs
 		for n in p:gmatch("[^%.]+") do x = x and x:WaitForChild(n, 60) end
 		local ok, m = x ~= nil, nil
@@ -61,7 +61,7 @@ do
 		if not ok or m == nil then xl((x and "Load Failed: Broken " or "Load Failed: Missing ") .. p) return end
 		o[i] = m
 	end
-	es, ad, si, cy, rg, ai, er, sv, rm, hh, tq = table.unpack(o, 1, 11)
+	es, ad, si, cy, rg, ai, er, sv, rm = table.unpack(o, 1, 9)
 end
 local dr = ad.Directory or ad
 do
@@ -89,7 +89,7 @@ if ge.__SaeAf then
 		if rawget(c, "GetMoveVector") then c.GetMoveVector = nil end
 	end)
 end
-local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, gx = false, gg = 0, lx = false, lb = false, tq = false, th = 0, tx = false, tb = false, rsh = 0, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gh = 5, gc = 0, ct = nil, sr = false, fz = false, qc = {}, mc = {}, me = {}, ft = 0, fb = nil, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}, ui = {}, ef = 0, hd = false, hm = false, hl = false, hg = 0, hb = false, hbl = {}, hk = 150, hr = 300, hw = 0.4, bsi = 0.6, bsq = 0, hpx = 0, hbt = 0, hx = false, ts = nil, gbd = 20, cs = nil, rtn = 0}
+local st ={on = false, g = 0, cn = {}, bl = {}, bk = {}, sl = {}, so = nil, sc = nil, n = 0, ms = "Idle", at = nil, h0 = nil, rz = 4, mr = {}, az = {}, wf = nil, wo = false, bx = false, fp = false, gr = false, gx = false, gg = 0, lx = false, lb = false, tq = false, th = 0, tx = false, tb = false, rsh = 0, pu = nil, dw = 0.3, pc = 0, ps = false, es = false, sp = {}, se = {}, pf = nil, fm = 1.15, gh = 5, gc = 0, ct = nil, sr = false, fz = false, hq = false, ta = {}, tc = {}, pi = false, bt = nil, tr = nil, uc = {}, uh = {}, uu = 0, bf = false, bo = false, bi = 0, ap = false, mq = 0, ah = false, hf = {}, ui = {}, ef = 0, hd = false, hm = false, hl = false, hg = 0, hb = false, hbl = {}, hk = 150, hr = 300, hw = 0.4, bsi = 0.6, bsq = 0, hpx = 0, hbt = 0, hx = false, ts = nil, gbd = 20, cs = nil, rtn = 0, hs = 264}
 ge.__SaeAf = st
 
 local function lg(s)
@@ -240,100 +240,6 @@ local function ul()
 	table.clear(st.sl)
 end
 
-local function qh(on)
-	local pg = lp:FindFirstChildOfClass("PlayerGui")
-	local oi, ic = pcall(tq.getIcon, "Settings")
-	if not oi or type(ic) ~= "table" then ic = nil end
-	if not on then
-		for _, c in st.qc do pcall(function() c:Disconnect() end) end
-		table.clear(st.qc)
-		for _, n in {"HUD", "BackpackGui"} do
-			local g = pg and pg:FindFirstChild(n)
-			if g and g:IsA("ScreenGui") and hh.IsHidden() then g.Enabled = false end
-		end
-		if ic and hh.IsHidden() then pcall(ic.setEnabled, ic, false) end
-		return
-	end
-	if #st.qc > 0 then return end
-	if ic then
-		local function fi()
-			task.defer(function()
-				if ge.__SaeAf == st and #st.qc > 0 and hh.IsHidden() and not ic.isEnabled then pcall(ic.setEnabled, ic, true) end
-			end)
-		end
-		local o, c = pcall(function() return hh.Changed:Connect(fi) end)
-		if o and c then st.qc[#st.qc + 1] = c end
-		fi()
-	end
-	if pg then
-		local oc = Color3.fromRGB(255, 175, 0)
-		st.qc[#st.qc + 1] = pg.DescendantAdded:Connect(function(d)
-			if d:IsA("Frame") and d.Parent and d.Parent.Name == "OverlayUI" and d.BackgroundColor3 == oc then d.Visible = false end
-		end)
-	end
-	for _, n in {"RunBackEffects", "DropHeldEgg", "AreaGui", "HUD", "BackpackGui"} do
-		local g = pg and pg:FindFirstChild(n)
-		if g and g:IsA("ScreenGui") then
-			local v = n == "HUD" or n == "BackpackGui"
-			local function f() if g.Enabled ~= v and (not v or hh.IsHidden()) then g.Enabled = v end end
-			f()
-			st.qc[#st.qc + 1] = g:GetPropertyChangedSignal("Enabled"):Connect(f)
-		end
-	end
-end
-
-local function sm(on)
-	if not on then
-		for _, c in st.mc do pcall(function() c:Disconnect() end) end
-		for _, e in st.me do pcall(function() e:Destroy() end) end
-		table.clear(st.mc)
-		table.clear(st.me)
-		return
-	end
-	if #st.mc > 0 then return end
-	local w = workspace:FindFirstChild("World")
-	local ga = w and w:FindFirstChild("Areas") and w.Areas:FindFirstChild("GuardAreas")
-	local mt2 = game:GetService("SoundService"):FindFirstChild("MusicTracks")
-	local cb = rs:FindFirstChild("Controllers") and rs.Controllers:FindFirstChild("Game") and rs.Controllers.Game:FindFirstChild("AreaEggsController")
-	cb = cb and cb:FindFirstChild("CarryRunBackEffects")
-	local gn = {AfterWakeSound = true, Detected = true, FootstepSound = true}
-	local function mu(s)
-		if not s:IsA("Sound") or s:FindFirstChild("SaeMute") then return end
-		local e = Instance.new("EqualizerSoundEffect")
-		e.Name, e.LowGain, e.MidGain, e.HighGain, e.Priority = "SaeMute", -80, -80, -80, 1000
-		e.Parent = s
-		st.me[#st.me + 1] = e
-	end
-	local function gs(d) if gn[d.Name] then mu(d) end end
-	if ga then
-		for _, d in ga:GetDescendants() do gs(d) end
-		st.mc[#st.mc + 1] = ga.DescendantAdded:Connect(gs)
-	end
-	if mt2 and mt2:FindFirstChild("ChaseMusic") then mu(mt2.ChaseMusic) end
-	if cb then
-		for _, d in cb:GetChildren() do mu(d) end
-		st.mc[#st.mc + 1] = cb.ChildAdded:Connect(mu)
-	end
-end
-
-local function fv()
-	local cm = workspace.CurrentCamera
-	if not cm then return end
-	st.ft = os.clock()
-	if st.fb then return end
-	local b = cm.FieldOfView
-	st.fb = b
-	local fc = cm:GetPropertyChangedSignal("FieldOfView"):Connect(function() if cm.FieldOfView ~= b then cm.FieldOfView = b end end)
-	pcall(ru.UnbindFromRenderStep, ru, "SaeFov")
-	ru:BindToRenderStep("SaeFov", Enum.RenderPriority.Last.Value, function()
-		cm.FieldOfView = b
-		if os.clock() - st.ft < 1.7 and ge.__SaeAf == st then return end
-		ru:UnbindFromRenderStep("SaeFov")
-		fc:Disconnect()
-		st.fb = nil
-	end)
-end
-
 local function aq(on)
 	if on and #st.tc > 0 then return end
 	for _, c in st.tc do pcall(function() c:Disconnect() end) end
@@ -401,8 +307,6 @@ end
 
 local function un()
 	ul()
-	qh(false)
-	sm(false)
 	fz(false)
 	local ch, o, c = lp.Character, st.so, st.sc
 	st.so, st.sc = nil, nil
@@ -538,13 +442,13 @@ local function hp(en, y, rq, ck, inc)
 		if not hr then return false, "Home Failed: Character Lost" end
 		if rq and not cr() then return false, "Home Failed: Egg Lost" end
 		fz(true)
-		local d = Vector3.new(en.X - hr.Position.X, 0, en.Z - hr.Position.Z)
-		if d.Magnitude <= 264 then
+		local d, k = Vector3.new(en.X - hr.Position.X, 0, en.Z - hr.Position.Z), rq and st.hs or 264
+		if d.Magnitude <= k then
 			hr.CFrame = CFrame.new(en) * hr.CFrame.Rotation
 			hr.AssemblyLinearVelocity = Vector3.zero
 			return true
 		end
-		local nx, nz = hr.Position.X + d.Unit.X * 264, hr.Position.Z + d.Unit.Z * 264
+		local nx, nz = hr.Position.X + d.Unit.X * k, hr.Position.Z + d.Unit.Z * k
 		local np = Vector3.new(nx, y or gy2(Vector3.new(nx, hr.Position.Y, nz), Vector3.zero, 60, inc), nz)
 		hr.CFrame = y and CFrame.new(np) * hr.CFrame.Rotation or CFrame.lookAt(np, np + d.Unit)
 		hr.AssemblyLinearVelocity = Vector3.zero
@@ -1041,8 +945,6 @@ local function lob(g)
 			task.wait(0.2)
 			continue
 		end
-		qh(true)
-		sm(true)
 		local r = ac()
 		if r then
 			st.on, st.sr = false, false
@@ -1214,7 +1116,6 @@ end
 
 local ok, c = pcall(function()
 	return es.FieldClaimed:Connect(function(a)
-		if st.on then fv() end
 		st.n += 1
 		print("[Sae] Claimed #" .. st.n .. " " .. tostring(type(a) == "table" and a.DisplayName or a))
 	end)
@@ -2445,7 +2346,13 @@ local function hdb(g)
 		if hin() then return false, "Exit Failed: Timeout" end
 		local t = os.clock()
 		repeat task.wait(0.2) until not tostring(lp:GetAttribute("HalloweenTransition") or ""):find(":cover:") or os.clock() - t > 10
-		task.wait(0.5)
+		t = os.clock()
+		repeat
+			task.wait(0.1)
+			local h2, hu = rt()
+		until not on() or os.clock() - t > 8 or (h2 and hu and hu.FloorMaterial ~= Enum.Material.Air and Vector3.new(h2.AssemblyLinearVelocity.X, 0, h2.AssemblyLinearVelocity.Z).Magnitude < 2)
+		if not on() then return false, "Stopped" end
+		task.wait(0.3)
 		if not own(true) then
 			st.bo, st.hb = false, false
 			return false, "Place Failed: Swap"
@@ -2591,7 +2498,7 @@ local function hdb(g)
 			cs2 = o6 and type(l6) == "table" and l6[1] or cs2
 			st.cs = cs2
 		end
-		return type(cs2) == "table" and (tonumber(rawget(cs2, "StartsAt")) or 0) >= nw - 900 and (rawget(cs2, "Phase") == "Completed" or (tonumber(rawget(cs2, "EndsAt")) or math.huge) < nw)
+		return type(cs2) == "table" and (tonumber(rawget(cs2, "StartsAt")) or 0) >= nw - 900 and (rawget(cs2, "Phase") == "Completed" or (tonumber(rawget(cs2, "EndsAt")) or math.huge) < nw or (tonumber(rawget(cs2, "Captured")) or 0) >= (tonumber(rawget(cs2, "Goal")) or math.huge))
 	end
 	local function twn()
 		local c = lp.Character
@@ -2804,7 +2711,7 @@ local function hdb(g)
 		end
 		if #l == 0 or not d or d < (l[1].p - h.Position).Magnitude / math.max(hu.WalkSpeed, 16) * 2 + 9 then
 			local ub, pb = ow()
-			if d == 0 and os.clock() >= st.hpx and #ub > 0 and not (st.pf and #pb >= st.pf) then
+			if st.ap and d == 0 and os.clock() >= st.hpx and #ub > 0 and not (st.pf and #pb >= st.pf) then
 				st.hpx = os.clock() + 120
 				l2("Night | Leaving To Place Eggs")
 				local ok, wy = px()
@@ -3627,7 +3534,7 @@ function L:Window(o)
 			if not (lo and hi and hi > lo) then error("Slider Failed: Bad Range", 0) end
 			if not (st and st > 0) then error("Slider Failed: Bad Step", 0) end
 			local e, f = row("Slider", r)
-			local vl = tl({Text = "", TextSize = 13, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(44, 44), TextXAlignment = Enum.TextXAlignment.Right, Parent = f})
+			local vl = mk("TextBox", {BackgroundTransparency = 1, Font = fn, Text = "", TextSize = 13, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(44, 44), TextXAlignment = Enum.TextXAlignment.Right, ClearTextOnFocus = false, Parent = f})
 			local hit = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -52, 0.5, 0), Size = UDim2.fromOffset(120, 28), Parent = f})
 			local tr = mk("Frame", {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = c.hv, BorderSizePixel = 0, Parent = hit}, {rc(2)})
 			local fi = mk("Frame", {Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = c.ac, BorderSizePixel = 0, Parent = tr}, {rc(2)})
@@ -3649,6 +3556,11 @@ function L:Window(o)
 				put(e, v)
 				run(r.Callback, v)
 			end
+			vl.FocusLost:Connect(function()
+				local n = tonumber(vl.Text)
+				if n and n == n then e:Set(n) end
+				draw()
+			end)
 			local function at(x) e:Set(lo + math.clamp((x - hit.AbsolutePosition.X) / hit.AbsoluteSize.X, 0, 1) * (hi - lo)) end
 			hit.InputBegan:Connect(function(i)
 				if i.UserInputType ~= mb and i.UserInputType ~= tc then return end
@@ -4149,6 +4061,38 @@ tz:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = bo()
 	W:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e, Error = not ok and e ~= "Already On"})
 end})
+local lgv, lgd = false, {["Select Area"] = "Chọn Khu Vực", ["Select Egg"] = "Chọn Trứng", ["Auto Steal Egg"] = "Tự Động Trộm Trứng", ["Auto Place Egg"] = "Tự Động Đặt Trứng", ["Auto Hatch Egg"] = "Tự Động Ấp Trứng", ["Pet Index"] = "Sưu Tầm Pet", ["Leave Treadmill"] = "Rời Máy Chạy Bộ", ["Sell Pet Rarity"] = "Độ Hiếm Pet Cần Bán", ["Auto Sell Pet"] = "Tự Động Bán Pet", ["Sell Egg Rarity"] = "Độ Hiếm Trứng Cần Bán", ["Auto Sell Egg"] = "Tự Động Bán Trứng", ["Auto Butterfly"] = "Tự Động Bắt Bướm", ["Teleport To Station"] = "Dịch Chuyển Tới Nhà Ga", ["Auto Halloween"] = "Tự Động Halloween", ["Auto Red Light Green Light"] = "Tự Động Đèn Xanh Đèn Đỏ", ["Auto T-Rex Run"] = "Tự Động Chạy T-Rex", ["Anti Stun"] = "Chống Choáng", ["Anti Trap"] = "Chống Bẫy", ["Hop Server"] = "Đổi Server", ["Hop Low Server"] = "Đổi Server Ít Người", ["FPS Booster"] = "Tăng FPS", ["Select Language"] = "Chọn Ngôn Ngữ", ["Steal Hop Distance"] = "Steal: Khoảng Nhảy", ["Steal Drop Wait"] = "Steal: Chờ Drop", ["Steal Drop Every (Zones)"] = "Steal: Drop Mỗi (Khu)", ["Halloween Hop Distance"] = "Halloween: Khoảng Nhảy", ["Halloween Drop Wait"] = "Halloween: Chờ Drop", ["Halloween Drop Every (Studs)"] = "Halloween: Drop Mỗi (Stud)", ["Default Setting"] = "Cài Đặt Mặc Định", ["Describe The Problem"] = "Mô Tả Lỗi", ["Send Log To Developer"] = "Gửi Log Cho Admin"}
+local function lgp()
+	for _, T in W.Tabs do
+		for _, e in T.Rows do
+			if not e.Label then continue end
+			e.en = e.en or e.Name
+			e.Name = lgv and lgd[e.en] or e.en
+			e.Label.Text = e.Name
+		end
+	end
+end
+tz:Dropdown({Name = "Select Language", Options = {"Vietnamese", "English"}, Default = "English", Flag = "lg", Callback = function(v)
+	lgv = v == "Vietnamese"
+	lgp()
+end})
+local sdf = {}
+for _, r in {
+	{"Steal Hop Distance", "shd", 50, 400, 1, "hs"},
+	{"Steal Drop Wait", "sdw", 0, 2, 0.05, "dw"},
+	{"Steal Drop Every (Zones)", "srz", 1, 6, 1, "rz"},
+	{"Halloween Hop Distance", "hhd", 50, 400, 1, "hk"},
+	{"Halloween Drop Wait", "hdw", 0, 2, 0.05, "hw"},
+	{"Halloween Drop Every (Studs)", "hdr", 100, 1500, 1, "hr"},
+} do
+	local k, d0 = r[6], st[r[6]]
+	local e = tz:Slider({Name = r[1], Flag = r[2], Min = r[3], Max = r[4], Step = r[5], Default = d0, Callback = function(v) st[k] = v end})
+	st[k], sdf[#sdf + 1] = e.v, {e, d0}
+end
+tz:Button({Name = "Default Setting", Callback = function()
+	for _, x in sdf do x[1]:Set(x[2]) end
+	W:Notify({Title = "Default Setting", Text = "Back To Default"})
+end})
 tz:Section({Name = "Support"})
 do
 	local whu, lt = "https://discord.com/api/webhooks/1561079964906954872/EB3xMWW_fT8xp-dtoRnfNAOM7MaF0jpWkTk1S7KzAvxuDX1p92hmvXQw6A1-X5y_S06W", 0
@@ -4194,6 +4138,7 @@ do
 		end)
 	end})
 end
+lgp()
 st.gr = true
 
 local gi = (function()
@@ -4236,3 +4181,44 @@ for _, n in {"GameHUD", "TradmilHud"} do
 		task.spawn(pcall, function() require(rs.Client.UI.VFX.ButtonFX)(b) end)
 	end
 end
+task.spawn(function()
+	local o1, qa = pcall(require, rs.Shared.Util.AssetEarnings)
+	local o2, qf = pcall(require, rs.Packages.FormatNumber.Simple)
+	if not (o1 and o2) then
+		zx("[Egg Value] Load Failed: Missing Module")
+		return
+	end
+	local qv = {}
+	while ge.__SaeAf == st do
+		local ok, wy = pcall(function()
+			local g = lp:FindFirstChildOfClass("PlayerGui") and lp:FindFirstChildOfClass("PlayerGui"):FindFirstChild("GrowingEggs")
+			local sf = g and g.Enabled and g:FindFirstChild("Frame") and g.Frame:FindFirstChild("ScrollingFrame")
+			if not sf then return end
+			local o3, rc = pcall(es.ReadOwnerEggs, lp.UserId)
+			if not o3 or type(rc) ~= "table" then return end
+			for _, r in sf:GetChildren() do
+				local e, sp = rc[r.Name], r:FindFirstChild("Spacer")
+				if type(e) ~= "table" or not sp then continue end
+				local k = `{e.AssetCategory}|{e.AssetScale}|{table.concat(e.Mutations or {}, ",")}`
+				if not qv[r.Name] or qv[r.Name].k ~= k then
+					local o4, v = pcall(qa.MutationOnlyRatePerSecond, {Category = e.AssetCategory, Scale = e.AssetScale, Mutations = e.Mutations or {}})
+					qv[r.Name] = {k = k, t = o4 and type(v) == "number" and v > 0 and `${qf.FormatCompact(v)}/s` or ""}
+				end
+				local l = sp:FindFirstChild("SaeV")
+				if not l then
+					local t0 = sp:FindFirstChild("Progress") and sp.Progress:FindFirstChild("TextLabel")
+					l = Instance.new("TextLabel")
+					l.Name, l.BackgroundTransparency, l.Position, l.Size = "SaeV", 1, UDim2.fromScale(0.247, 0.02), UDim2.fromScale(0.587, 0.27)
+					l.TextScaled, l.TextXAlignment, l.TextColor3 = true, Enum.TextXAlignment.Left, Color3.fromRGB(166, 255, 111)
+					if t0 then l.FontFace = t0.FontFace end
+					local s0 = t0 and t0:FindFirstChildOfClass("UIStroke")
+					if s0 then s0:Clone().Parent = l end
+					l.Parent = sp
+				end
+				l.Text = qv[r.Name].t
+			end
+		end)
+		if not ok then zx(`[Egg Value] Failed: {wy}`) end
+		task.wait(0.5)
+	end
+end)
