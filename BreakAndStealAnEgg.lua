@@ -20,14 +20,61 @@ local ge = getgenv()
 if ge.__BseAf then
 	ge.__BseAf.on, ge.__BseAf.fa, ge.__BseAf.eb, ge.__BseAf.bg = false, false, false, false
 	if ge.__BseAf.fj then ge.__BseAf.fj.st = "Stopped" end
+	if ge.__BseAf.ej then ge.__BseAf.ej.st = "Stopped" end
 	if ge.__BseAf.ec then ge.__BseAf.ec:Disconnect() end
 	if ge.__BseAf.ic then ge.__BseAf.ic:Disconnect() end
 	for _, x in ge.__BseAf.pc or {} do x:Disconnect() end
 	if ge.__BseAf.cc then ge.__BseAf.cc:Disconnect() end
 	if ge.__BseAf.sc then ge.__BseAf.sc:Disconnect() end
 end
-local st = {bg = true, ic = nil, za = 1, fa = false, fg = 0, fj = nil, id = 1e6, le = nil, mt = nil, ma = nil, hs = {}, pc = nil, lx = nil, lt = 0, rb = false, cc = nil, ck = nil, ra = {}, mi = 0, sk = 0, rr = {}, rq = {}, ho = {}, tb = false, sv = {}, as = false, sb = false, sc = nil, pi = false, ix = nil, nf = nil, ti = false, ua = false, ub = false, uc = false, ud = false, hq = false, hp = -math.huge, eh = false, hj = nil, hd = 3, hz = -math.huge}
+local st = {bg = true, ic = nil, za = 1, fa = false, fg = 0, fj = nil, id = 1e6, le = nil, mt = nil, ma = nil, hs = {}, pc = nil, lx = nil, lt = 0, rb = false, cc = nil, ck = nil, ra = {}, mi = 0, sk = 0, rr = {}, rq = {}, ho = {}, tb = false, sv = {}, as = false, sb = false, sc = nil, pi = false, ix = nil, nf = nil, ti = false, ua = false, ub = false, uc = false, ud = false, hq = false, hp = -math.huge, eh = false, ej = nil}
 ge.__BseAf = st
+local function lg(t, nw)
+	local fp, g = `Avenoric/Configs/BreakAndStealAnEgg/{lp.Name}_Log.txt`, ge.__BseLq
+	if not g then
+		g = {pq = {}, dt = false}
+		ge.__BseLq = g
+	end
+	local m, ts = (tostring(t):gsub("%s*\n%s*", " <- ")), os.date("%Y-%m-%d %H:%M:%S")
+	local la = g.pq[#g.pq]
+	if la and la[2] == m then
+		la[1], la[3] = ts, la[3] + 1
+	else
+		table.insert(g.pq, {ts, m, 1})
+	end
+	local function wr()
+		g.dt = false
+		local n = nw and #g.pq or #g.pq - 1
+		if n <= 0 then return end
+		local b = {}
+		for i = 1, n do
+			local x = g.pq[i]
+			b[i] = `{x[1]} | {x[2]}{x[3] > 1 and ` x{x[3]}` or ""}`
+		end
+		local s = table.concat(b, "\n") .. "\n"
+		local ok = pcall(function()
+			for _, x in {"Avenoric", "Avenoric/Configs", "Avenoric/Configs/BreakAndStealAnEgg"} do
+				if not isfolder(x) then makefolder(x) end
+			end
+			if appendfile and isfile(fp) then appendfile(fp, s) else writefile(fp, (isfile(fp) and readfile(fp) or "") .. s) end
+		end)
+		if ok then
+			for _ = 1, n do table.remove(g.pq, 1) end
+		end
+	end
+	if nw then
+		wr()
+		return
+	end
+	if g.dt then return end
+	g.dt = true
+	task.delay(2, wr)
+end
+local function xe(m) return debug.traceback(tostring(m), 2) end
+local function wz(m)
+	warn(m)
+	lg(`[Error] {m}`)
+end
 st.cc = lp.CharacterAdded:Connect(function(c)
 	st.rb, st.mt = true, nil
 	task.spawn(function()
@@ -194,13 +241,13 @@ local function eq(c, h)
 	if t and t:IsA("Tool") then h:EquipTool(t) end
 end
 
-local function hit()
+local function hit(x)
 	local c, r, h = lc()
 	if not c then return end
 	local t = c:FindFirstChild("Pickaxe")
 	if not (t and t:IsA("Tool")) then return eq(c, h) end
-	local e = et.Pick(r.Position, r0, st.le, r1)
-	if not e then return end
+	local e = x and et.SurfaceDistance(x, r.Position) <= r1 and x or et.Pick(r.Position, r0, st.le, r1)
+	if not e or not cs:HasTag(e, "BreakableEgg") then return end
 	st.id, st.le = st.id + 1, e
 	hq:FireServer(e, st.id)
 	return true
@@ -291,7 +338,11 @@ local function tk(pk, f, lim)
 			task.wait(0.05)
 		end
 	end
-	if lp:GetAttribute("Carrying") == nil then return false end
+	if lp:GetAttribute("Carrying") == nil then
+		lg(`[Farm] Pick {pk:GetAttribute("AnimalName") or pk.Name} Failed`)
+		return false
+	end
+	lg(`[Farm] Picked {pk:GetAttribute("AnimalName") or pk.Name} | {pk:GetAttribute("Rarity")} | {pk:GetAttribute("WeightKg")} Kg | {pk:GetAttribute("ZoneId")}`)
 	st.ck = {w = pk:GetAttribute("WeightKg"), z = pk:GetAttribute("ZoneId")}
 	if st.ix then st.ix[nk(tostring(pk:GetAttribute("AnimalName") or pk.Name))] = true end
 	return true
@@ -430,15 +481,28 @@ local function gb(f)
 end
 
 local function hm(f)
+	local cn, t0 = lp:GetAttribute("Carrying"), os.clock()
 	if gb(f) then
 		st.hs = {}
+		lg(`[Farm] Banked {cn} | Fling | {math.floor((os.clock() - t0) * 10) / 10} s`)
 		return
 	end
-	if lp:GetAttribute("Carrying") == nil then return end
-	if not rt(f, gy(rx[1], 0)) then return end
+	if lp:GetAttribute("Carrying") == nil then
+		if cn then lg(`[Farm] Lost {cn} On The Way Home`) end
+		return
+	end
+	if not rt(f, gy(rx[1], 0)) then
+		lg(`[Farm] Bank {cn} Failed: Rail Walk`)
+		return
+	end
 	local t = os.clock()
 	repeat task.wait(0.2) until lp:GetAttribute("Carrying") == nil or f.st ~= "Running" or os.clock() - t > 6
-	if lp:GetAttribute("Carrying") == nil then st.hs = {} end
+	if lp:GetAttribute("Carrying") == nil then
+		st.hs = {}
+		lg(`[Farm] Banked {cn} | Rail | {math.floor((os.clock() - t0) * 10) / 10} s`)
+	else
+		lg(`[Farm] Bank {cn} Failed: Not Banked At Home`)
+	end
 end
 
 local function sl(f)
@@ -466,7 +530,7 @@ local function bk(f, e, ab2)
 		local _, q = lc()
 		if not q or et.SurfaceDistance(e, q.Position) > r1 then return false end
 		st.le = e
-		local k = hit()
+		local k = hit(e)
 		local w = os.clock() + (k and 0.37 / rc.SwingMultiplierFor(lp) or 0.1)
 		repeat task.wait(0.03) until os.clock() >= w or (st.kh[e] or 1) <= 0
 	end
@@ -491,8 +555,7 @@ local function ton(f)
 	local pl = op()
 	local q
 	for _, d in pl and pl:GetChildren() or {} do
-		local b = string.find(d.Name, "Treadmill") and d:FindFirstChild("Build")
-		local p = b and b:FindFirstChild("Part")
+		local p = string.find(d.Name, "Treadmill") and d:FindFirstChild("Hitbox")
 		if p and p:IsA("BasePart") then q = p end
 	end
 	local _, r = lc()
@@ -504,7 +567,7 @@ local function ton(f)
 	local s = false
 	local cn = rs:WaitForChild("TreadmillSessionRemote").OnClientEvent:Connect(function(a) if typeof(a) == "number" then s = true end end)
 	r.AssemblyLinearVelocity = Vector3.zero
-	r.CFrame = CFrame.new(q.Position + Vector3.new(0, 3.2, 0))
+	r.CFrame = CFrame.new(q.Position)
 	local t = os.clock()
 	repeat task.wait(0.05) until s or os.clock() - t > 5 or f.st ~= "Running"
 	cn:Disconnect()
@@ -513,14 +576,21 @@ end
 
 local function tm(f, z)
 	local r = ton(f)
-	if not r then return false end
+	if not r then
+		lg(`[Travel] Zone {z} Failed: Treadmill Not Ready`)
+		return false
+	end
 	task.wait(0.15)
 	rs:WaitForChild("TreadmillSessionRemote"):FireServer()
 	local t = os.clock()
 	repeat task.wait(0.03) until not r.Anchored or os.clock() - t > 3
-	if r.Anchored or f.st ~= "Running" then return false end
+	if r.Anchored or f.st ~= "Running" then
+		lg(`[Travel] Zone {z} Failed: {r.Anchored and "Still On Treadmill" or "Stopped"}`)
+		return false
+	end
 	r.AssemblyLinearVelocity = Vector3.zero
 	r.CFrame = CFrame.new(gy(rx[z + 1], 0))
+	lg(`[Travel] Zone {z} Via Treadmill`)
 	return true
 end
 
@@ -571,8 +641,9 @@ end))
 local function rg(f)
 	local v = table.remove(st.rq, 1)
 	if not v then return end
+	lg(`[Retake] {v.n} From {v.q.Name}`)
 	local q, t, ak = v.q, 0, nil
-	while f.st == "Running" and st.fa and not st.hj and q.Parent and lp:GetAttribute("Carrying") == nil do
+	while f.st == "Running" and st.fa and q.Parent and lp:GetAttribute("Carrying") == nil do
 		rw()
 		local c, r, h = lc()
 		local pc, _, pk = sp(v.n, v.w)
@@ -618,7 +689,11 @@ local function rg(f)
 		end
 		task.wait(0.1)
 	end
-	if lp:GetAttribute("Carrying") == nil then return end
+	if lp:GetAttribute("Carrying") == nil then
+		lg(`[Retake] {v.n} Failed`)
+		return
+	end
+	lg(`[Retake] {v.n} Got Back`)
 	local _, r = lc()
 	local pl, g = op(), nil
 	for _, m in cs:GetTagged("ZoneGuard") do
@@ -635,13 +710,13 @@ end
 
 local function fc(f)
 	rw()
-	if st.hj then
-		task.wait(0.5)
-		return
-	end
 	if lp:GetAttribute("Carrying") ~= nil then
 		fr()
 		hm(f)
+		return
+	end
+	if st.ej then
+		task.wait(0.5)
 		return
 	end
 	if st.rq[1] then
@@ -673,7 +748,9 @@ local function fc(f)
 		return
 	end
 	eq(c, h)
-	if bk(f, e, function() return st.fa and (du() or st.rq[1] ~= nil) or e:GetAttribute("ZoneIndex") ~= st.za end) then
+	local t0 = os.clock()
+	if bk(f, e, function() return st.fa and (du() or st.rq[1] ~= nil) or e:GetAttribute("ZoneIndex") ~= st.za or st.ej ~= nil end) then
+		lg(`[Farm] Egg {e:GetAttribute("EggType")} Zone {st.za} | Broken | {math.floor((os.clock() - t0) * 10) / 10} s`)
 		st.lx, st.lt = e, os.clock()
 		task.spawn(function()
 			local t, hd = os.clock(), nil
@@ -683,6 +760,8 @@ local function fc(f)
 			until hd or os.clock() - t > 10
 			if hd then st.hs[hd] = true end
 		end)
+	else
+		lg(`[Farm] Egg {e:GetAttribute("EggType")} Zone {st.za} | Not Broken | {math.floor((os.clock() - t0) * 10) / 10} s`)
 	end
 end
 
@@ -709,19 +788,20 @@ local function af()
 	st.fg += 1
 	local g, f = st.fg, {st = "Running"}
 	st.fj = f
+	lg(`[Farm] Start | Zone {st.za}`)
 	task.spawn(function()
 		local ok, er = pcall(md)
-		if not ok then warn(`Auto Farm Failed: {er}`) end
+		if not ok then wz(`Auto Farm Failed: {er}`) end
 		local o2, pc = pcall(function() return require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("PickaxeController")) end)
 		if o2 and ok then
 			task.spawn(function()
 				while st.fg == g and f.st == "Running" and st.fa do
 					task.wait(1.5)
 					local _, r = lc()
-					if r and not st.hj and pc.IsWielding() then
+					if r and not st.ej and pc.IsWielding() then
 						local e = st.le
 						if not (e and e.Parent and et.IsLive(e) and et.SurfaceDistance(e, r.Position) <= r1) then e = et.Pick(r.Position, r0, st.le, r1) end
-						if e then pcall(pc.Swing, e) end
+						if e and cs:HasTag(e, "BreakableEgg") then pcall(pc.Swing, e) end
 					end
 				end
 			end)
@@ -742,16 +822,17 @@ local function af()
 						ew(f, st.lx)
 					end
 				end)
-				if not k then warn(`Auto Farm Failed: {e}`) end
+				if not k then wz(`Auto Farm Failed: {e}`) end
 				break
 			end
-			local k, e = pcall(fc, f)
+			local k, e = xpcall(fc, xe, f)
 			if not k then
-				warn(`Auto Farm Failed: {e}`)
+				wz(`Auto Farm Failed: {e}`)
 				task.wait(1)
 			end
 			task.wait()
 		end
+		lg("[Farm] Stop")
 		if st.fj == f then
 			st.mt, st.fj = nil, nil
 			local _, _, h = lc()
@@ -760,116 +841,332 @@ local function af()
 	end)
 end
 
+local hv = {dr = {}, hd = {}, fn = {}, bl = setmetatable({}, {__mode = "k"}), pc = nil :: any}
+table.insert(st.pc, rs:WaitForChild("HalloweenCandyDrops").OnClientEvent:Connect(function(a, b)
+	if type(b) ~= "table" then return end
+	if a == "Spawn" then
+		for _, d in b do
+			if type(d) == "table" and type(d.Id) == "string" and typeof(d.Position) == "Vector3" then hv.dr[d.Id] = {p = d.Position, x = (tonumber(d.StartAt) or workspace:GetServerTimeNow()) + 120} end
+		end
+	elseif a == "Collect" or a == "Remove" then
+		for _, i in b do hv.dr[i] = nil end
+	end
+end))
+table.insert(st.pc, rs:WaitForChild("HalloweenCandyHeist").OnClientEvent:Connect(function(a, b)
+	if a == "End" or a == "Start" or a == "Snapshot" then table.clear(hv.hd) end
+	if type(b) ~= "table" then return end
+	if a == "Spawn" and type(b.Drops) == "table" then
+		for _, d in b.Drops do
+			if type(d) == "table" and type(d.Id) == "string" and typeof(d.Position) == "Vector3" and (d.ClaimUserId == nil or d.ClaimUserId == lp.UserId) then hv.hd[d.Id] = {p = d.Position, x = tonumber(d.ExpiresAt) or math.huge} end
+		end
+	elseif a == "Remove" and type(b.Ids) == "table" then
+		for _, i in b.Ids do hv.hd[i] = nil end
+	elseif a == "Collect" and b.Id then
+		hv.hd[b.Id] = nil
+	end
+end))
 
-local function hl()
-	local f = {st = "Running"}
-	st.hj = f
-	local fa0 = st.fa
-	st.hf = fa0
-	pcall(md)
-	if st.fj then
-		local t = os.clock()
-		while lp:GetAttribute("Carrying") ~= nil and os.clock() - t < 30 do task.wait(0.2) end
-		if st.fj then st.fj.st = "Stopped" end
-		t = os.clock()
-		while st.fj and os.clock() - t < 10 do task.wait(0.1) end
+function hv.dm()
+	local ok, v = pcall(function() return require(sh:WaitForChild("PickaxeConfig")).GetDamage(lp:GetAttribute("PickaxeTier")) * require(sh:WaitForChild("PotionConfig")).MultiplierFor(lp, "Damage") end)
+	return ok and type(v) == "number" and v > 0 and v or 1
+end
+
+function hv.ok(x, m)
+	local h = tonumber(x:GetAttribute("Health"))
+	return x.Parent ~= nil and not x:GetAttribute("Broken") and (hv.bl[x] or 0) < os.clock() and h ~= nil and h > 0 and h <= m
+end
+
+function hv.dn(x)
+	return not x.Parent or x:GetAttribute("Broken") == true or x:GetAttribute("HatchId") ~= nil or (tonumber(x:GetAttribute("Health")) or 1) <= 0
+end
+
+function hv.tp(f, p)
+	for _ = 1, 15 do
+		local _, r = lc()
+		if not r or f.st ~= "Running" then return false end
+		local d = p - r.Position
+		if d.Magnitude <= 3 then return true end
+		local q = d.Magnitude > 300 and r.Position + d.Unit * 300 or p
+		r.AssemblyLinearVelocity = Vector3.zero
+		r.CFrame = CFrame.new(q)
+		task.wait(0.3)
+		_, r = lc()
+		if not r or (r.Position - q).Magnitude > 8 then
+			if f.st ~= "Running" then return false end
+			local bg = (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) > 0
+			lg(`[Move] Hop Pulled Back | {math.floor(d.Magnitude)} Studs Left | {bg and "Rail" or "Treadmill"}`)
+			if not bg and hv.tm(f, p) then return true end
+			local ok = rt(f, p)
+			if not ok then lg("[Move] Rail Walk Failed") end
+			return ok
+		end
+		if q == p then return true end
 	end
-	if lp:GetAttribute("InHell") ~= true then
-		rw()
-		local r = ton(f)
-		if r then
-			task.wait(0.15)
-			rs:WaitForChild("TreadmillSessionRemote"):FireServer()
-			local t = os.clock()
-			repeat task.wait(0.03) until not r.Anchored or os.clock() - t > 3
-		end
-		local b = workspace:FindFirstChild("Build")
-		local z = b and b:FindFirstChild("ZoneBuilds")
-		z = z and z:FindFirstChild("Zone7")
-		local j = z and z:FindFirstChild("JoinHell")
-		local tp = j and j:FindFirstChild("TP", true)
-		local p = tp and tp:IsA("BasePart") and tp.Position or Vector3.new(-1502.6, 10.2, 58.5)
-		local _, q = lc()
-		if q then
-			q.AssemblyLinearVelocity = Vector3.zero
-			q.CFrame = CFrame.new(p + Vector3.new(0, 3, 0))
-		end
-		task.wait(0.4)
-		for _ = 1, 6 do
-			if lp:GetAttribute("InHell") == true or workspace:GetAttribute("HellJoinable") ~= true then break end
-			rs:WaitForChild("HellJoinRemote"):FireServer()
-			local t = os.clock()
-			repeat task.wait(0.1) until lp:GetAttribute("InHell") == true or os.clock() - t > 1.7
-		end
-		if lp:GetAttribute("InHell") ~= true then st.hz = os.clock() end
+	return false
+end
+
+function hv.tm(f, p)
+	local r = ton(f)
+	if not r then
+		lg("[Move] Treadmill Trick Failed: Not On Treadmill")
+		return false
 	end
-	local as = require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("AutoSwingController"))
-	local a0, tg, id, lh, lt, lb = as.IsOn(), nil, 7e6, 0, 0, 0
-	st.ht, st.he = 0, 0
-	pcall(ru.UnbindFromRenderStep, ru, "BseHellMove")
-	ru:BindToRenderStep("BseHellMove", Enum.RenderPriority.Character.Value + 1, function()
-		local _, r, h = lc()
-		if not (r and h and tg) then return end
-		local d = (tg - r.Position) * Vector3.new(1, 0, 1)
-		if d.Magnitude > st.hd then h:Move(d.Unit, false) else h:Move(Vector3.zero, false) end
-	end)
-	while lp:GetAttribute("InHell") == true and st.eh do
-		local c, r, h = lc()
-		if workspace:GetAttribute("HellGathering") == true then
-			if c then eq(c, h) end
-			local e, ed
-			for _, x in cs:GetTagged("HellEssenceEgg") do
-				if x:IsA("BasePart") and x.Parent and et.IsLive(x) and r then
-					local d = (x.Position - r.Position).Magnitude
-					if not ed or d < ed then e, ed = x, d end
-				end
+	task.wait(0.15)
+	rs:WaitForChild("TreadmillSessionRemote"):FireServer()
+	local t = os.clock()
+	repeat task.wait(0.03) until not r.Anchored or os.clock() - t > 3
+	if r.Anchored or f.st ~= "Running" then
+		lg(`[Move] Treadmill Trick Failed: {r.Anchored and "Still On Treadmill" or "Stopped"}`)
+		return false
+	end
+	r.AssemblyLinearVelocity = Vector3.zero
+	r.CFrame = CFrame.new(p)
+	task.wait(0.3)
+	local _, q = lc()
+	local ok = q ~= nil and (q.Position - p).Magnitude <= 8
+	lg(`[Move] Treadmill Trick {ok and "Ok" or "Failed: Pulled Back"}`)
+	return ok
+end
+
+function hv.sd(x)
+	local s = math.max(x.Size.X, x.Size.Z) / 2 + 2
+	local v = math.abs(x.Position.Z) > 3 and Vector3.new(0, 0, -math.sign(x.Position.Z)) or Vector3.xAxis
+	return gy(x.Position.X + v.X * s, x.Position.Z + v.Z * s, x)
+end
+
+function hv.hb(f, x, p)
+	if not hv.tp(f, p) then return false end
+	local c, _, h = lc()
+	if c then eq(c, h) end
+	if hv.pc == nil then
+		local ok, m = pcall(function() return require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("PickaxeController")) end)
+		hv.pc = ok and m or false
+	end
+	local t, ls = os.clock(), 0
+	while f.st == "Running" and not hv.dn(x) and os.clock() - t < 12 do
+		local c2, r = lc()
+		if not r or et.SurfaceDistance(x, r.Position) > r1 + 2 then return false end
+		if c2:FindFirstChild("Pickaxe") then
+			st.id += 1
+			hq:FireServer(x, st.id)
+			if hv.pc and os.clock() - ls >= 1.5 and hv.pc.IsWielding() then
+				ls = os.clock()
+				pcall(hv.pc.Swing, x)
 			end
-			tg, st.hd = e and e.Position, 3
-			if e and r and ed <= 50 and not c:GetAttribute("Ragdolled") and lp:GetAttribute("Carrying") == nil and et.SurfaceDistance(e, r.Position) >= 6 then
-				local v, s = (r.Position - e.Position) * Vector3.new(1, 0, 1), math.max(e.Size.X, e.Size.Z) / 2 + 2
-				v = v.Magnitude > 0.5 and v.Unit or Vector3.xAxis
-				r.AssemblyLinearVelocity = Vector3.zero
-				r.CFrame = CFrame.new(gy(e.Position.X + v.X * s, e.Position.Z + v.Z * s, e))
-				lh, st.he = os.clock() - 0.25, st.he + 1
+		end
+		task.wait(0.37 / rc.SwingMultiplierFor(lp))
+	end
+	return hv.dn(x)
+end
+
+function hv.rd(d)
+	local _, _, h = lc()
+	return d / math.max(h and h.WalkSpeed * 0.8 or 16, 8) + 0.5
+end
+
+function hv.gc(f, l, cp, w0)
+	local t = os.clock()
+	while f.st == "Running" and os.clock() - t < w0 + 5 do
+		local _, r = lc()
+		if not r then break end
+		local b, bd
+		for i, d in l do
+			if (d.p - cp).Magnitude <= 25 then
+				local q = (d.p - r.Position).Magnitude
+				if not bd or q < bd then b, bd = i, q end
 			end
-			if e and r and et.SurfaceDistance(e, r.Position) < 6 and os.clock() - lh > 0.5 then
-				id += 1
-				hq:FireServer(e, id)
-				lh = os.clock()
-			end
+		end
+		if not b then
+			if os.clock() - t > w0 then break end
+			task.wait(0.1)
+		elseif bd > 7 then
+			local p = l[b].p
+			st.mt, st.ma = p, nil
+			local t2 = os.clock()
+			repeat
+				task.wait(0.03)
+				local _, q = lc()
+			until not q or st.ma == p or (q.Position - p).Magnitude < 7 or os.clock() - t2 > hv.rd(bd) or f.st ~= "Running"
+			if os.clock() - t2 > hv.rd(bd) then l[b] = nil end
 		else
-			local b = cs:GetTagged("HellBoss")[1]
-			local rp = b and b:FindFirstChild("RootPart")
-			local ph = b and b:GetAttribute("Phase")
-			if rp and rp:IsA("BasePart") and (ph == "Active" or ph == "Stunned") then
-				tg, st.hd = rp.Position, 10
-				if as.IsOn() then as.SetOn(false) end
-				if c and r and not c:GetAttribute("Ragdolled") and os.clock() - lb >= 0.45 then
-					rs:WaitForChild("BatHitRequest"):FireServer(nil)
-					lb = os.clock()
-				end
-				if c and r and c:GetAttribute("Ragdolled") and os.clock() - lt > 0.5 then
-					local v = (r.Position - rp.Position) * Vector3.new(1, 0, 1)
-					local x = rp.Position + (v.Magnitude > 1 and v.Unit or Vector3.xAxis) * 8
-					local q = RaycastParams.new()
-					q.FilterType, q.FilterDescendantsInstances = Enum.RaycastFilterType.Exclude, {c, b}
-					local g = workspace:Raycast(Vector3.new(x.X, rp.Position.Y + 20, x.Z), Vector3.new(0, -400, 0), q)
-					r.AssemblyLinearVelocity = Vector3.zero
-					r.CFrame = CFrame.new(g and g.Position + Vector3.new(0, 3, 0) or Vector3.new(x.X, r.Position.Y, x.Z))
-					lt, st.ht = os.clock(), st.ht + 1
-				end
-			else
-				tg = nil
-			end
+			l[b].w = l[b].w or os.clock()
+			if os.clock() - l[b].w > 1.5 then l[b] = nil end
+			task.wait(0.05)
 		end
-		task.wait(0.05)
 	end
-	pcall(ru.UnbindFromRenderStep, ru, "BseHellMove")
+	st.mt = nil
 	local _, _, h = lc()
 	if h then h:Move(Vector3.zero, false) end
-	pcall(as.SetOn, a0)
-	st.hj = nil
-	if fa0 and st.fa then af() end
+end
+
+function hv.sw(f, l, ag)
+	local t0 = os.clock()
+	while f.st == "Running" and os.clock() - t0 < 60 do
+		local n = workspace:GetServerTimeNow()
+		local _, r = lc()
+		if not r then break end
+		local b, bd
+		for i, d in l do
+			if n > d.x then
+				l[i] = nil
+			elseif ag == math.huge or n >= d.x - ag then
+				local q = (d.p - r.Position).Magnitude
+				if not bd or q < bd then b, bd = i, q end
+			end
+		end
+		if not b then break end
+		local p = l[b].p
+		l[b] = nil
+		if bd > 80 then
+			hv.tp(f, p + Vector3.new(0, 2, 0))
+			task.wait(0.1)
+		elseif bd > 7 then
+			st.mt, st.ma = p, nil
+			local t = os.clock()
+			repeat
+				task.wait(0.03)
+				local _, q = lc()
+			until not q or st.ma == p or (q.Position - p).Magnitude < 7 or os.clock() - t > hv.rd(bd) or f.st ~= "Running"
+		end
+	end
+	st.mt = nil
+	local _, _, h = lc()
+	if h then h:Move(Vector3.zero, false) end
+end
+
+function hv.nr(l, m, zp)
+	local _, r = lc()
+	if not r then return nil end
+	local b, bz, bd
+	for _, x in l do
+		if hv.ok(x, m) then
+			local z, d = zp and tonumber(x:GetAttribute("ZoneIndex")) or 0, (x.Position - r.Position).Magnitude
+			if not b or z > bz or z == bz and d < bd then b, bz, bd = x, z, d end
+		end
+	end
+	return b
+end
+
+hv.fn.DisguisedEggs = function(f)
+	hv.sw(f, hv.dr, 30)
+	local l = {}
+	for _, e in cs:GetTagged("BreakableEgg") do
+		if e:GetAttribute("DisguisedEggRun") and not e:GetAttribute("HatchId") and (tonumber(e:GetAttribute("DisguisedEggEndsAt")) or 0) > workspace:GetServerTimeNow() then table.insert(l, e) end
+	end
+	local e = hv.nr(l, hv.dm() * 30)
+	if not e then
+		hv.sw(f, hv.dr, math.huge)
+		task.wait(0.5)
+		return
+	end
+	local t0 = os.clock()
+	if hv.hb(f, e, hv.sd(e)) then
+		hv.gc(f, hv.dr, e.Position, 1.2)
+		lg(`[Event] Phantom Egg Zone {e:GetAttribute("ZoneIndex")} | Ok | {math.floor((os.clock() - t0) * 10) / 10} s | Candy {lp:GetAttribute("CandyCorn")}`)
+	else
+		hv.bl[e] = os.clock() + 15
+		lg(`[Event] Phantom Egg Zone {e:GetAttribute("ZoneIndex")} | Failed | {math.floor((os.clock() - t0) * 10) / 10} s`)
+	end
+end
+
+hv.fn.TrickOrTreat = function(f)
+	hv.sw(f, hv.dr, 30)
+	local l = {}
+	for _, x in cs:GetTagged("BreakableHalloweenDoor") do
+		if typeof(x:GetAttribute("KnockPosition")) == "Vector3" then table.insert(l, x) end
+	end
+	local x = hv.nr(l, hv.dm() * 30)
+	if not x then
+		hv.sw(f, hv.dr, math.huge)
+		task.wait(0.5)
+		return
+	end
+	local t0 = os.clock()
+	if hv.hb(f, x, x:GetAttribute("KnockPosition")) then
+		hv.gc(f, hv.dr, x:GetAttribute("KnockPosition"), 2)
+		lg(`[Event] Door Zone {x:GetAttribute("ZoneIndex")} | Ok | {math.floor((os.clock() - t0) * 10) / 10} s | Candy {lp:GetAttribute("CandyCorn")}`)
+	else
+		hv.bl[x] = os.clock() + 15
+		lg(`[Event] Door Zone {x:GetAttribute("ZoneIndex")} | Failed | {math.floor((os.clock() - t0) * 10) / 10} s`)
+	end
+end
+
+hv.fn.CandyHeist = function(f, en)
+	local cf = require(sh:WaitForChild("HalloweenEventConfig")).CandyHeist
+	if en - workspace:GetServerTimeNow() < 40 then
+		hv.sw(f, hv.hd, math.huge)
+		task.wait(0.3)
+		return
+	end
+	local bg = tonumber(lp:GetAttribute("CandyHeistBag")) or 0
+	if bg >= (cf.Capacity or 500) * 0.9 and en - workspace:GetServerTimeNow() > 45 then
+		local hb = require(sh:WaitForChild("SafeZoneQuery")).GetOwnedPlotHitbox(lp.UserId)
+		lg(`[Event] Bank Bag {bg} | Walking Home`)
+		if hb and rt(f, gy(rx[1], 0)) and hv.tp(f, hb.Position) then
+			local t = os.clock()
+			repeat task.wait(0.1) until (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg or os.clock() - t > 4
+		end
+		lg(`[Event] Bank Bag {bg} | {(tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg and "Ok" or "Failed"} | Candy {lp:GetAttribute("CandyCorn")}`)
+		return
+	end
+	if bg >= (cf.Capacity or 500) then
+		task.wait(0.5)
+		return
+	end
+	hv.sw(f, hv.hd, 20)
+	local x = hv.nr(cs:GetTagged(cf.PileTag or "BreakableCandyPile"), hv.dm() * 30, true)
+	if not x then
+		hv.sw(f, hv.hd, math.huge)
+		task.wait(0.5)
+		return
+	end
+	local t0 = os.clock()
+	if hv.hb(f, x, hv.sd(x)) then
+		hv.gc(f, hv.hd, x.Position, 1)
+		lg(`[Event] {x:GetAttribute("PileLabel") or "Candy Pile"} Zone {x:GetAttribute("ZoneIndex")} | Ok | {math.floor((os.clock() - t0) * 10) / 10} s | Bag {lp:GetAttribute("CandyHeistBag")}`)
+	else
+		hv.bl[x] = os.clock() + 15
+		lg(`[Event] {x:GetAttribute("PileLabel") or "Candy Pile"} Zone {x:GetAttribute("ZoneIndex")} | Failed | {math.floor((os.clock() - t0) * 10) / 10} s`)
+	end
+end
+
+function hv.ak()
+	local ok, d = pcall(function() return game:GetService("HttpService"):JSONDecode(tostring(workspace:GetAttribute("HalloweenScheduleState") or "")) end)
+	local a = ok and type(d) == "table" and type(d.Active) == "table" and d.Active[1]
+	if type(a) == "table" and hv.fn[a.Key] and (tonumber(a.EndsAt) or 0) > workspace:GetServerTimeNow() then return a.Key, tonumber(a.EndsAt) end
+	return nil
+end
+
+function hv.rn(k, en)
+	local f = {st = "Running"}
+	st.ej = f
+	task.wait(0.5)
+	local t = os.clock()
+	while lp:GetAttribute("Carrying") ~= nil and os.clock() - t < 30 do task.wait(0.2) end
+	md()
+	fr()
+	local c0 = tonumber(lp:GetAttribute("CandyCorn")) or 0
+	lg(`[Event] Start {k} | Ends In {math.floor(en - workspace:GetServerTimeNow())} s | Candy {c0} | Damage {hv.dm()}`)
+	while st.bg and st.eh and f.st == "Running" and hv.ak() == k do
+		rw()
+		local ok, e = xpcall(hv.fn[k], xe, f, en)
+		if not ok then
+			wz(`Auto Halloween Failed: {e}`)
+			task.wait(1)
+		end
+		task.wait()
+	end
+	local why = not st.bg and "Hub Reloaded" or not st.eh and "Turned Off" or f.st ~= "Running" and "Stopped" or "Event Over"
+	if k ~= "CandyHeist" and st.bg and st.eh then
+		local n = 0
+		for _ in hv.dr do n += 1 end
+		lg(`[Event] Final Sweep | {n} Drops`)
+		pcall(hv.sw, f, hv.dr, math.huge)
+	end
+	local c1 = tonumber(lp:GetAttribute("CandyCorn")) or 0
+	lg(`[Event] End {k} | {why} | Candy {c0} -> {c1} (+{c1 - c0})`)
+	f.st = "Stopped"
+	st.mt = nil
 end
 
 local L
@@ -882,7 +1179,7 @@ local ip = "rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/Bui
 local ir, ib = Font.new(ip), Font.new(ip, Enum.FontWeight.Bold)
 local mb, tc, mm, kb = Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch, Enum.UserInputType.MouseMovement, Enum.UserInputType.Keyboard
 local ti = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local L = {Flags = {}}
+local L = {Flags = {}, Lg = nil :: any}
 
 local function mk(k, p, ch)
 	local o = Instance.new(k)
@@ -1275,10 +1572,11 @@ function L:Window(o)
 
 	local function run(f, ...)
 		if not f then return end
-		local ok, e = pcall(f, ...)
+		local ok, e = xpcall(f, function(m) return debug.traceback(tostring(m), 2) end, ...)
 		if ok then return end
 		warn("Callback Failed: " .. tostring(e))
-		W:Notify({Title = "Callback Failed", Text = tostring(e), Error = true})
+		if L.Lg then pcall(L.Lg, "[Hub] Callback Failed: " .. tostring(e)) end
+		W:Notify({Title = "Callback Failed", Text = string.match(tostring(e), "^[^\n]*"), Error = true})
 	end
 
 	local cp, cd, dirty, pend, dead = o.Config and `Avenoric/Configs/{o.Config}.json`, {}, false, false, false
@@ -1700,7 +1998,7 @@ function L:Window(o)
 				local s, bp = sc.Scale, (box.AbsolutePosition - mn.AbsolutePosition) / sc.Scale
 				local h = math.max(math.min(#e.Options, 5), 1) * 32 + 8
 				local y = bp.Y + 32
-				if y + h > wh - 8 then y = bp.Y - h - 4 end
+				if y + h > W.h - 8 then y = bp.Y - h - 4 end
 				fy = mk("Frame", {Position = UDim2.fromOffset(bp.X, y), Size = UDim2.fromOffset(box.AbsoluteSize.X / s, h), BackgroundColor3 = c.cd, BorderSizePixel = 0, Parent = ov}, {rc(6), sk(0.85), pd(4, 4, 4, 4)})
 				local ls = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = c.dm, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = fy}, {ll(0)})
 				if #e.Options == 0 then tl({Text = "No Options", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -10, 0, 32), Parent = ls}) end
@@ -1906,6 +2204,7 @@ local function hx(lo2)
 		local t = os.clock()
 		while not fe and os.clock() - t < 10 do task.wait(0.25) end
 		cn:Disconnect()
+		if fe then lg(`[Hop] Failed: {fe}`) end
 		return fe == nil
 	end
 	while ge.__BseAf == st do
@@ -1926,6 +2225,7 @@ local function hx(lo2)
 		end
 		for _, v in l do
 			if ge.__BseAf ~= st then return false, "Hop Failed: Stopped" end
+			lg(`[Hop] Teleport To {tostring(v.id):sub(1, 8)} | {v.playing} / {v.maxPlayers}`, true)
 			if go2(function() ts:TeleportToPlaceInstance(game.PlaceId, v.id, lp) end) then return true end
 			task.wait(1)
 		end
@@ -1950,6 +2250,16 @@ local function kv() return L ~= nil and L:Keyed() end
 if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
 L:Gate({Title = "Ngao - Gaming Hub", Server = "https://getkey.kaeldrinnovasse.workers.dev", Hub = "bse", Discord = "https://discord.gg/fTQF5TvfEJ", Config = "BreakAndStealAnEgg"})
 local W = L:Window({Title = "Ngao - Gaming Hub | Break And Steal An Egg", Config = `BreakAndStealAnEgg/{lp.Name}`})
+L.Lg = lg
+do
+	local wn0 = W.Notify
+	function W:Notify(n)
+		if type(n) == "table" then lg(`[{n.Title or "Avenoric"}] {n.Text or ""}`) end
+		return wn0(self, n)
+	end
+	local ui = game:GetService("UserInputService")
+	lg(`[Hub] Loaded | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)} | {#ps:GetPlayers()} Players | {identifyexecutor and select(2, pcall(identifyexecutor)) or "?"} | {ui.TouchEnabled and not ui.KeyboardEnabled and "Mobile" or "PC"}`)
+end
 local pa = W:Tab({Name = "General", Icon = "hammer-code"})
 pa:Section({Name = "Farm"})
 pa:Dropdown({Name = "Select Area", Options = za, Default = za[1], Flag = "sa", Callback = function(v) st.za = table.find(za, v) or 1 end})
@@ -1958,9 +2268,19 @@ pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "E
 	for _, x in v or {} do t[x] = true end
 	st.ra = t
 end})
-pa:Dropdown({Name = "Min Income", Options = {"All", "1", "10", "100", "1K", "10K", "100K", "1M", "10M", "100M", "1B", "10B", "100B", "1T"}, Default = "All", Flag = "mi", Callback = function(v)
-	local n, s = string.match(tostring(v), "^(%d+)(%a?)$")
-	st.mi = n and tonumber(n) * (({K = 1e3, M = 1e6, B = 1e9, T = 1e12})[s] or 1) or 0
+pa:TextBox({Name = "Min Income", Placeholder = "All / 1B / 5T", Default = "", Flag = "mi", Callback = function(v)
+	local s = string.upper((string.gsub(tostring(v), "[%s,]", "")))
+	if s == "" or s == "ALL" or s == "0" or s == "FALSE" then
+		st.mi = 0
+		return
+	end
+	local n, u = string.match(s, "^(%d*%.?%d+)(%a*)$")
+	local m = ({[""] = 1, K = 1e3, M = 1e6, B = 1e9, T = 1e12, QA = 1e15, QI = 1e18})[u or ""]
+	if not (n and m) then
+		W:Notify({Title = "Min Income", Text = "Min Income Failed: Bad Number", Error = true})
+		return
+	end
+	st.mi = tonumber(n) * m
 end})
 local fz = pa:Toggle({Name = "Auto Farm", Default = false, Flag = "af", Callback = function(v)
 	st.fa = v and kv()
@@ -1999,16 +2319,22 @@ local function sv2(dl)
 				local w = tonumber(t:GetAttribute("WeightKg"))
 				if #l < 200 and cs:HasTag(t, "AnimalTool") and st.sv[t:GetAttribute("Rarity")] and (st.sk <= 0 or w and w < st.sk) then table.insert(l, t) end
 			end
-			if #l > 0 then rs:WaitForChild("BackpackSellRemote"):InvokeServer(l) end
+			if #l > 0 then
+				local r = rs:WaitForChild("BackpackSellRemote"):InvokeServer(l)
+				lg(`[Sell] {#l} Animals | {typeof(r) == "table" and "Ok" or tostring(r)}`)
+			end
 		end)
-		if not ok then warn(`Auto Sell Failed: {e}`) end
+		if not ok then wz(`Auto Sell Failed: {e}`) end
 		st.sb = false
 	end)
 end
 st.sc = rs:WaitForChild("AnimalBankedRemote").OnClientEvent:Connect(function() sv2(1) end)
 local pv2 = W:Tab({Name = "Event", Icon = "calendar-star"})
-pv2:Section({Name = "Hell"})
-pv2:Toggle({Name = "Auto Hell", Default = false, Flag = "eh", Callback = function(v) st.eh = v == true end})
+pv2:Section({Name = "Halloween"})
+pv2:Toggle({Name = "Auto Halloween", Default = false, Flag = "ah", Callback = function(v)
+	st.eh = v == true
+	if not st.eh and st.ej then st.ej.st = "Stopped" end
+end})
 local pq = W:Tab({Name = "Shop", Icon = "shopping-basket"})
 pq:Section({Name = "Upgrade"})
 pq:Toggle({Name = "Auto Buy Pickaxe", Default = false, Flag = "ap", Callback = function(v) st.ua = v == true end})
@@ -2028,16 +2354,16 @@ wt = pt:Toggle({Name = "Auto Teleport", Default = false, Callback = function(v)
 		local t = os.clock()
 		while st.fj and os.clock() - t < 30 do task.wait(0.2) end
 		if st.fj then
-			warn("Teleport Failed: Farm Still Running")
+			wz("Teleport Failed: Farm Still Running")
 		elseif lp:GetAttribute("Carrying") ~= nil then
-			warn("Teleport Failed: Carrying")
+			wz("Teleport Failed: Carrying")
 		else
 			local ok, e = pcall(function()
 				rw()
 				fr()
-				if not tm({st = "Running"}, tq) then warn("Teleport Failed: Treadmill Not Ready") end
+				if not tm({st = "Running"}, tq) then wz("Teleport Failed: Treadmill Not Ready") end
 			end)
-			if not ok then warn(`Teleport Failed: {e}`) end
+			if not ok then wz(`Teleport Failed: {e}`) end
 		end
 		st.tb = false
 		wt:Set(false)
@@ -2065,6 +2391,43 @@ pw:Button({Name = "FPS Booster", Callback = function()
 	local ok, e = bo()
 	W:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e, Error = not ok and e ~= "Already On"})
 end})
+pw:Section({Name = "Support"})
+do
+	local lt, rb = 0, pw:TextBox({Name = "Describe The Problem", Placeholder = "What Went Wrong?"})
+	pw:Button({Name = "Send Log To Developer", Callback = function()
+		if os.clock() < lt then
+			W:Notify({Title = "Support", Text = `Send Log Failed: Wait {math.ceil(lt - os.clock())} s`})
+			return
+		end
+		local rs2 = (tostring(rb:Get() or ""):gsub("^%s+", ""):gsub("%s+$", "")):sub(1, 500)
+		if rs2 == "" then
+			W:Notify({Title = "Support", Text = "Send Log Failed: Describe The Problem First"})
+			return
+		end
+		lt = os.clock() + 300
+		task.spawn(function()
+			local fp, hj = `Avenoric/Configs/BreakAndStealAnEgg/{lp.Name}_Log.txt`, game:GetService("HttpService")
+			lg(`[Support] Send Log | {lp.Name} | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)} | Problem: {rs2}`, true)
+			local ok, e = pcall(function()
+				local rq = ge.request or ge.http_request or (type(ge.http) == "table" and ge.http.request)
+				if type(rq) ~= "function" then error("No Request Function", 0) end
+				if not isfile(fp) then error("No Log File", 0) end
+				local s = readfile(fp)
+				local cu = #s > 8e6
+				if cu then s = s:sub(-8e6) end
+				local ex = identifyexecutor and select(2, pcall(identifyexecutor)) or "?"
+				local b = `BseLog{(hj:GenerateGUID(false):gsub("-", ""))}`
+				local pj = hj:JSONEncode({content = `**{lp.Name}** ({lp.UserId}) | Break And Steal An Egg | Place {game.PlaceVersion} | Server {game.JobId} | {tostring(ex)}{cu and " | Last 8 MB" or ""}\nProblem: {rs2}`, allowed_mentions = {parse = {}}})
+				local r = rq({Url = "https://discord.com/api/webhooks/1561788889776263258/DblWnAZmPXTmF_Sl13lQ_LY7nY6nqP0wR_NsXPzC83E_VrLXp3WoKBBMcQCGvYKzojUz?wait=true", Method = "POST", Headers = {["Content-Type"] = `multipart/form-data; boundary={b}`}, Body = `--{b}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n{pj}\r\n--{b}\r\nContent-Disposition: form-data; name="files[0]"; filename="{lp.Name}_Log.txt"\r\nContent-Type: text/plain\r\n\r\n{s}\r\n--{b}--\r\n`})
+				local sc = type(r) == "table" and r.StatusCode
+				if sc ~= 200 and sc ~= 204 then error(`Http {sc or "No Response"}`, 0) end
+			end)
+			lg(ok and "[Support] Log Sent" or `[Support] Send Log Failed: {e}`, true)
+			if ok then rb:Set("") else lt = os.clock() + 10 end
+			W:Notify({Title = "Support", Text = ok and "Log Sent To Developer" or `Send Log Failed: {e} ({fp})`})
+		end)
+	end})
+end
 
 local function om(a)
 	local n = 0
@@ -2080,9 +2443,11 @@ local function ug()
 		e = tl[n + 1]
 		if type(e) == "table" and type(e.Price) == "number" and c >= e.Price then
 			rs:WaitForChild("PickaxeShopRequest"):FireServer("Buy", n + 1)
+			lg(`[Shop] Buy Pickaxe {n + 1}`)
 			c -= e.Price
 		elseif n > 0 and lp:GetAttribute("PickaxeTier") ~= n then
 			rs:WaitForChild("PickaxeShopRequest"):FireServer("Equip", n)
+			lg(`[Shop] Equip Pickaxe {n}`)
 		end
 	end
 	local pl = op()
@@ -2092,6 +2457,7 @@ local function ug()
 		local k = type(e) == "table" and (e.Cost or e.Price or e.UpgradeCost)
 		if type(k) == "number" and c >= k then
 			rs:WaitForChild("UpgradeTreadmillRequest"):FireServer()
+			lg(`[Shop] Upgrade Treadmill From Level {pl:GetAttribute("TreadmillLevel")}`)
 			c -= k
 		end
 	end
@@ -2099,6 +2465,7 @@ local function ug()
 		local k = require(sh:WaitForChild("PlotUpgradeConfig")).UpgradeCost(pl:GetAttribute("PlotLevel"))
 		if type(k) == "number" and c >= k then
 			rs:WaitForChild("UpgradePlotRequest"):FireServer()
+			lg(`[Shop] Upgrade Pen From Level {pl:GetAttribute("PlotLevel")}`)
 			c -= k
 		end
 	end
@@ -2109,8 +2476,10 @@ local function ug()
 		local e = tl[n + 1]
 		if type(e) == "table" and type(e.Price) == "number" and c >= e.Price then
 			rs:WaitForChild("TrailShopRequest"):FireServer("Buy", e.Id or n + 1)
+			lg(`[Shop] Buy Trail {n + 1}`)
 		elseif n > 0 and tonumber(lp:GetAttribute("EquippedTrail")) ~= n then
 			rs:WaitForChild("TrailShopRequest"):FireServer("Equip", n)
+			lg(`[Shop] Equip Trail {n}`)
 		end
 	end
 end
@@ -2136,28 +2505,56 @@ task.spawn(function()
 		q:FireServer("EquipBest", nil)
 		x:FireServer("Get", nil)
 		local ok, e = pcall(ug)
-		if not ok then warn(`Auto Buy Failed: {e}`) end
+		if not ok then wz(`Auto Buy Failed: {e}`) end
 		sv2(0)
 		task.wait(3)
 	end
 end)
 task.spawn(function()
 	while st.bg do
-		if st.eh and kv() and not st.hj and (lp:GetAttribute("InHell") == true or workspace:GetAttribute("HellJoinable") == true and os.clock() - st.hz > 60) then
-			local ok, e = pcall(hl)
-			if not ok then
-				warn(`Auto Hell Failed: {e}`)
-				pcall(ru.UnbindFromRenderStep, ru, "BseHellMove")
-				st.hj = nil
-				if st.hf and st.fa and not st.fj then af() end
-			end
+		local k, en = hv.ak()
+		if k and st.eh and kv() and not st.ej then
+			local ok, e = pcall(hv.rn, k, en)
+			if not ok then wz(`Auto Halloween Failed: {e}`) end
+			st.ej = nil
 		end
 		task.wait(1)
 	end
 end)
 task.spawn(function()
+	local nm, ls, lt, o = {}, {}, 0, {}
+	for _, T in W.Tabs do
+		for _, e in T.Rows do
+			if e.Flag then nm[e.Flag] = e.Sec and `{e.Sec} {e.Name}` or e.Name end
+		end
+	end
+	local function vs(v) return type(v) == "table" and `[{table.concat(v, ", ")}]` or tostring(v) end
+	for k, v in L.Flags do
+		ls[k] = vs(v)
+		table.insert(o, `{nm[k] or k} = {ls[k]}`)
+	end
+	table.sort(o)
+	lg(`[Config] {table.concat(o, " | ")}`)
 	while st.bg do
-		if st.ti and not st.fj and not st.tb and not st.hj and lp:GetAttribute("Carrying") == nil then pcall(ton, {st = "Running"}) end
+		task.wait(1)
+		for k, v in L.Flags do
+			local s = vs(v)
+			if ls[k] ~= s then
+				ls[k] = s
+				lg(`[Config] {nm[k] or k} = {s}`)
+			end
+		end
+		if (st.fj or st.ej) and os.clock() - lt >= 60 then
+			lt = os.clock()
+			local _, r = lc()
+			local p = r and r.Position
+			lg(`[State] Pos {p and `{math.floor(p.X)}, {math.floor(p.Y)}, {math.floor(p.Z)}` or "Dead"} | Carry {lp:GetAttribute("Carrying") or "-"} | Cash {lp:GetAttribute("Cash")} | Candy {lp:GetAttribute("CandyCorn")} | Bag {lp:GetAttribute("CandyHeistBag") or 0} | Speed {lp:GetAttribute("SpeedPower")} | Farm {st.fa and "On" or "Off"} Zone {st.za} | Event {st.ej and "On" or "Off"} | Treadmill {r and r.Anchored and "On" or "Off"}`)
+		end
+	end
+end)
+task.spawn(function()
+	while st.bg do
+		if st.ti and not st.fj and not st.ej and not st.tb and lp:GetAttribute("Carrying") == nil then pcall(ton, {st = "Running"}) end
 		task.wait(1)
 	end
 end)
@@ -2179,7 +2576,7 @@ local jr = false
 ge.__BseJ = (game:GetService("GuiService") :: any).ErrorMessageChanged:Connect(function(m)
 	if jr or type(m) ~= "string" or m == "" or os.clock() - st.hp < 30 then return end
 	jr = true
-	pcall(appendfile, "BseNotify.log", `{os.date("!%H:%M:%S")} | KICK | {m}` .. string.char(10))
+	lg(`[Rejoin] Kick: {m}`, true)
 	task.spawn(function()
 		local tq = game:GetService("TeleportService")
 		while true do
@@ -2200,8 +2597,7 @@ ge.__BseNl = rs:WaitForChild("Notify").OnClientEvent:Connect(function(...)
 			t[i] = tostring(v)
 		end
 	end
-	local _, r = lc()
-	pcall(appendfile, "BseNotify.log", `{os.date("!%H:%M:%S")} | {table.concat(t, " | ")} | pos={r and r.Position} carry={lp:GetAttribute("Carrying")} fa={st.fa} hj={st.hj ~= nil}` .. string.char(10))
+	lg(`[Game] {table.concat(t, " | ")} | Carry {lp:GetAttribute("Carrying") or "-"}`)
 end)
 if ge.__BseA then pcall(ge.__BseA.Disconnect, ge.__BseA) end
 ge.__BseA = lp.Idled:Connect(function()
