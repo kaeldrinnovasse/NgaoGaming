@@ -91,7 +91,7 @@ st.kh = setmetatable({}, {__mode = "k"})
 st.pc = {rs:WaitForChild("EggHitConfirmed").OnClientEvent:Connect(function(e, _, h) if typeof(e) == "Instance" and type(h) == "number" then st.kh[e] = h end end)}
 
 local cs, sh, hq = game:GetService("CollectionService"), rs:WaitForChild("Shared"), rs:WaitForChild("EggHitRequest")
-local rx = {-40, -131, -246, -389, -580, -828, -1138, -1579, -2085, -2605, -3281}
+local rx = {-40, -131, -246, -389, -580, -828, -1138, -1579, -2085, -2605, -3281, -3895}
 local zx = {}
 local function zr(z)
 	if zx[z] then return zx[z][1], zx[z][2] end
@@ -841,39 +841,198 @@ local function af()
 	end)
 end
 
-local hv = {dr = {}, hd = {}, fn = {}, bl = setmetatable({}, {__mode = "k"}), pc = nil :: any}
-table.insert(st.pc, rs:WaitForChild("HalloweenCandyDrops").OnClientEvent:Connect(function(a, b)
-	if type(b) ~= "table" then return end
-	if a == "Spawn" then
-		for _, d in b do
-			if type(d) == "table" and type(d.Id) == "string" and typeof(d.Position) == "Vector3" then hv.dr[d.Id] = {p = d.Position, x = (tonumber(d.StartAt) or workspace:GetServerTimeNow()) + 120} end
+local hv = {dr = {}, hd = {}, fn = {}, bl = setmetatable({}, {__mode = "k"}), pc = nil :: any, sp = {}, sn = {sp = 0, co = 0, am = 0, bn = 0, rm = 0}, bk = 0}
+st.hv, st.hz = hv, 1
+hv.az, hv.ui, hv.ps = {}, {}, {}
+hv.od = {"DisguisedEggs", "TrickOrTreat", "CandyHeist", "BloodMoon"}
+hv.lb = {DisguisedEggs = "Phantom Eggs", TrickOrTreat = "House Of Horrors", CandyHeist = "Candy Carnage", BloodMoon = "Blood Moon"}
+st.ha = {}
+st.hm = {}
+
+function hv.li(k)
+	local a = {}
+	for i, n in hv.nm or {} do if hv.az[k] and hv.az[k][i] then a[#a + 1] = n end end
+	return a
+end
+
+function hv.av(k)
+	if k == "TrickOrTreat" or not hv.nm or not hv.lb[k] then return end
+	local a, ch = hv.az[k] or {}, false
+	hv.az[k] = a
+	local tag = k == "TrickOrTreat" and "BreakableHalloweenDoor" or k == "CandyHeist" and "BreakableCandyPile" or "BreakableEgg"
+	for _, x in cs:GetTagged(tag) do
+		if k == "DisguisedEggs" and (not x:GetAttribute("DisguisedEggRun") or (tonumber(x:GetAttribute("DisguisedEggEndsAt")) or 0) <= workspace:GetServerTimeNow()) then continue end
+		local z = tonumber(x:GetAttribute("ZoneIndex"))
+		if z and z % 1 == 0 and hv.nm[z] and not a[z] then a[z], ch = true, true end
+	end
+	if ch and hv.wc then hv.wc() end
+	local n = k == "CandyHeist" and (st.za or 1) or hv.ps[k] or st.ha[k] or st.za or 1
+	if not a[n] then
+		local _, r = lc()
+		local bd
+		n = nil
+		for z in a do
+			local d = r and rx[z + 1] and math.abs(rx[z + 1] - r.Position.X) or z
+			if not bd or d < bd then n, bd = z, d end
 		end
-	elseif a == "Collect" or a == "Remove" then
-		for _, i in b do hv.dr[i] = nil end
+	end
+	if not n then return end
+	if k == "CandyHeist" then
+		local v, q, l = hv.ps[k] or {[n] = true}, {}, {}
+		for z, nm in hv.nm do if v[z] and a[z] then q[z], l[#l + 1] = true, nm end end
+		st.hm = q
+		local e = hv.ui[k]
+		if e then
+			local ops = hv.li(k)
+			local sig = table.concat(ops, "\0")
+			hv.rf = true
+			if e.sg ~= sig then e:Refresh(ops) e.sg = sig end
+			e:Set(l)
+			hv.rf = false
+		end
+		return
+	end
+	local e, l = hv.ui[k], hv.li(k)
+	st.ha[k] = n
+	if e then
+		local sig = table.concat(l, "\0")
+		hv.rf = true
+		if e.sg ~= sig then e:Refresh(l) e.sg = sig end
+		if e:Get() ~= hv.nm[n] then e:Set(hv.nm[n]) end
+		hv.rf = false
+	end
+end
+
+function hv.on(f)
+	return st.bg and st.eh and st.ej == f and f.st == "Running" and st.hz == f.z and workspace:GetServerTimeNow() < f.en
+end
+
+function hv.zi(z, p)
+	local b = workspace:FindFirstChild("Build")
+	local h = b and b:FindFirstChild("ZoneHitboxes")
+	local x = h and h:FindFirstChild(tostring(z))
+	if x and x:IsA("BasePart") then
+		local q, s = x.CFrame:PointToObjectSpace(p), x.Size / 2
+		return math.abs(q.X) <= s.X and math.abs(q.Z) <= s.Z
+	end
+	local a, b = zr(z)
+	return p.X >= a and p.X <= b
+end
+
+function hv.zp(p)
+	local k = st.ej and st.ej.k
+	if k == "TrickOrTreat" then return true end
+	if k == "CandyHeist" then
+		for z in st.hm do if hv.zi(z, p) then return true end end
+		return false
+	end
+	return hv.zi(st.hz, p)
+end
+
+function hv.ne(p, q, d)
+	return Vector3.new(p.X - q.X, 0, p.Z - q.Z).Magnitude <= d
+end
+
+function hv.ad(l, ds)
+	if type(ds) ~= "table" then return end
+	local n, t = workspace:GetServerTimeNow(), os.clock()
+	for _, d in ds do
+		if type(d) ~= "table" or type(d.Id) ~= "string" or typeof(d.Position) ~= "Vector3" or d.ClaimUserId ~= nil and d.ClaimUserId ~= lp.UserId then continue end
+		local x = tonumber(d.ExpiresAt) or (tonumber(d.StartAt) or tonumber(d.At) or n) + 120
+		if x ~= x or x == math.huge or x <= n or d.Position.Magnitude ~= d.Position.Magnitude or d.Position.Magnitude == math.huge then continue end
+		local o = typeof(d.Origin) == "Vector3" and d.Origin or d.Position
+		local r = (tonumber(d.StartAt) or tonumber(d.At) or n) + (tonumber(d.FlightTime) or 0) + 0.5
+		local q = l[d.Id]
+		l[d.Id] = {p = d.Position, o = o, x = x, r = r, a = tonumber(d.Amount) or 0, nt = q and q.nt or 0, tr = q and q.tr or 0, s = d.Spilled == true, t = q and q.t or t, b = q and q.b or false}
+		hv.sp[#hv.sp + 1] = {p = o, t = t, l = l}
+		hv.sn.sp += 1
+	end
+	while #hv.sp > 256 do table.remove(hv.sp, 1) end
+	if l == hv.hd then hv.mr() end
+end
+function hv.mr()
+	local r = hv.sr
+	if not r then return end
+	if st.ej ~= r.f or not r.f.bk or os.clock() - r.t > 1.5 then hv.sr = nil return end
+	local gs = {}
+	for id, d in hv.hd do
+		if d.s and d.t >= r.t - 1 and (d.o - r.p).Magnitude <= 60 then
+			local k = ("%.2f,%.2f,%.2f"):format(d.o.X, d.o.Y, d.o.Z)
+			local g = gs[k] or {p = d.o, a = 0, ids = {}, t = d.t}
+			g.a += d.a
+			g.ids[#g.ids + 1] = id
+			g.t = math.min(g.t, d.t)
+			gs[k] = g
+		end
+	end
+	local b, bd
+	for _, g in gs do
+		local d = (g.p - r.p).Magnitude
+		if math.abs(g.a - r.a) < 0.01 and (not bd or d < bd) then b, bd = g, d end
+	end
+	if not b then return end
+	for _, id in b.ids do hv.hd[id].b, hv.hd[id].nt = true, 0 end
+	r.f.rs = {p = b.p, t = b.t}
+	lg(("[Event] Recover Bank Spill | %d Candy | %d Drops"):format(r.a, #b.ids))
+	hv.sr = nil
+end
+
+table.insert(st.pc, rs:WaitForChild("HalloweenCandyDrops").OnClientEvent:Connect(function(a, b)
+	if a == "Spawn" then
+		hv.ad(hv.dr, b)
+	elseif a == "CollectPotion" then
+		local id = type(b) == "table" and b.Id or b
+		if type(id) == "string" and hv.dr[id] then hv.dr[id], hv.sn.co = nil, hv.sn.co + 1 end
+	elseif (a == "Collect" or a == "Remove") and type(b) == "table" then
+		for _, id in b do
+			if a == "Collect" and hv.dr[id] then hv.sn.co += 1 end
+			if a == "Remove" and hv.dr[id] then hv.sn.rm += 1 end
+			hv.dr[id] = nil
+		end
 	end
 end))
 table.insert(st.pc, rs:WaitForChild("HalloweenCandyHeist").OnClientEvent:Connect(function(a, b)
 	if a == "End" or a == "Start" or a == "Snapshot" then table.clear(hv.hd) end
 	if type(b) ~= "table" then return end
-	if a == "Spawn" and type(b.Drops) == "table" then
-		for _, d in b.Drops do
-			if type(d) == "table" and type(d.Id) == "string" and typeof(d.Position) == "Vector3" and (d.ClaimUserId == nil or d.ClaimUserId == lp.UserId) then hv.hd[d.Id] = {p = d.Position, x = tonumber(d.ExpiresAt) or math.huge} end
-		end
+	if a == "Spawn" or a == "Start" or a == "Snapshot" then
+		hv.ad(hv.hd, b.Drops)
 	elseif a == "Remove" and type(b.Ids) == "table" then
-		for _, i in b.Ids do hv.hd[i] = nil end
-	elseif a == "Collect" and b.Id then
-		hv.hd[b.Id] = nil
+		for _, id in b.Ids do
+			if hv.hd[id] then hv.sn.rm += 1 end
+			hv.hd[id] = nil
+		end
+	elseif a == "Collect" and type(b.Id) == "string" then
+		if b.UserId == lp.UserId then
+			hv.sn.co += 1
+			hv.sn.am += tonumber(b.Amount) or 0
+		end
+		local q, n = hv.hd[b.Id], tonumber(b.Remaining)
+		if n and n > 0 and q then q.a, q.nt = n, 0 else hv.hd[b.Id] = nil end
+	elseif a == "Bank" and b.UserId == lp.UserId then
+		hv.bk = os.clock()
+		hv.sn.bn += tonumber(b.Amount) or 0
+		lg(("[Event] Bank Confirmed | Raw %s | Credited %s"):format(tostring(b.Raw or "?"), tostring(b.Amount or "?")))
+	elseif a == "Spill" and b.UserId == lp.UserId then
+		local f, a = st.ej, tonumber(b.Amount)
+		local _, r = lc()
+		if f and f.bk and r and a and a > 0 and (not f.id or b.RunId == f.id) then
+			hv.sr = {f = f, t = os.clock(), p = r.Position, a = a}
+			hv.mr()
+		end
 	end
 end))
 
 function hv.dm()
-	local ok, v = pcall(function() return require(sh:WaitForChild("PickaxeConfig")).GetDamage(lp:GetAttribute("PickaxeTier")) * require(sh:WaitForChild("PotionConfig")).MultiplierFor(lp, "Damage") end)
-	return ok and type(v) == "number" and v > 0 and v or 1
+	local ok, v = pcall(function()
+		return require(sh:WaitForChild("PickaxeConfig")).GetDamage(lp:GetAttribute("PickaxeTier")) * require(sh:WaitForChild("PotionConfig")).MultiplierFor(lp, "Damage") * require(sh:WaitForChild("MasteryConfig")).MultiplierFor(lp, "Power") * require(sh:WaitForChild("RobuxShopConfig")).DamageMultiplierFor(lp)
+	end)
+	return ok and type(v) == "number" and v == v and v > 0 and v or 1
 end
 
 function hv.ok(x, m)
 	local h = tonumber(x:GetAttribute("Health"))
-	return x.Parent ~= nil and not x:GetAttribute("Broken") and (hv.bl[x] or 0) < os.clock() and h ~= nil and h > 0 and h <= m
+	local d = tonumber(x:GetAttribute("FixedDamage"))
+	return x.Parent ~= nil and (st.ej and st.ej.k == "TrickOrTreat" or st.ej and st.ej.k == "CandyHeist" and st.hm[tonumber(x:GetAttribute("ZoneIndex"))] or tonumber(x:GetAttribute("ZoneIndex")) == st.hz) and not x:GetAttribute("Broken") and not x:GetAttribute("Hatching") and not x:GetAttribute("HatchId") and (hv.bl[x] or -math.huge) < os.clock() and h ~= nil and h > 0 and h <= (d and d > 0 and d * 30 or m)
 end
 
 function hv.dn(x)
@@ -882,8 +1041,9 @@ end
 
 function hv.tp(f, p)
 	for _ = 1, 15 do
-		local _, r = lc()
-		if not r or f.st ~= "Running" then return false end
+		local c, r = lc()
+		if not r or not hv.on(f) then return false end
+		if c:GetAttribute("Ragdolled") then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p) return true end
 		local d = p - r.Position
 		if d.Magnitude <= 3 then return true end
 		local q = d.Magnitude > 300 and r.Position + d.Unit * 300 or p
@@ -892,9 +1052,9 @@ function hv.tp(f, p)
 		task.wait(0.3)
 		_, r = lc()
 		if not r or (r.Position - q).Magnitude > 8 then
-			if f.st ~= "Running" then return false end
+			if not hv.on(f) then return false end
 			local bg = (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) > 0
-			lg(`[Move] Hop Pulled Back | {math.floor(d.Magnitude)} Studs Left | {bg and "Rail" or "Treadmill"}`)
+			lg(("[Move] Hop Pulled Back | %d Studs Left | %s"):format(math.floor(d.Magnitude), bg and "Rail" or "Treadmill"))
 			if not bg and hv.tm(f, p) then return true end
 			local ok = rt(f, p)
 			if not ok then lg("[Move] Rail Walk Failed") end
@@ -907,24 +1067,17 @@ end
 
 function hv.tm(f, p)
 	local r = ton(f)
-	if not r then
-		lg("[Move] Treadmill Trick Failed: Not On Treadmill")
-		return false
-	end
+	if not r or not hv.on(f) then return false end
 	task.wait(0.15)
 	rs:WaitForChild("TreadmillSessionRemote"):FireServer()
 	local t = os.clock()
-	repeat task.wait(0.03) until not r.Anchored or os.clock() - t > 3
-	if r.Anchored or f.st ~= "Running" then
-		lg(`[Move] Treadmill Trick Failed: {r.Anchored and "Still On Treadmill" or "Stopped"}`)
-		return false
-	end
-	r.AssemblyLinearVelocity = Vector3.zero
-	r.CFrame = CFrame.new(p)
+	repeat task.wait(0.03) until not r.Anchored or os.clock() - t > 3 or not hv.on(f)
+	if r.Anchored or not hv.on(f) then return false end
+	r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p)
 	task.wait(0.3)
 	local _, q = lc()
 	local ok = q ~= nil and (q.Position - p).Magnitude <= 8
-	lg(`[Move] Treadmill Trick {ok and "Ok" or "Failed: Pulled Back"}`)
+	lg("[Move] Treadmill Trick " .. (ok and "Ok" or "Failed: Pulled Back"))
 	return ok
 end
 
@@ -936,237 +1089,348 @@ end
 
 function hv.hb(f, x, p)
 	if not hv.tp(f, p) then return false end
-	local c, _, h = lc()
-	if c then eq(c, h) end
-	if hv.pc == nil then
-		local ok, m = pcall(function() return require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("PickaxeController")) end)
-		hv.pc = ok and m or false
-	end
-	local t, ls = os.clock(), 0
-	while f.st == "Running" and not hv.dn(x) and os.clock() - t < 12 do
-		local c2, r = lc()
-		if not r or et.SurfaceDistance(x, r.Position) > r1 + 2 then return false end
-		if c2:FindFirstChild("Pickaxe") then
-			st.id += 1
-			hq:FireServer(x, st.id)
-			if hv.pc and os.clock() - ls >= 1.5 and hv.pc.IsWielding() then
-				ls = os.clock()
-				pcall(hv.pc.Swing, x)
-			end
+	local cn = ru.Heartbeat:Connect(function()
+		local c, r = lc()
+		if hv.on(f) and c and r and c:GetAttribute("Ragdolled") and lp:GetAttribute("Carrying") == nil then
+			r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p)
 		end
-		task.wait(0.37 / rc.SwingMultiplierFor(lp))
-	end
-	return hv.dn(x)
+	end)
+	local ok, v = xpcall(function()
+		local c, _, h = lc()
+		if c then eq(c, h) end
+		if hv.pc == nil then
+			local q, m = pcall(function() return require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("PickaxeController")) end)
+			hv.pc = q and m or false
+		end
+		local t, ls = os.clock(), 0
+		while hv.on(f) and not hv.dn(x) and os.clock() - t < 12 do
+			local c2, r, h2 = lc()
+			if not r or lp:GetAttribute("Carrying") ~= nil then return false end
+			if c2:GetAttribute("Ragdolled") then
+				r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p)
+				local b = lp:FindFirstChild("Backpack")
+				local pk = c2:FindFirstChild("Pickaxe") or b and b:FindFirstChild("Pickaxe")
+				if pk and pk:IsA("Tool") and pk.Parent ~= c2 then h2:EquipTool(pk) end
+			end
+			if et.SurfaceDistance(x, r.Position) > r1 + 2 then return false end
+			if c2:FindFirstChild("Pickaxe") then
+				st.id += 1
+				hq:FireServer(x, st.id)
+				if hv.pc and os.clock() - ls >= 1.5 and hv.pc.IsWielding() then
+					ls = os.clock()
+					pcall(hv.pc.Swing, x)
+				end
+			end
+			task.wait(0.37 / rc.SwingMultiplierFor(lp))
+		end
+		return hv.dn(x)
+	end, xe)
+	cn:Disconnect()
+	if not ok then error(v, 0) end
+	return v
 end
 
 function hv.rd(d)
 	local _, _, h = lc()
-	return d / math.max(h and h.WalkSpeed * 0.8 or 16, 8) + 0.5
+	return d / math.max(h and h.WalkSpeed * 0.8 or 16, 8) + 1
 end
 
-function hv.gc(f, l, cp, w0)
-	local t = os.clock()
-	while f.st == "Running" and os.clock() - t < w0 + 5 do
-		local _, r = lc()
-		if not r then break end
-		local b, bd
-		for i, d in l do
-			if (d.p - cp).Magnitude <= 25 then
-				local q = (d.p - r.Position).Magnitude
-				if not bd or q < bd then b, bd = i, q end
-			end
+function hv.cl(f)
+	if st.ej ~= f then return end
+	st.mt = nil
+	local _, _, h = lc()
+	if h then h:Move(Vector3.zero, false) end
+end
+
+function hv.fl(l)
+	if l ~= hv.hd then return false end
+	return (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) >= (require(sh:WaitForChild("HalloweenEventConfig")).CandyHeist.Capacity or 500)
+end
+
+function hv.pk(l, ag, cp)
+	local _, r = lc()
+	if not r then return nil end
+	local n, t, b, bd = workspace:GetServerTimeNow(), os.clock(), nil, nil
+	for id, d in l do
+		if n >= d.x then
+			l[id] = nil
+		elseif (d.b or hv.zp(d.o)) and (not cp or hv.ne(d.o, cp, 6)) and (ag == math.huge or n >= d.x - ag) and (d.nt or 0) <= t then
+			local q = (d.p - r.Position).Magnitude
+			if not bd or q < bd then b, bd = id, q end
 		end
-		if not b then
-			if os.clock() - t > w0 then break end
-			task.wait(0.1)
-		elseif bd > 7 then
-			local p = l[b].p
-			st.mt, st.ma = p, nil
-			local t2 = os.clock()
-			repeat
-				task.wait(0.03)
-				local _, q = lc()
-			until not q or st.ma == p or (q.Position - p).Magnitude < 7 or os.clock() - t2 > hv.rd(bd) or f.st ~= "Running"
-			if os.clock() - t2 > hv.rd(bd) then l[b] = nil end
+	end
+	return b, bd
+end
+
+function hv.mv(f, l, id)
+	local d = l[id]
+	if not d or not hv.on(f) or hv.fl(l) then return false end
+	local _, r = lc()
+	if not r then return false end
+	local ds, t = (d.p - r.Position).Magnitude, os.clock()
+	if ds > 80 and not hv.tp(f, d.p + Vector3.new(0, 2, 0)) then
+		d.nt, d.tr = os.clock() + 1, d.tr + 1
+		return false
+	end
+	while hv.on(f) and l[id] == d and workspace:GetServerTimeNow() < d.x and not hv.fl(l) and os.clock() - t < hv.rd(ds) + 2 do
+		local _, q = lc()
+		if not q then break end
+		if math.abs(d.p.Y - q.Position.Y) > 6 and hv.ne(d.p, q.Position, 15) then
+			if not hv.tp(f, d.p + Vector3.new(0, 2, 0)) then break end
+			_, q = lc()
+			if not q then break end
+		end
+		if (d.p - q.Position).Magnitude <= 8.5 then
+			hv.cl(f)
+			local w = math.max(workspace:GetServerTimeNow(), d.r) + 1
+			repeat task.wait(0.03) until not hv.on(f) or l[id] ~= d or hv.fl(l) or workspace:GetServerTimeNow() >= math.min(d.x, w)
+			break
+		end
+		st.mt, st.ma = d.p, nil
+		task.wait(0.03)
+	end
+	hv.cl(f)
+	if l[id] ~= d then return true end
+	d.tr += 1
+	d.nt = os.clock() + math.min(d.tr, 3)
+	return false
+end
+
+function hv.gc(f, l, cp, w0, at, ex)
+	local t, lt, got = os.clock(), os.clock(), false
+	local co = hv.sn.co
+	local _, r = lc()
+	if r and hv.on(f) then
+		local p = gy(cp.X, cp.Z, ex)
+		if (p - r.Position).Magnitude <= 30 then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p) else st.mt, st.ma = p, nil end
+	end
+	while hv.on(f) and not hv.fl(l) and os.clock() - t < w0 + 8 do
+		if f.k == "TrickOrTreat" and ex and f.ds and (tonumber(ex:GetAttribute("RevealedAt")) or 0) >= f.ds then
+			local o = require(sh:WaitForChild("HalloweenEventConfig")).TrickOrTreat.Outcomes[ex:GetAttribute("Outcome")]
+			if o and o.Treat == false then break end
+		end
+		for _, s in hv.sp do
+			if s.l == l and s.t >= (at or t) and hv.ne(s.p, cp, 6) then got, lt = true, math.max(lt, s.t) end
+		end
+		local id = hv.pk(l, math.huge, cp)
+		if id then
+			hv.mv(f, l, id)
+			lt = os.clock()
 		else
-			l[b].w = l[b].w or os.clock()
-			if os.clock() - l[b].w > 1.5 then l[b] = nil end
+			local pn, rd = false, false
+			for _, d in l do
+				if workspace:GetServerTimeNow() < d.x and (d.b or hv.zp(d.o)) and hv.ne(d.o, cp, 6) then pn, rd = true, rd or (d.nt or 0) <= os.clock() end
+			end
+			if got and (not pn or not rd) and os.clock() - lt >= 0.15 or not got and os.clock() - t >= w0 then break end
 			task.wait(0.05)
 		end
 	end
-	st.mt = nil
-	local _, _, h = lc()
-	if h then h:Move(Vector3.zero, false) end
+	hv.cl(f)
+	local pn = 0
+	for _, d in l do if workspace:GetServerTimeNow() < d.x and (d.b or hv.zp(d.o)) and hv.ne(d.o, cp, 6) then pn += 1 end end
+	lg(("[Event] Collect | %d Drops Confirmed | %d Pending"):format(hv.sn.co - co, pn))
+	return got and pn == 0
 end
 
 function hv.sw(f, l, ag)
-	local t0 = os.clock()
-	while f.st == "Running" and os.clock() - t0 < 60 do
-		local n = workspace:GetServerTimeNow()
-		local _, r = lc()
-		if not r then break end
-		local b, bd
-		for i, d in l do
-			if n > d.x then
-				l[i] = nil
-			elseif ag == math.huge or n >= d.x - ag then
-				local q = (d.p - r.Position).Magnitude
-				if not bd or q < bd then b, bd = i, q end
-			end
-		end
-		if not b then break end
-		local p = l[b].p
-		l[b] = nil
-		if bd > 80 then
-			hv.tp(f, p + Vector3.new(0, 2, 0))
-			task.wait(0.1)
-		elseif bd > 7 then
-			st.mt, st.ma = p, nil
-			local t = os.clock()
-			repeat
-				task.wait(0.03)
-				local _, q = lc()
-			until not q or st.ma == p or (q.Position - p).Magnitude < 7 or os.clock() - t > hv.rd(bd) or f.st ~= "Running"
-		end
+	local t = os.clock()
+	while hv.on(f) and not hv.fl(l) and os.clock() - t < 12 do
+		local id = hv.pk(l, ag)
+		if not id then break end
+		hv.mv(f, l, id)
 	end
-	st.mt = nil
-	local _, _, h = lc()
-	if h then h:Move(Vector3.zero, false) end
+	hv.cl(f)
+	for _, d in l do
+		if workspace:GetServerTimeNow() < d.x and (d.b or hv.zp(d.o)) and (d.nt or 0) <= os.clock() and (ag == math.huge or workspace:GetServerTimeNow() >= d.x - ag) then return false end
+	end
+	return true
 end
 
-function hv.nr(l, m, zp)
+function hv.nr(l, m)
 	local _, r = lc()
 	if not r then return nil end
 	local b, bz, bd
 	for _, x in l do
 		if hv.ok(x, m) then
-			local z, d = zp and tonumber(x:GetAttribute("ZoneIndex")) or 0, (x.Position - r.Position).Magnitude
+			local z = st.ej and st.ej.k == "CandyHeist" and tonumber(x:GetAttribute("ZoneIndex")) or 0
+			local d = (x.Position - r.Position).Magnitude
 			if not b or z > bz or z == bz and d < bd then b, bz, bd = x, z, d end
 		end
 	end
 	return b
 end
 
-hv.fn.DisguisedEggs = function(f)
-	hv.sw(f, hv.dr, 30)
-	local l = {}
-	for _, e in cs:GetTagged("BreakableEgg") do
-		if e:GetAttribute("DisguisedEggRun") and not e:GetAttribute("HatchId") and (tonumber(e:GetAttribute("DisguisedEggEndsAt")) or 0) > workspace:GetServerTimeNow() then table.insert(l, e) end
-	end
-	local e = hv.nr(l, hv.dm() * 30)
-	if not e then
-		hv.sw(f, hv.dr, math.huge)
-		task.wait(0.5)
-		return
-	end
-	local t0 = os.clock()
+function hv.bn(f)
+	local bg, c0, t0, b0 = tonumber(lp:GetAttribute("CandyHeistBag")) or 0, tonumber(lp:GetAttribute("CandyCorn")) or 0, os.clock(), hv.sn.bn
+	local h = require(sh:WaitForChild("SafeZoneQuery")).GetOwnedPlotHitbox(lp.UserId)
+	if not h or not hv.fl(hv.hd) then return false end
+	f.bk, f.rs = true, nil
+	lg(("[Event] Bank Bag %d | Walking Home"):format(bg))
+	local ok, v = xpcall(function()
+		local at = false
+		for _ = 1, 4 do
+			if not hv.on(f) then return false end
+			if f.rs then
+				local q = f.rs
+				f.rs = nil
+				if not hv.fl(hv.hd) then hv.gc(f, hv.hd, q.p, 0, q.t - 0.01) end
+			end
+			if not hv.on(f) then return false end
+			local c = lc()
+			if not c then return false end
+			if c:GetAttribute("Ragdolled") then
+				task.wait(0.1)
+				hv.mr()
+				if f.rs then continue end
+				c = lc()
+				if c and c:GetAttribute("Ragdolled") then at = hv.tp(f, h.Position) break end
+			end
+			local q = rt(f, gy(rx[1], 0), function()
+				local c2 = lc()
+				return f.rs ~= nil or c2 and c2:GetAttribute("Ragdolled")
+			end)
+			c = lc()
+			if f.rs or c and c:GetAttribute("Ragdolled") then continue end
+			if not q or not hv.on(f) then return false end
+			at = hv.tp(f, h.Position)
+			break
+		end
+		if not at then return false end
+		local t = os.clock()
+		repeat task.wait(0.05) until not hv.on(f) or os.clock() - t > 4 or (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg and (hv.bk >= t0 or (tonumber(lp:GetAttribute("CandyCorn")) or 0) > c0)
+		return (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg and (hv.bk >= t0 or (tonumber(lp:GetAttribute("CandyCorn")) or 0) > c0)
+	end, xe)
+	f.bk = nil
+	if hv.sr and hv.sr.f == f then hv.sr = nil end
+	hv.cl(f)
+	local cr = hv.sn.bn - b0
+	if cr <= 0 then cr = math.max(0, (tonumber(lp:GetAttribute("CandyCorn")) or 0) - c0) end
+	lg(("[Event] Bank Bag %d | %s | Credited %d | Candy %s"):format(bg, ok and v and "Ok" or "Failed", cr, tostring(lp:GetAttribute("CandyCorn"))))
+	if not ok then error(v, 0) end
+	return v
+end
+
+function hv.eg(f, l, es)
+	if hv.fl(l) then hv.bn(f) return end
+	if not hv.sw(f, l, math.huge) or not hv.on(f) then return end
+	local e = hv.nr(es, hv.dm() * 30)
+	if not e then task.wait(0.3) return end
+	local t0, p = os.clock(), e.Position
 	if hv.hb(f, e, hv.sd(e)) then
-		hv.gc(f, hv.dr, e.Position, 1.2)
-		lg(`[Event] Phantom Egg Zone {e:GetAttribute("ZoneIndex")} | Ok | {math.floor((os.clock() - t0) * 10) / 10} s | Candy {lp:GetAttribute("CandyCorn")}`)
+		hv.gc(f, l, p, 12, t0, e)
+		lg(("[Event] %s Egg Zone %d | Ok | %.1f s | Candy %s | Bag %s"):format(f.k, f.z, os.clock() - t0, tostring(lp:GetAttribute("CandyCorn")), tostring(lp:GetAttribute("CandyHeistBag") or 0)))
 	else
-		hv.bl[e] = os.clock() + 15
-		lg(`[Event] Phantom Egg Zone {e:GetAttribute("ZoneIndex")} | Failed | {math.floor((os.clock() - t0) * 10) / 10} s`)
+		hv.bl[e] = os.clock() + 3
+		lg(("[Event] %s Egg Zone %d | Failed"):format(f.k, f.z))
 	end
 end
 
+hv.fn.DisguisedEggs = function(f)
+	local l = {}
+	for _, e in cs:GetTagged("BreakableEgg") do
+		if e:GetAttribute("DisguisedEggRun") and (tonumber(e:GetAttribute("DisguisedEggEndsAt")) or 0) > workspace:GetServerTimeNow() then table.insert(l, e) end
+	end
+	hv.eg(f, hv.dr, l)
+end
+
+hv.fn.BloodMoon = function(f)
+	hv.eg(f, hv.hd, cs:GetTagged("BreakableEgg"))
+end
+
 hv.fn.TrickOrTreat = function(f)
-	hv.sw(f, hv.dr, 30)
+	if not hv.sw(f, hv.dr, math.huge) or not hv.on(f) then return end
 	local l = {}
 	for _, x in cs:GetTagged("BreakableHalloweenDoor") do
 		if typeof(x:GetAttribute("KnockPosition")) == "Vector3" then table.insert(l, x) end
 	end
 	local x = hv.nr(l, hv.dm() * 30)
-	if not x then
-		hv.sw(f, hv.dr, math.huge)
-		task.wait(0.5)
-		return
-	end
-	local t0 = os.clock()
-	if hv.hb(f, x, x:GetAttribute("KnockPosition")) then
-		hv.gc(f, hv.dr, x:GetAttribute("KnockPosition"), 2)
-		lg(`[Event] Door Zone {x:GetAttribute("ZoneIndex")} | Ok | {math.floor((os.clock() - t0) * 10) / 10} s | Candy {lp:GetAttribute("CandyCorn")}`)
+	if not x then task.wait(0.3) return end
+	f.ds = workspace:GetServerTimeNow()
+	local t0, p = os.clock(), x:GetAttribute("KnockPosition")
+	if hv.hb(f, x, p) then
+		hv.gc(f, hv.dr, p, 4, t0, x)
+		lg(("[Event] Door Zone %s | Ok | Candy %s"):format(tostring(x:GetAttribute("ZoneIndex") or "?"), tostring(lp:GetAttribute("CandyCorn"))))
 	else
-		hv.bl[x] = os.clock() + 15
-		lg(`[Event] Door Zone {x:GetAttribute("ZoneIndex")} | Failed | {math.floor((os.clock() - t0) * 10) / 10} s`)
+		hv.bl[x] = os.clock() + 3
 	end
 end
 
-hv.fn.CandyHeist = function(f, en)
+hv.fn.CandyHeist = function(f)
 	local cf = require(sh:WaitForChild("HalloweenEventConfig")).CandyHeist
-	if en - workspace:GetServerTimeNow() < 40 then
-		hv.sw(f, hv.hd, math.huge)
-		task.wait(0.3)
-		return
+	if hv.fl(hv.hd) then hv.bn(f) return end
+	if not hv.sw(f, hv.hd, math.huge) or not hv.on(f) then return end
+	local a, c, b, m = {}, {}, nil, -math.huge
+	for _, v in cf.PileVariants or {} do if (tonumber(v.CandyMultiplier) or 0) > m then b, m = v, tonumber(v.CandyMultiplier) or 0 end end
+	for _, x in cs:GetTagged(cf.PileTag or "BreakableCandyPile") do
+		local n = tostring(x:GetAttribute("PileLabel") or "")
+		if b and (n == b.Label or n == b.Name) or n:lower() == "big" then a[#a + 1] = x else c[#c + 1] = x end
 	end
-	local bg = tonumber(lp:GetAttribute("CandyHeistBag")) or 0
-	if bg >= (cf.Capacity or 500) * 0.9 and en - workspace:GetServerTimeNow() > 45 then
-		local hb = require(sh:WaitForChild("SafeZoneQuery")).GetOwnedPlotHitbox(lp.UserId)
-		lg(`[Event] Bank Bag {bg} | Walking Home`)
-		if hb and rt(f, gy(rx[1], 0)) and hv.tp(f, hb.Position) then
-			local t = os.clock()
-			repeat task.wait(0.1) until (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg or os.clock() - t > 4
-		end
-		lg(`[Event] Bank Bag {bg} | {(tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg and "Ok" or "Failed"} | Candy {lp:GetAttribute("CandyCorn")}`)
-		return
-	end
-	if bg >= (cf.Capacity or 500) then
-		task.wait(0.5)
-		return
-	end
-	hv.sw(f, hv.hd, 20)
-	local x = hv.nr(cs:GetTagged(cf.PileTag or "BreakableCandyPile"), hv.dm() * 30, true)
-	if not x then
-		hv.sw(f, hv.hd, math.huge)
-		task.wait(0.5)
-		return
-	end
-	local t0 = os.clock()
+	local d = hv.dm() * 30
+	local x = hv.nr(a, d) or hv.nr(c, d)
+	if not x then task.wait(0.3) return end
+	local t0, p = os.clock(), x.Position
 	if hv.hb(f, x, hv.sd(x)) then
-		hv.gc(f, hv.hd, x.Position, 1)
-		lg(`[Event] {x:GetAttribute("PileLabel") or "Candy Pile"} Zone {x:GetAttribute("ZoneIndex")} | Ok | {math.floor((os.clock() - t0) * 10) / 10} s | Bag {lp:GetAttribute("CandyHeistBag")}`)
+		hv.gc(f, hv.hd, p, 2, t0, x)
+		lg(("[Event] %s Zone %s | Ok | Bag %s"):format(tostring(x:GetAttribute("PileLabel") or "Candy Pile"), tostring(x:GetAttribute("ZoneIndex") or "?"), tostring(lp:GetAttribute("CandyHeistBag"))))
 	else
-		hv.bl[x] = os.clock() + 15
-		lg(`[Event] {x:GetAttribute("PileLabel") or "Candy Pile"} Zone {x:GetAttribute("ZoneIndex")} | Failed | {math.floor((os.clock() - t0) * 10) / 10} s`)
+		hv.bl[x] = os.clock() + 3
 	end
 end
 
 function hv.ak()
 	local ok, d = pcall(function() return game:GetService("HttpService"):JSONDecode(tostring(workspace:GetAttribute("HalloweenScheduleState") or "")) end)
-	local a = ok and type(d) == "table" and type(d.Active) == "table" and d.Active[1]
-	if type(a) == "table" and hv.fn[a.Key] and (tonumber(a.EndsAt) or 0) > workspace:GetServerTimeNow() then return a.Key, tonumber(a.EndsAt) end
+	if not ok or type(d) ~= "table" or d.Enabled == false or type(d.Active) ~= "table" then return nil end
+	for _, a in d.Active do
+		if type(a) == "table" and hv.fn[a.Key] and (tonumber(a.EndsAt) or 0) > workspace:GetServerTimeNow() then return a.Key, tonumber(a.EndsAt), a.Id end
+	end
 	return nil
 end
 
-function hv.rn(k, en)
-	local f = {st = "Running"}
+function hv.rn(k, en, id)
+	if k ~= "TrickOrTreat" then hv.av(k) end
+	local z = k == "TrickOrTreat" and 0 or k == "CandyHeist" and -1 or st.ha[k]
+	if k == "CandyHeist" and next(st.hm) == nil then return end
+	if k ~= "TrickOrTreat" and k ~= "CandyHeist" and (not z or not hv.az[k] or not hv.az[k][z]) then return end
+	st.hz = z
+	local f = {st = "Running", k = k, en = en, id = id, z = z}
 	st.ej = f
-	task.wait(0.5)
-	local t = os.clock()
-	while lp:GetAttribute("Carrying") ~= nil and os.clock() - t < 30 do task.wait(0.2) end
-	md()
-	fr()
-	local c0 = tonumber(lp:GetAttribute("CandyCorn")) or 0
-	lg(`[Event] Start {k} | Ends In {math.floor(en - workspace:GetServerTimeNow())} s | Candy {c0} | Damage {hv.dm()}`)
-	while st.bg and st.eh and f.st == "Running" and hv.ak() == k do
-		rw()
-		local ok, e = xpcall(hv.fn[k], xe, f, en)
-		if not ok then
-			wz(`Auto Halloween Failed: {e}`)
-			task.wait(1)
+	task.spawn(function()
+		while hv.on(f) and not f.sw do
+			local q, _, i = hv.ak()
+			if q ~= k or id ~= nil and i ~= id then f.why = "Event Over" break end
+			task.wait(0.2)
 		end
-		task.wait()
+		if f.st == "Running" and not f.sw then f.why, f.st = f.why or (workspace:GetServerTimeNow() >= en and "Event Over" or "Stopped"), "Stopped" end
+	end)
+	local c0, b0 = tonumber(lp:GetAttribute("CandyCorn")) or 0, hv.sn.bn
+	local ok, e = xpcall(function()
+		local t = os.clock()
+		while hv.on(f) and lp:GetAttribute("Carrying") ~= nil and os.clock() - t < 30 do task.wait(0.1) end
+		if not hv.on(f) then return end
+		if lp:GetAttribute("Carrying") ~= nil then error("Event Start Failed: Still Carrying", 0) end
+		md()
+		fr()
+		if not hv.on(f) then return end
+		local q = k == "DisguisedEggs" or k == "TrickOrTreat"
+		rs:WaitForChild(q and "HalloweenCandyDrops" or "HalloweenCandyHeist"):FireServer("Ready")
+		lg(("[Event] Start %s | Area %s | Ends In %d s | Candy %s | Damage %s"):format(k, k == "TrickOrTreat" and "All Houses" or k == "CandyHeist" and "Selected Areas" or tostring(f.z), math.max(0, math.floor(en - workspace:GetServerTimeNow())), tostring(c0), tostring(hv.dm())))
+		while hv.on(f) do
+			rw()
+			if lp:GetAttribute("Carrying") ~= nil then task.wait(0.2) else hv.fn[k](f) end
+			task.wait()
+		end
+	end, xe)
+	f.why = f.why or (workspace:GetServerTimeNow() >= en and "Event Over" or not st.bg and "Hub Reloaded" or not st.eh and "Turned Off" or st.hz ~= f.z and "Area Changed" or "Stopped")
+	if ok and f.why == "Event Over" and (k == "DisguisedEggs" or k == "TrickOrTreat") and st.bg and st.eh and st.ej == f and st.hz == f.z then
+		f.sw, f.st, f.en = true, "Running", workspace:GetServerTimeNow() + 15
+		local a, z = xpcall(hv.sw, xe, f, hv.dr, math.huge)
+		if not a then ok, e = false, z end
 	end
-	local why = not st.bg and "Hub Reloaded" or not st.eh and "Turned Off" or f.st ~= "Running" and "Stopped" or "Event Over"
-	if k ~= "CandyHeist" and st.bg and st.eh then
-		local n = 0
-		for _ in hv.dr do n += 1 end
-		lg(`[Event] Final Sweep | {n} Drops`)
-		pcall(hv.sw, f, hv.dr, math.huge)
-	end
-	local c1 = tonumber(lp:GetAttribute("CandyCorn")) or 0
-	lg(`[Event] End {k} | {why} | Candy {c0} -> {c1} (+{c1 - c0})`)
 	f.st = "Stopped"
-	st.mt = nil
+	hv.cl(f)
+	if st.ej == f then st.ej = nil end
+	lg(("[Event] End %s | %s | Candy %s -> %s | Banked %d"):format(k, f.why or "Stopped", tostring(c0), tostring(lp:GetAttribute("CandyCorn")), hv.sn.bn - b0))
+	if not ok then error(e, 0) end
 end
 
 local L
@@ -1626,13 +1890,13 @@ function L:Window(o)
 	local tf = mk("ScrollingFrame", {Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, 0, 1, -40), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = nv}, {ll(4)})
 	local pg = mk("Frame", {Position = UDim2.fromOffset(nw + 20, th + 4), Size = UDim2.new(1, -(nw + 32), 1, -(th + 16)), BackgroundTransparency = 1, ClipsDescendants = true, Parent = mn})
 	local function page()
-		local p = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = c.dm, ScrollBarImageTransparency = 0.5, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Visible = false, Parent = pg}, {ll(4), pd(2, 8, 2, 4)})
+		local p = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Visible = false, Parent = pg}, {ll(4), pd(2, 2, 2, 4)})
 		for _, k in {"CanvasPosition", "AbsoluteCanvasSize", "AbsoluteWindowSize"} do p:GetPropertyChangedSignal(k):Connect(function() W.fd() end) end
 		return p
 	end
 	local sr = page()
 	local function fade(top)
-		local f = mk("Frame", {Size = UDim2.new(1, -8, 0, 20), Position = top and UDim2.new() or UDim2.new(0, 0, 1, -20), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 5, Visible = false, Parent = pg})
+		local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 20), Position = top and UDim2.new() or UDim2.new(0, 0, 1, -20), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 5, Visible = false, Parent = pg})
 		mk("UIGradient", {Rotation = 90, Transparency = NumberSequence.new(top and 0 or 1, top and 1 or 0), Parent = f})
 		return f
 	end
@@ -1935,7 +2199,7 @@ function L:Window(o)
 			opts(r.Options)
 			local box = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(150, 28), BackgroundColor3 = c.bg, Parent = f}, {rc(4), sk(0.9)})
 			local bl = tl({Text = "", TextSize = 13, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -34, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = box})
-			local ch = ig({Text = "chevron-small-down", TextSize = 14, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, 0), Size = UDim2.fromOffset(16, 28), TextXAlignment = Enum.TextXAlignment.Center, Parent = box})
+			ig({Text = "chevron-small-down", TextSize = 14, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, 0), Size = UDim2.fromOffset(16, 28), TextXAlignment = Enum.TextXAlignment.Center, Parent = box})
 			local function norm(v)
 				if mu then
 					if type(v) ~= "table" then error("Dropdown Set Failed: Not A Table", 0) end
@@ -1989,18 +2253,16 @@ function L:Window(o)
 			local function close()
 				if not fy then return end
 				fy:Destroy()
-				fy, ov.Visible, ch.Text, W.fc = nil, false, "chevron-small-down", nil
+				fy, ov.Visible, W.fc = nil, false, nil
 			end
 			local function open()
 				if fy then close(); return end
 				if W.fc then W.fc() end
-				W.fc, ov.Visible, ch.Text = close, true, "chevron-small-up"
+				W.fc, ov.Visible = close, true
 				local s, bp = sc.Scale, (box.AbsolutePosition - mn.AbsolutePosition) / sc.Scale
 				local h = math.max(math.min(#e.Options, 5), 1) * 32 + 8
-				local y = bp.Y + 32
-				if y + h > W.h - 8 then y = bp.Y - h - 4 end
-				fy = mk("Frame", {Position = UDim2.fromOffset(bp.X, y), Size = UDim2.fromOffset(box.AbsoluteSize.X / s, h), BackgroundColor3 = c.cd, BorderSizePixel = 0, Parent = ov}, {rc(6), sk(0.85), pd(4, 4, 4, 4)})
-				local ls = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = c.dm, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = fy}, {ll(0)})
+				fy = mk("Frame", {Position = UDim2.fromOffset(bp.X, bp.Y + 32), Size = UDim2.fromOffset(box.AbsoluteSize.X / s, h), BackgroundColor3 = c.cd, BorderSizePixel = 0, Parent = ov}, {rc(6), sk(0.85), pd(4, 4, 4, 4)})
+				local ls = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = fy}, {ll(0)})
 				if #e.Options == 0 then tl({Text = "No Options", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -10, 0, 32), Parent = ls}) end
 				for n, s in e.Options do
 					local sel = has(s)
@@ -2235,11 +2497,54 @@ local function hx(lo2)
 	return false, "Hop Failed: Stopped"
 end
 
-local za = {"Forest Zone", "Desert Zone", "Snowy Zone", "Candy Zone", "Swamp Zone", "Ocean Zone", "Volcano Zone", "Blossom Zone", "Galaxy Zone", "Planet X Zone"}
+local za = {"Forest Zone", "Desert Zone", "Snowy Zone", "Candy Zone", "Swamp Zone", "Ocean Zone", "Volcano Zone", "Blossom Zone", "Galaxy Zone", "Planet X Zone", "Haunted Graveyard"}
+hv.nm = za
+do
+	local fp = "Avenoric/Configs/BreakAndStealAnEgg/EventAreas.json"
+	local ok, e = pcall(function()
+		if not isfile(fp) then return end
+		local d = game:GetService("HttpService"):JSONDecode(readfile(fp))
+		if type(d) ~= "table" or d.v ~= game.PlaceVersion or d.p ~= game.PlaceId or type(d.a) ~= "table" then return end
+		for _, k in hv.od do
+			local a = {}
+			for _, z in type(d.a[k]) == "table" and d.a[k] or {} do
+				if type(z) == "number" and z % 1 == 0 and za[z] then a[z] = true end
+			end
+			hv.az[k] = a
+		end
+	end)
+	if not ok then wz("Event Areas Load Failed: " .. tostring(e)) end
+	function hv.wc()
+		local a = {}
+		for _, k in hv.od do
+			a[k] = {}
+			for z = 1, #za do if hv.az[k] and hv.az[k][z] then table.insert(a[k], z) end end
+		end
+		local q, er = pcall(function()
+			for _, p in {"Avenoric", "Avenoric/Configs", "Avenoric/Configs/BreakAndStealAnEgg"} do if not isfolder(p) then makefolder(p) end end
+			writefile(fp, game:GetService("HttpService"):JSONEncode({v = game.PlaceVersion, p = game.PlaceId, a = a}))
+		end)
+		if not q then wz("Event Areas Save Failed: " .. tostring(er)) end
+	end
+end
 pcall(function()
 	local p, hj = `Avenoric/Configs/BreakAndStealAnEgg/{lp.Name}.json`, game:GetService("HttpService")
 	if not isfile(p) then return end
 	local j, ch = hj:JSONDecode(readfile(p)), false
+	if type(j.h3) == "string" and table.find(za, j.h3) then j.h3, ch = {j.h3}, true end
+	for i, k in hv.od do
+		local v = j["h" .. i] or j.ha or j.sa
+		if k == "CandyHeist" then
+			if type(v) == "string" then v = {v} end
+			if type(v) == "table" then
+				local a = {}
+				for _, nm in v do local z = table.find(za, nm) if z then a[z] = true end end
+				hv.ps[k] = a
+			end
+		else
+			hv.ps[k] = table.find(za, tostring(v or ""))
+		end
+	end
 	for _, k in {"sa", "tz"} do
 		local n = type(j[k]) == "string" and tonumber(string.match(j[k], "^Zone (%d+) %("))
 		if n and za[n] then j[k], ch = za[n], true end
@@ -2263,7 +2568,7 @@ end
 local pa = W:Tab({Name = "General", Icon = "hammer-code"})
 pa:Section({Name = "Farm"})
 pa:Dropdown({Name = "Select Area", Options = za, Default = za[1], Flag = "sa", Callback = function(v) st.za = table.find(za, v) or 1 end})
-pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Cosmic", "Secret", "Celestial", "Inferno", "Void", "Omega"}, Default = {}, Multi = true, Flag = "sr", Callback = function(v)
+pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Cosmic", "Secret", "Celestial", "Inferno", "Void", "Omega", "Spectral"}, Default = {}, Multi = true, Flag = "sr", Callback = function(v)
 	local t = {}
 	for _, x in v or {} do t[x] = true end
 	st.ra = t
@@ -2296,7 +2601,7 @@ st.nf = function()
 end
 pa:Toggle({Name = "Treadmill", Default = false, Flag = "ti", Callback = function(v) st.ti = v == true end})
 pa:Section({Name = "Sell"})
-pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Cosmic", "Secret", "Celestial", "Inferno", "Void", "Omega"}, Default = {}, Multi = true, Flag = "sv", Callback = function(v)
+pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Cosmic", "Secret", "Celestial", "Inferno", "Void", "Omega", "Spectral"}, Default = {}, Multi = true, Flag = "sv", Callback = function(v)
 	local t = {}
 	for _, x in v or {} do t[x] = true end
 	st.sv = t
@@ -2331,6 +2636,34 @@ end
 st.sc = rs:WaitForChild("AnimalBankedRemote").OnClientEvent:Connect(function() sv2(1) end)
 local pv2 = W:Tab({Name = "Event", Icon = "calendar-star"})
 pv2:Section({Name = "Halloween"})
+for i, k in hv.od do
+	if k == "TrickOrTreat" then continue end
+	local a = hv.li(k)
+	if k == "CandyHeist" then
+		local q, d = hv.ps[k] or {[st.za] = true}, {}
+		st.hm = {}
+		for z, nm in za do if q[z] and hv.az[k] and hv.az[k][z] then st.hm[z], d[#d + 1] = true, nm end end
+		hv.ui[k] = pv2:Dropdown({Name = hv.lb[k] .. " Area", Options = a, Default = d, Multi = true, Flag = "h" .. i, Callback = function(v)
+			local q, eq = {}, true
+			for _, nm in v or {} do local z = table.find(za, nm) if z then q[z] = true end end
+			for z in st.hm do if not q[z] then eq = false break end end
+			for z in q do if not st.hm[z] then eq = false break end end
+			st.hm = q
+			if not hv.rf then hv.ps[k] = table.clone(q) end
+			if not eq and st.ej and st.ej.k == k then st.ej.st = "Stopped" end
+		end})
+	else
+		local n = hv.ps[k] or st.za
+		st.ha[k] = n
+		local d = table.find(a, za[n]) and za[n] or nil
+		hv.ui[k] = pv2:Dropdown({Name = hv.lb[k] .. " Area", Options = a, Default = d, Flag = "h" .. i, Callback = function(v)
+			local z = table.find(za, v or "")
+			st.ha[k] = z
+			if not hv.rf then hv.ps[k] = z end
+			if st.ej and st.ej.k == k and st.ej.z ~= z then st.ej.st = "Stopped" end
+		end})
+	end
+end
 pv2:Toggle({Name = "Auto Halloween", Default = false, Flag = "ah", Callback = function(v)
 	st.eh = v == true
 	if not st.eh and st.ej then st.ej.st = "Stopped" end
@@ -2512,9 +2845,10 @@ task.spawn(function()
 end)
 task.spawn(function()
 	while st.bg do
-		local k, en = hv.ak()
-		if k and st.eh and kv() and not st.ej then
-			local ok, e = pcall(hv.rn, k, en)
+		local k, en, id = hv.ak()
+		if k then hv.av(k) end
+		if k and st.eh and kv() and not st.ej and not st.tb then
+			local ok, e = pcall(hv.rn, k, en, id)
 			if not ok then wz(`Auto Halloween Failed: {e}`) end
 			st.ej = nil
 		end
