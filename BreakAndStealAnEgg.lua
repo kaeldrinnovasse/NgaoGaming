@@ -1,2980 +1,7169 @@
-if not game:IsLoaded() then game.Loaded:Wait() end
+local Library = (function()
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
+local HttpService = game:GetService("HttpService")
 
-local ps, rs = game:GetService("Players"), game:GetService("ReplicatedStorage")
-repeat task.wait() until ps.LocalPlayer
+local sharedEnvironment = getgenv and getgenv() or _G
 
-local lp = ps.LocalPlayer
-local pgu = lp:WaitForChild("PlayerGui")
-local function ld()
-	local c = lp.Character
-	if type(lp:GetAttribute("Cash")) ~= "number" or not pgu:FindFirstChild("MainGUI") or not (c and c:FindFirstChild("HumanoidRootPart")) then return false end
-	local pz = workspace:FindFirstChild("Plots")
-	for _, p in pz and pz:GetChildren() or {} do
-		if p:GetAttribute("OwnerUserId") == lp.UserId then return true end
-	end
-	return false
-end
-while not ld() do task.wait(0.5) end
+local colors = {
+	Background = Color3.fromRGB(37, 37, 34),
+	Card = Color3.fromRGB(47, 47, 43),
+	Hover = Color3.fromRGB(58, 58, 54),
+	Pressed = Color3.fromRGB(68, 68, 63),
+	Text = Color3.fromRGB(244, 240, 232),
+	Dim = Color3.fromRGB(168, 164, 156),
+	Accent = Color3.fromRGB(76, 194, 255),
+	Error = Color3.fromRGB(214, 106, 94),
+}
 
-local ge = getgenv()
-if ge.__BseAf then
-	ge.__BseAf.on, ge.__BseAf.fa, ge.__BseAf.eb, ge.__BseAf.bg = false, false, false, false
-	if ge.__BseAf.fj then ge.__BseAf.fj.st = "Stopped" end
-	if ge.__BseAf.ej then ge.__BseAf.ej.st = "Stopped" end
-	if ge.__BseAf.ec then ge.__BseAf.ec:Disconnect() end
-	if ge.__BseAf.ic then ge.__BseAf.ic:Disconnect() end
-	for _, x in ge.__BseAf.pc or {} do x:Disconnect() end
-	if ge.__BseAf.cc then ge.__BseAf.cc:Disconnect() end
-	if ge.__BseAf.sc then ge.__BseAf.sc:Disconnect() end
-end
-local st = {bg = true, ic = nil, za = 1, fa = false, fg = 0, fj = nil, id = 1e6, le = nil, mt = nil, ma = nil, hs = {}, pc = nil, lx = nil, lt = 0, rb = false, cc = nil, ck = nil, ra = {}, mi = 0, sk = 0, rr = {}, rq = {}, ho = {}, tb = false, sv = {}, as = false, sb = false, sc = nil, pi = false, ix = nil, nf = nil, ti = false, ua = false, ub = false, uc = false, ud = false, hq = false, hp = -math.huge, eh = false, ej = nil}
-ge.__BseAf = st
-local function lg(t, nw)
-	local fp, g = `Avenoric/Configs/BreakAndStealAnEgg/{lp.Name}_Log.txt`, ge.__BseLq
-	if not g then
-		g = {pq = {}, dt = false}
-		ge.__BseLq = g
-	end
-	local m, ts = (tostring(t):gsub("%s*\n%s*", " <- ")), os.date("%Y-%m-%d %H:%M:%S")
-	local la = g.pq[#g.pq]
-	if la and la[2] == m then
-		la[1], la[3] = ts, la[3] + 1
-	else
-		table.insert(g.pq, {ts, m, 1})
-	end
-	local function wr()
-		g.dt = false
-		local n = nw and #g.pq or #g.pq - 1
-		if n <= 0 then return end
-		local b = {}
-		for i = 1, n do
-			local x = g.pq[i]
-			b[i] = `{x[1]} | {x[2]}{x[3] > 1 and ` x{x[3]}` or ""}`
-		end
-		local s = table.concat(b, "\n") .. "\n"
-		local ok = pcall(function()
-			for _, x in {"Avenoric", "Avenoric/Configs", "Avenoric/Configs/BreakAndStealAnEgg"} do
-				if not isfolder(x) then makefolder(x) end
-			end
-			if appendfile and isfile(fp) then appendfile(fp, s) else writefile(fp, (isfile(fp) and readfile(fp) or "") .. s) end
-		end)
-		if ok then
-			for _ = 1, n do table.remove(g.pq, 1) end
+local textFont = Enum.Font.BuilderSansMedium
+local boldFont = Enum.Font.BuilderSansBold
+local windowWidth = 580
+local windowHeight = 340
+local navigationWidth = 150
+local titleBarHeight = 40
+
+local iconFontPath = "rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"
+local regularIconFont = Font.new(iconFontPath)
+local boldIconFont = Font.new(iconFontPath, Enum.FontWeight.Bold)
+
+local mouseButtonInput = Enum.UserInputType.MouseButton1
+local touchInput = Enum.UserInputType.Touch
+local mouseMoveInput = Enum.UserInputType.MouseMovement
+local keyboardInput = Enum.UserInputType.Keyboard
+
+local defaultTweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local keyPattern = "^NGAO%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]$"
+local serverVerdicts = {"Bad Request", "Wrong Key", "Wrong Hub", "Wrong Device", "Key Expired"}
+local gracePeriodSeconds = 72 * 60 * 60
+local keyedState = nil
+
+local Library = {Flags = {}, Log = nil :: any}
+
+local function createInstance(className, properties, children)
+	local instance = Instance.new(className)
+
+	for property, value in properties do
+		if property ~= "Parent" then
+			instance[property] = value
 		end
 	end
-	if nw then
-		wr()
+
+	for _, child in children or {} do
+		child.Parent = instance
+	end
+
+	instance.Parent = properties.Parent
+	return instance
+end
+
+local function createCorner(radius)
+	return createInstance("UICorner", {CornerRadius = UDim.new(0, radius)})
+end
+
+local function createStroke(transparency, color)
+	return createInstance("UIStroke", {
+		Color = color or colors.Text,
+		Transparency = transparency,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+end
+
+local function createPadding(left, right, top, bottom)
+	return createInstance("UIPadding", {
+		PaddingLeft = UDim.new(0, left),
+		PaddingRight = UDim.new(0, right or left),
+		PaddingTop = UDim.new(0, top or 0),
+		PaddingBottom = UDim.new(0, bottom or top or 0),
+	})
+end
+
+local function createListLayout(gap)
+	return createInstance("UIListLayout", {Padding = UDim.new(0, gap), SortOrder = Enum.SortOrder.LayoutOrder})
+end
+
+local function tween(instance, properties, duration)
+	local tweenInfo = defaultTweenInfo
+
+	if duration then
+		tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	end
+
+	TweenService:Create(instance, tweenInfo, properties):Play()
+end
+
+local function applyProperties(instance, properties, shouldAnimate)
+	if shouldAnimate then
+		tween(instance, properties)
 		return
 	end
-	if g.dt then return end
-	g.dt = true
-	task.delay(2, wr)
+
+	for property, value in properties do
+		instance[property] = value
+	end
 end
-local function xe(m) return debug.traceback(tostring(m), 2) end
-local function wz(m)
-	warn(m)
-	lg(`[Error] {m}`)
+
+local function mergeProperties(defaults, overrides)
+	for property, value in overrides do
+		defaults[property] = value
+	end
+
+	return defaults
 end
-st.cc = lp.CharacterAdded:Connect(function(c)
-	st.rb, st.mt = true, nil
-	task.spawn(function()
-		c:WaitForChild("HumanoidRootPart", 10)
-		c:WaitForChild("Humanoid", 10)
-		task.wait(2)
-		if lp.Character == c then st.rb = false end
+
+local function createLabel(properties, children)
+	local defaults = {
+		BackgroundTransparency = 1,
+		Font = textFont,
+		TextColor3 = colors.Text,
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "",
+	}
+
+	return createInstance("TextLabel", mergeProperties(defaults, properties), children)
+end
+
+local function createIcon(properties, children)
+	local defaults = {
+		BackgroundTransparency = 1,
+		FontFace = regularIconFont,
+		TextColor3 = colors.Text,
+		TextSize = 16,
+		Text = "",
+	}
+
+	return createInstance("TextLabel", mergeProperties(defaults, properties), children)
+end
+
+local function createButton(properties, children)
+	local defaults = {
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+		BorderSizePixel = 0,
+	}
+
+	return createInstance("TextButton", mergeProperties(defaults, properties), children)
+end
+
+local function bindHoverColors(button, getBaseColor)
+	button.MouseEnter:Connect(function()
+		if UserInputService.MouseEnabled then
+			tween(button, {BackgroundColor3 = colors.Hover})
+		end
 	end)
-end)
-local function rw()
-	while st.rb do task.wait(0.1) end
-end
-st.kh = setmetatable({}, {__mode = "k"})
-st.pc = {rs:WaitForChild("EggHitConfirmed").OnClientEvent:Connect(function(e, _, h) if typeof(e) == "Instance" and type(h) == "number" then st.kh[e] = h end end)}
 
-local cs, sh, hq = game:GetService("CollectionService"), rs:WaitForChild("Shared"), rs:WaitForChild("EggHitRequest")
-local rx = {-40, -131, -246, -389, -580, -828, -1138, -1579, -2085, -2605, -3281, -3895}
-local zx = {}
-local function zr(z)
-	if zx[z] then return zx[z][1], zx[z][2] end
-	local b = workspace:FindFirstChild("Build")
-	local m = b and b:FindFirstChild("ZoneBuilds")
-	m = m and m:FindFirstChild(`Zone{z}`)
-	if not (m and m:IsA("Model")) then return rx[z + 2] and (rx[z + 1] + rx[z + 2]) / 2 or -math.huge, (rx[z] + rx[z + 1]) / 2 end
-	local c, s = m:GetBoundingBox()
-	zx[z] = {c.X - s.X / 2, c.X + s.X / 2}
-	return zx[z][1], zx[z][2]
-end
-
-local et, rc, er, r0, r1, zm
-local function md()
-	if et then return end
-	local ec, ac = require(sh:WaitForChild("EggConfig")), require(sh:WaitForChild("AutoSwingConfig"))
-	r0 = math.max(0, ec.HitRange - ac.RangeMargin)
-	r1 = math.max(r0, ec.HitRange - ac.StickyRangeMargin)
-	et, rc, er = require(sh:WaitForChild("EggTargeting")), require(sh:WaitForChild("RobuxShopConfig")), require(sh:WaitForChild("EggRewards"))
-	zm = {}
-	for i, z in require(sh:WaitForChild("ZoneAnimalsConfig")).Zones do
-		local l = {}
-		for k, v in z.Animals or z do table.insert(l, tostring(type(v) == "table" and v.Name or k)) end
-		zm[i] = l
-	end
-end
-
-local function lc()
-	local c = lp.Character
-	local r, h = c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChildOfClass("Humanoid")
-	if r and h and h.Health > 0 and r:IsA("BasePart") then return c, r, h end
-	return nil
-end
-
-local function gy(x, z, ex)
-	local q = RaycastParams.new()
-	q.FilterType, q.FilterDescendantsInstances = Enum.RaycastFilterType.Exclude, {lp.Character, ex}
-	local y0 = 40
-	if typeof(ex) == "Instance" and ex:IsA("BasePart") then
-		y0 = ex.Position.Y - ex.Size.Y / 2 + 5
-	elseif typeof(ex) == "Instance" and ex:IsA("Model") then
-		local c, sz = ex:GetBoundingBox()
-		y0 = c.Y - sz.Y / 2 + 5
-	end
-	local g = workspace:Raycast(Vector3.new(x, y0, z), Vector3.new(0, -120, 0), q)
-	return Vector3.new(x, (g and g.Position.Y or y0 - 5) + 3, z)
-end
-
-local function op()
-	for _, p in workspace:WaitForChild("Plots"):GetChildren() do
-		if p:GetAttribute("OwnerUserId") == lp.UserId then return p end
-	end
-	return nil
-end
-
-local function fr()
-	local _, r = lc()
-	if not (r and r.Anchored) then return end
-	rs:WaitForChild("TreadmillSessionRemote"):FireServer()
-	local t = os.clock()
-	repeat task.wait(0.1) until not r.Anchored or os.clock() - t > 5
-end
-
-local ru = game:GetService("RunService")
-pcall(ru.UnbindFromRenderStep, ru, "BseWalk")
-ru:BindToRenderStep("BseWalk", Enum.RenderPriority.Character.Value + 1, function()
-	local p = st.mt
-	if not p then return end
-	local _, r, h = lc()
-	if not r then return end
-	local d = Vector3.new(p.X - r.Position.X, 0, p.Z - r.Position.Z)
-	if d.Magnitude < 2 then
-		st.mt, st.ma = nil, p
-		h:Move(Vector3.zero, false)
-		return
-	end
-	h:Move(d.Unit, false)
-end)
-
-local function wk(f, p, ab)
-	local _, r, h = lc()
-	if not r then return false end
-	local dl, lq, lj, ok = os.clock() + Vector3.new(p.X - r.Position.X, 0, p.Z - r.Position.Z).Magnitude / math.max(h.WalkSpeed, 1) + 10, nil, 0, false
-	st.mt, st.ma = p, nil
-	while f.st == "Running" do
-		_, r, h = lc()
-		if not r or st.rb or os.clock() > dl or ab and ab() then break end
-		if st.ma == p then
-			ok = true
-			break
-		end
-		task.wait(0.1)
-		if lq and (r.Position - lq).Magnitude < 0.3 and os.clock() - lj > 1 then
-			h.Jump, lj = true, os.clock()
-		end
-		lq = r.Position
-	end
-	if st.mt == p then
-		st.mt = nil
-		if h then h:Move(Vector3.zero, false) end
-	end
-	return ok
-end
-
-local function rt(f, p, ab)
-	local _, r = lc()
-	if not r then return false end
-	local x0, x1 = r.Position.X, p.X
-	if math.abs(r.Position.Z) > 12 and not wk(f, gy(x0, 0), ab) then return false end
-	local ns = {}
-	for _, x in rx do
-		if x < x0 and x > x1 or x > x0 and x < x1 then table.insert(ns, x) end
-	end
-	table.sort(ns, function(a, b)
-		if x1 < x0 then return a > b end
-		return a < b
+	button.MouseLeave:Connect(function()
+		tween(button, {BackgroundColor3 = getBaseColor()})
 	end)
-	for _, x in ns do
-		if not wk(f, gy(x, 0), ab) then return false end
-	end
-	if math.abs(p.Z) > 12 and not wk(f, gy(x1, 0), ab) then return false end
-	return wk(f, p, ab)
-end
 
-local function gt(f, p, ab)
-	local function nr()
-		local _, r = lc()
-		return r ~= nil and (p - r.Position).Magnitude <= 50
-	end
-	if not nr() and not rt(f, p, function() return ab and ab() or nr() end) and (ab and ab() or not nr()) then return false end
-	local _, r = lc()
-	if not r or f.st ~= "Running" then return false end
-	if (p - r.Position).Magnitude > 3 then
-		r.AssemblyLinearVelocity = Vector3.zero
-		r.CFrame = CFrame.new(p)
-		task.wait(0.25)
-	end
-	return true
-end
+	button.MouseButton1Down:Connect(function()
+		tween(button, {BackgroundColor3 = colors.Pressed}, 0.05)
+	end)
 
-local function eq(c, h)
-	if lp:GetAttribute("Carrying") ~= nil or c:GetAttribute("Ragdolled") then return end
-	local t = c:FindFirstChildOfClass("Tool")
-	if t and t.Name == "Pickaxe" then return end
-	local b = lp:FindFirstChild("Backpack")
-	t = b and b:FindFirstChild("Pickaxe")
-	if t and t:IsA("Tool") then h:EquipTool(t) end
-end
-
-local function hit(x)
-	local c, r, h = lc()
-	if not c then return end
-	local t = c:FindFirstChild("Pickaxe")
-	if not (t and t:IsA("Tool")) then return eq(c, h) end
-	local e = x and et.SurfaceDistance(x, r.Position) <= r1 and x or et.Pick(r.Position, r0, st.le, r1)
-	if not e or not cs:HasTag(e, "BreakableEgg") then return end
-	st.id, st.le = st.id + 1, e
-	hq:FireServer(e, st.id)
-	return true
-end
-
-local function eg(z)
-	local _, r = lc()
-	if not r then return nil end
-	local b, bs, bl, bd
-	for _, e in cs:GetTagged("BreakableEgg") do
-		if et.IsLive(e) and e:GetAttribute("ZoneIndex") == z and not e:GetAttribute("NoPickup") then
-			local s = e:GetAttribute("Titanic") and 2 or (e:GetAttribute("Lucky") or cs:HasTag(e, "LuckyEgg")) and 1 or 0
-			local l, d = tonumber(e:GetAttribute("HatchLuck")) or 0, (e.Position - r.Position).Magnitude
-			if not b or s > bs or s == bs and (l > bl or l == bl and d < bd) then b, bs, bl, bd = e, s, l, d end
-		end
-	end
-	return b
-end
-
-local function nk(v) return (string.gsub(string.lower(v), "%W", "")) end
-local function lf(m) return (tonumber(m:GetAttribute("DespawnAtServerTime")) or 0) - workspace:GetServerTimeNow() end
-local function cp(m) return er.PlacedCashPerSecond(m:GetAttribute("AnimalName") or m.Name, m:GetAttribute("SizeMult"), m:GetAttribute("Mutation"), m:GetAttribute("WeightKg"), m:GetAttribute("Variant")) end
-local function wn(m)
-	if st.ra[m:GetAttribute("Rarity")] and (st.mi <= 0 or cp(m) >= st.mi) then return true end
-	return st.pi and st.ix ~= nil and not st.ix[nk(tostring(m:GetAttribute("AnimalName") or m.Name))]
-end
-local function zc()
-	if not (st.ix and zm and zm[st.za]) then return st.ix == nil end
-	for _, n in zm[st.za] do
-		if not st.ix[nk(n)] then return false end
-	end
-	return true
-end
-
-local function gz(z)
-	for _, m in cs:GetTagged("ZoneGuard") do
-		local s = m:GetAttribute("ChaseState")
-		if m:GetAttribute("ZoneId") == z and (s == "WindUp" or s == "Chasing") then return true end
-	end
-	return false
-end
-
-local function bp(q)
-	local _, r, h = lc()
-	if not r then return nil end
-	local z, b, bc = `Zone{st.za}`, nil, nil
-	if gz(z) then return nil end
-	for _, m in cs:GetTagged("AnimalPickup") do
-		if m.Parent and m:GetAttribute("ZoneId") == z and wn(m) then
-			local p = m:GetBoundingBox().Position
-			if lf(m) > (q and 3 or (math.abs(p.X - r.Position.X) + math.abs(p.Z) + math.abs(r.Position.Z)) / math.max(h.WalkSpeed, 1) + 2.5) then
-				local v = cp(m)
-				if not bc or v > bc then b, bc = m, v end
-			end
-		end
-	end
-	return b
-end
-
-local function du()
-	for _, m in cs:GetTagged("AnimalPickup") do
-		local hd = m:GetAttribute("HatchId")
-		if hd and st.hs[hd] and m.Parent and (lf(m) <= 5 or wn(m)) then return true end
-	end
-	return bp() ~= nil
-end
-
-local function tk(pk, f, lim)
-	local t, an = os.clock(), nk(tostring(pk:GetAttribute("AnimalName") or pk.Name))
-	while pk.Parent and f.st == "Running" and lp:GetAttribute("Carrying") == nil and os.clock() - t < lim do
-		local pr, pd, pc = nil, nil, pk:GetBoundingBox().Position
-		for _, p in cs:GetTagged("SmartPrompt") do
-			if p:IsA("ProximityPrompt") and p.Name == "StealPrompt" and p.Parent and p.Parent:IsA("BasePart") then
-				local d = (p.Parent.Position - pc).Magnitude
-				local nm = string.sub(nk((string.gsub(p.ObjectText, "<[^>]+>", ""))), -#an) == an
-				if nm or d < 8 then
-					d -= nm and 50 or 0
-					if not pd or d < pd then pr, pd = p, d end
-				end
-			end
-		end
-		if gz(pk:GetAttribute("ZoneId")) then return false end
-		if pr and pr.Enabled then
-			fireproximityprompt(pr)
-			local q = os.clock()
-			repeat task.wait(0.03) until lp:GetAttribute("Carrying") ~= nil or os.clock() - q > 0.6
+	button.MouseButton1Up:Connect(function()
+		if UserInputService.MouseEnabled then
+			tween(button, {BackgroundColor3 = colors.Hover})
 		else
-			task.wait(0.05)
+			tween(button, {BackgroundColor3 = getBaseColor()})
 		end
+	end)
+end
+
+local function createScreenGui()
+	local screenGui = createInstance("ScreenGui", {
+		Name = HttpService:GenerateGUID(false),
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		DisplayOrder = 999,
+	})
+
+	local parented = pcall(function()
+		screenGui.Parent = gethui and gethui() or game:GetService("CoreGui")
+	end)
+
+	if not parented then
+		screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 	end
-	if lp:GetAttribute("Carrying") == nil then
-		lg(`[Farm] Pick {pk:GetAttribute("AnimalName") or pk.Name} Failed`)
+
+	return screenGui
+end
+
+local function fitToScreen(screenGui, frame, uiScale, width, height)
+	local screenSize = screenGui.AbsoluteSize
+	local topInset = GuiService:GetGuiInset().Y
+	local widthScale = (screenSize.X - 24) / width
+	local heightScale = (screenSize.Y - topInset - 24) / height
+	local scale = math.clamp(math.min(widthScale, heightScale), 0.5, 1)
+
+	uiScale.Scale = scale
+	frame.Position = UDim2.fromOffset(screenSize.X / 2, topInset + (screenSize.Y - topInset) / 2)
+
+	return scale
+end
+
+local function isValidConfigName(name)
+	if name == nil then
+		return true
+	end
+
+	if type(name) ~= "string" or name == "" then
 		return false
 	end
-	lg(`[Farm] Picked {pk:GetAttribute("AnimalName") or pk.Name} | {pk:GetAttribute("Rarity")} | {pk:GetAttribute("WeightKg")} Kg | {pk:GetAttribute("ZoneId")}`)
-	st.ck = {w = pk:GetAttribute("WeightKg"), z = pk:GetAttribute("ZoneId")}
-	if st.ix then st.ix[nk(tostring(pk:GetAttribute("AnimalName") or pk.Name))] = true end
-	return true
-end
 
-local function sp(n, w)
-	local pk, pc
-	for _, m in cs:GetTagged("AnimalPickup") do
-		if m.Parent and nk(tostring(m:GetAttribute("AnimalName") or m.Name)) == n and (w == nil or m:GetAttribute("WeightKg") == w) then pk = m end
-	end
-	if not pk then return nil end
-	pc = pk:GetBoundingBox().Position
-	local pr, pd
-	for _, p in cs:GetTagged("SmartPrompt") do
-		if p:IsA("ProximityPrompt") and p.Name == "StealPrompt" and p.Parent and p.Parent:IsA("BasePart") then
-			local d = (p.Parent.Position - pc).Magnitude
-			local nm = string.sub(nk((string.gsub(p.ObjectText, "<[^>]+>", ""))), -#n) == n
-			if nm or d < 8 then
-				d -= nm and 50 or 0
-				if not pd or d < pd then pr, pd = p, d end
-			end
-		end
-	end
-	return pc, pr, pk
-end
-
-local function gb(f)
-	local c, r = lc()
-	local cn0 = lp:GetAttribute("Carrying")
-	local pl = op()
-	if not (c and r and cn0 and pl) then return false end
-	local n, ck = nk(tostring(cn0)), st.ck or {}
-	local g, gd
-	for _, m in cs:GetTagged("ZoneGuard") do
-		local d = (m:GetPivot().Position - r.Position).Magnitude + (m:GetAttribute("ZoneId") == ck.z and 0 or 1e6)
-		if not gd or d < gd then g, gd = m, d end
-	end
-	if not g then return false end
-	local fl, t = false, os.clock()
-	local cn = rs:WaitForChild("CatchFlingRemote").OnClientEvent:Connect(function(a) if a == "fling" then fl = true end end)
-	local hb = ru.Heartbeat:Connect(function()
-		if fl then return end
-		local _, q = lc()
-		if not q then return end
-		local gp = g:GetPivot().Position
-		q.AssemblyLinearVelocity = Vector3.zero
-		q.CFrame = CFrame.new(gy(gp.X, gp.Z, g))
-	end)
-	repeat task.wait(0.03) until fl or os.clock() - t > 4 or f.st ~= "Running"
-	hb:Disconnect()
-	cn:Disconnect()
-	if not fl then return false end
-	t = os.clock()
-	while lp:GetAttribute("Carrying") == nil and os.clock() - t < 2.6 and f.st == "Running" do
-		local pc, pr, pk = sp(n, ck.w)
-		local _, q = lc()
-		if pc and q then
-			q.AssemblyLinearVelocity = Vector3.zero
-			q.CFrame = CFrame.new(gy(pc.X, pc.Z, pk))
-			task.wait()
-			if pr and pr.Enabled then
-				fireproximityprompt(pr)
-				local w = os.clock()
-				repeat task.wait(0.03) until lp:GetAttribute("Carrying") ~= nil or os.clock() - w > 0.35
-			else
-				task.wait(0.1)
-			end
-		else
-			task.wait(0.05)
-		end
-	end
-	if lp:GetAttribute("Carrying") == nil then return false end
-	local pv = pl:GetPivot().Position
-	local tg = Vector3.new(pv.X, pv.Y + 3, pv.Z)
-	local hd = ru.Heartbeat:Connect(function()
-		local _, q = lc()
-		if q and (q.Position - tg).Magnitude > 3 then
-			q.AssemblyLinearVelocity = Vector3.zero
-			q.CFrame = CFrame.new(tg)
-		end
-	end)
-	t = os.clock()
-	repeat task.wait(0.05) until lp:GetAttribute("Carrying") == nil or os.clock() - t > 4
-	local bd, m, e2 = lp:GetAttribute("Carrying") == nil, nil, nil
-	if bd and st.fa and f.st == "Running" and c:GetAttribute("Ragdolled") and not st.rq[1] then
-		m = bp(true)
-		local mc = m and m:GetBoundingBox().Position
-		e2 = not mc and eg(st.za) or nil
-		if mc then
-			tg = gy(mc.X, mc.Z + (math.abs(mc.Z) > 3 and -math.sign(mc.Z) or 1) * 4, m)
-		elseif e2 then
-			local v = math.abs(e2.Position.Z) > 3 and Vector3.new(0, 0, -math.sign(e2.Position.Z)) or Vector3.xAxis
-			tg = gy(e2.Position.X + v.X * (math.max(e2.Size.X, e2.Size.Z) / 2 + 2), e2.Position.Z + v.Z * (math.max(e2.Size.X, e2.Size.Z) / 2 + 2), e2)
-		else
-			tg = gy(rx[st.za + 1], 0)
-		end
-	end
-	local ra, ta = 0, nil
-	t = os.clock()
-	repeat
-		local c3, r3, h3 = lc()
-		if e2 and (not et.IsLive(e2) or (st.kh[e2] or 1) <= 0) then
-			e2, ta = eg(st.za), nil
-			if e2 then
-				local v = math.abs(e2.Position.Z) > 3 and Vector3.new(0, 0, -math.sign(e2.Position.Z)) or Vector3.xAxis
-				tg = gy(e2.Position.X + v.X * (math.max(e2.Size.X, e2.Size.Z) / 2 + 2), e2.Position.Z + v.Z * (math.max(e2.Size.X, e2.Size.Z) / 2 + 2), e2)
-			end
-		end
-		if e2 and c3 and r3 and h3 and et.IsLive(e2) and (st.kh[e2] or 1) > 0 and et.SurfaceDistance(e2, r3.Position) <= r1 then
-			ta = ta or os.clock()
-			local pk = c3:FindFirstChild("Pickaxe") or lp.Backpack:FindFirstChild("Pickaxe")
-			if pk and pk:IsA("Tool") and pk.Parent ~= c3 then h3:EquipTool(pk) end
-			if os.clock() - ta > 0.25 and os.clock() - ra > 0.5 then
-				st.id += 1
-				hq:FireServer(e2, st.id)
-				ra = os.clock()
-			end
-		end
-		task.wait(0.03)
-	until not c:GetAttribute("Ragdolled") or os.clock() - t > 6 or st.rq[1] ~= nil
-	hd:Disconnect()
-	if m and m.Parent and st.fa and f.st == "Running" and not st.rq[1] and not gz(m:GetAttribute("ZoneId")) then
-		local n, w = nk(tostring(m:GetAttribute("AnimalName") or m.Name)), m:GetAttribute("WeightKg")
-		t = os.clock()
-		while lp:GetAttribute("Carrying") == nil and os.clock() - t < 1 do
-			local _, pr = sp(n, w)
-			if pr and pr.Enabled then fireproximityprompt(pr) end
-			task.wait(0.15)
-		end
-		if lp:GetAttribute("Carrying") ~= nil then
-			st.ck = {w = w, z = m:GetAttribute("ZoneId")}
-			if st.ix then st.ix[n] = true end
-		end
-	end
-	return bd
-end
-
-local function hm(f)
-	local cn, t0 = lp:GetAttribute("Carrying"), os.clock()
-	if gb(f) then
-		st.hs = {}
-		lg(`[Farm] Banked {cn} | Fling | {math.floor((os.clock() - t0) * 10) / 10} s`)
-		return
-	end
-	if lp:GetAttribute("Carrying") == nil then
-		if cn then lg(`[Farm] Lost {cn} On The Way Home`) end
-		return
-	end
-	if not rt(f, gy(rx[1], 0)) then
-		lg(`[Farm] Bank {cn} Failed: Rail Walk`)
-		return
-	end
-	local t = os.clock()
-	repeat task.wait(0.2) until lp:GetAttribute("Carrying") == nil or f.st ~= "Running" or os.clock() - t > 6
-	if lp:GetAttribute("Carrying") == nil then
-		st.hs = {}
-		lg(`[Farm] Banked {cn} | Rail | {math.floor((os.clock() - t0) * 10) / 10} s`)
-	else
-		lg(`[Farm] Bank {cn} Failed: Not Banked At Home`)
-	end
-end
-
-local function sl(f)
-	while f.st == "Running" do
-		if lp:GetAttribute("Carrying") == nil then
-			if st.rq[1] then return end
-			local m = bp()
-			if not m then
-				st.hs = {}
-				return
-			end
-			local c = m:GetBoundingBox().Position
-			if not (gt(f, gy(c.X, c.Z + (math.abs(c.Z) > 3 and -math.sign(c.Z) or 1) * 4, m), function() return st.rq[1] ~= nil end) and tk(m, f, 8)) then return end
-		end
-		hm(f)
-		if not st.fa then return end
-	end
-end
-
-local function bk(f, e, ab2)
-	local d = math.abs(e.Position.Z) > 3 and Vector3.new(0, 0, -math.sign(e.Position.Z)) or Vector3.xAxis
-	local p = gy(e.Position.X + d.X * (math.max(e.Size.X, e.Size.Z) / 2 + 2), e.Position.Z + d.Z * (math.max(e.Size.X, e.Size.Z) / 2 + 2), e)
-	if not gt(f, p, ab2) then return false end
-	while f.st == "Running" and et.IsLive(e) and (st.kh[e] or 1) > 0 and not (ab2 and ab2()) do
-		local _, q = lc()
-		if not q or et.SurfaceDistance(e, q.Position) > r1 then return false end
-		st.le = e
-		local k = hit(e)
-		local w = os.clock() + (k and 0.37 / rc.SwingMultiplierFor(lp) or 0.1)
-		repeat task.wait(0.03) until os.clock() >= w or (st.kh[e] or 1) <= 0
-	end
-	if (st.kh[e] or 1) <= 0 then
-		local t = os.clock()
-		repeat task.wait(0.03) until e:GetAttribute("HatchId") or e:GetAttribute("Hatching") or e:GetAttribute("Broken") or not e.Parent or os.clock() - t > 1
-	end
-	return e.Parent ~= nil and (e:GetAttribute("HatchId") or e:GetAttribute("Hatching") or e:GetAttribute("Broken")) ~= nil
-end
-
-local function rz(f)
-	local c, _, h = lc()
-	if not c then return false end
-	h.Health = 0
-	local t = os.clock()
-	repeat task.wait(0.1) until lp.Character ~= c and lc() or os.clock() - t > 10 or f.st ~= "Running"
-	rw()
-	return lp.Character ~= c
-end
-
-local function ton(f)
-	local pl = op()
-	local q
-	for _, d in pl and pl:GetChildren() or {} do
-		local p = string.find(d.Name, "Treadmill") and d:FindFirstChild("Hitbox")
-		if p and p:IsA("BasePart") then q = p end
-	end
-	local _, r = lc()
-	if not (q and r) then return nil end
-	if r.Anchored then return r end
-	if (r.Position - q.Position).Magnitude > 400 and not rz(f) then return nil end
-	_, r = lc()
-	if not r or f.st ~= "Running" then return nil end
-	local s = false
-	local cn = rs:WaitForChild("TreadmillSessionRemote").OnClientEvent:Connect(function(a) if typeof(a) == "number" then s = true end end)
-	r.AssemblyLinearVelocity = Vector3.zero
-	r.CFrame = CFrame.new(q.Position)
-	local t = os.clock()
-	repeat task.wait(0.05) until s or os.clock() - t > 5 or f.st ~= "Running"
-	cn:Disconnect()
-	return s and r or nil
-end
-
-local function tm(f, z)
-	local r = ton(f)
-	if not r then
-		lg(`[Travel] Zone {z} Failed: Treadmill Not Ready`)
-		return false
-	end
-	task.wait(0.15)
-	rs:WaitForChild("TreadmillSessionRemote"):FireServer()
-	local t = os.clock()
-	repeat task.wait(0.03) until not r.Anchored or os.clock() - t > 3
-	if r.Anchored or f.st ~= "Running" then
-		lg(`[Travel] Zone {z} Failed: {r.Anchored and "Still On Treadmill" or "Stopped"}`)
-		return false
-	end
-	r.AssemblyLinearVelocity = Vector3.zero
-	r.CFrame = CFrame.new(gy(rx[z + 1], 0))
-	lg(`[Travel] Zone {z} Via Treadmill`)
-	return true
-end
-
-local function fq(n, p)
-	local b, bd
-	for _, q in ps:GetPlayers() do
-		local qr = q ~= lp and nk(tostring(q:GetAttribute("Carrying") or "")) == n and q.Character and q.Character:FindFirstChild("HumanoidRootPart")
-		if qr then
-			local d = (qr.Position - p).Magnitude
-			if not bd or d < bd then b, bd = q, d end
-		end
-	end
-	return b
-end
-
-local function wq()
-	for e in st.kh do
-		local hd = e.Parent and e:GetAttribute("HatchId")
-		if hd then st.ho[hd] = true end
-	end
-	for _, m in cs:GetTagged("AnimalPickup") do
-		local hd = m:GetAttribute("HatchId")
-		if hd and (st.hs[hd] or st.ho[hd]) and m.Parent and wn(m) then st.rr[m] = {n = nk(tostring(m:GetAttribute("AnimalName") or m.Name)), w = m:GetAttribute("WeightKg"), p = m:GetBoundingBox().Position, x = lf(m)} end
-	end
-	for m in st.rr do
-		if not m.Parent then st.rr[m] = nil end
-	end
-end
-
-table.insert(st.pc, cs:GetInstanceRemovedSignal("AnimalPickup"):Connect(function(m)
-	local v = st.rr[m]
-	st.rr[m] = nil
-	if not (v and st.fa and v.x > 1) then return end
-	task.spawn(function()
-		local t = os.clock()
-		repeat
-			if nk(tostring(lp:GetAttribute("Carrying") or "")) == v.n then return end
-			local q = fq(v.n, v.p)
-			if q then
-				table.insert(st.rq, {q = q, n = v.n, w = v.w})
-				return
-			end
-			task.wait(0.03)
-		until os.clock() - t > 1
-	end)
-end))
-
-local function rg(f)
-	local v = table.remove(st.rq, 1)
-	if not v then return end
-	lg(`[Retake] {v.n} From {v.q.Name}`)
-	local q, t, ak = v.q, 0, nil
-	while f.st == "Running" and st.fa and q.Parent and lp:GetAttribute("Carrying") == nil do
-		rw()
-		local c, r, h = lc()
-		local pc, _, pk = sp(v.n, v.w)
-		if c and pk then
-			if gt(f, gy(pc.X, pc.Z, pk)) and tk(pk, f, 3) then break end
-		elseif nk(tostring(q:GetAttribute("Carrying") or "")) ~= v.n then
-			break
-		elseif c then
-			local qr = q.Character and q.Character:FindFirstChild("HumanoidRootPart")
-			local nr = qr and (qr.Position - r.Position).Magnitude <= 100
-			if qr and not nr then
-				local tr = ton(f)
-				if tr then
-					task.wait(0.15)
-					rs:WaitForChild("TreadmillSessionRemote"):FireServer()
-					local t0 = os.clock()
-					repeat task.wait(0.03) until not tr.Anchored or os.clock() - t0 > 3
-					nr = not tr.Anchored
-				end
-				c, r, h = lc()
-				qr = q.Character and q.Character:FindFirstChild("HumanoidRootPart")
-			end
-			if nr and c and qr then
-				local b = c:FindFirstChild("Bat") or lp.Backpack:FindFirstChild("Bat")
-				if b and b.Parent ~= c then h:EquipTool(b) end
-				r.AssemblyLinearVelocity = Vector3.zero
-				r.CFrame = CFrame.new(qr.Position - qr.CFrame.LookVector * 3, qr.Position)
-				if not q.Character:GetAttribute("Ragdolled") and not c:GetAttribute("Ragdolled") and os.clock() - t > 0.75 and c:FindFirstChild("Bat") then
-					local an, sa = h:FindFirstChildOfClass("Animator"), rs:FindFirstChild("Assets")
-					sa = sa and sa:FindFirstChild("Animations")
-					sa = sa and sa:FindFirstChild("Bat Swing")
-					if an and sa and sa:IsA("Animation") then
-						if not (ak and ak.c == c) then
-							local o, k = pcall(an.LoadAnimation, an, sa)
-							ak = o and {c = c, k = k} or nil
-						end
-						if ak then pcall(ak.k.Play, ak.k, 0.1, 1, 1.75) end
-					end
-					rs:WaitForChild("BatHitRequest"):FireServer(q)
-					t = os.clock()
-				end
-			end
-		end
-		task.wait(0.1)
-	end
-	if lp:GetAttribute("Carrying") == nil then
-		lg(`[Retake] {v.n} Failed`)
-		return
-	end
-	lg(`[Retake] {v.n} Got Back`)
-	local _, r = lc()
-	local pl, g = op(), nil
-	for _, m in cs:GetTagged("ZoneGuard") do
-		if m:GetAttribute("ZoneId") == (st.ck and st.ck.z) then g = m end
-	end
-	if r and pl and g and (g:GetPivot().Position - r.Position).Magnitude > (pl:GetPivot().Position - r.Position).Magnitude then
-		if not rt(f, gy(rx[1], 0)) then return end
-		local t0 = os.clock()
-		repeat task.wait(0.2) until lp:GetAttribute("Carrying") == nil or f.st ~= "Running" or os.clock() - t0 > 6
-	else
-		hm(f)
-	end
-end
-
-local function fc(f)
-	rw()
-	if lp:GetAttribute("Carrying") ~= nil then
-		fr()
-		hm(f)
-		return
-	end
-	if st.ej then
-		task.wait(0.5)
-		return
-	end
-	if st.rq[1] then
-		fr()
-		rg(f)
-		return
-	end
-	if st.pi and st.ix and zc() and st.nf then pcall(st.nf) end
-	if next(st.ra) == nil and (not st.pi or zc()) then
-		if st.ti then ton(f) end
-		task.wait(0.5)
-		return
-	end
-	fr()
-	if du() then
-		sl(f)
-		return
-	end
-	local _, r = lc()
-	if r then
-		local a, b = zr(st.za)
-		local x = r.Position.X
-		if (x > b or x < a) and tm(f, st.za) then return end
-	end
-	local e = eg(st.za)
-	local c, _, h = lc()
-	if not (e and c) then
-		task.wait(1)
-		return
-	end
-	eq(c, h)
-	local t0 = os.clock()
-	if bk(f, e, function() return st.fa and (du() or st.rq[1] ~= nil) or e:GetAttribute("ZoneIndex") ~= st.za or st.ej ~= nil end) then
-		lg(`[Farm] Egg {e:GetAttribute("EggType")} Zone {st.za} | Broken | {math.floor((os.clock() - t0) * 10) / 10} s`)
-		st.lx, st.lt = e, os.clock()
-		task.spawn(function()
-			local t, hd = os.clock(), nil
-			repeat
-				hd = e:GetAttribute("HatchId")
-				task.wait(0.1)
-			until hd or os.clock() - t > 10
-			if hd then st.hs[hd] = true end
-		end)
-	else
-		lg(`[Farm] Egg {e:GetAttribute("EggType")} Zone {st.za} | Not Broken | {math.floor((os.clock() - t0) * 10) / 10} s`)
-	end
-end
-
-local function ew(f, e)
-	local t, hd, pk = os.clock(), nil, nil
-	repeat
-		hd = e:GetAttribute("HatchId")
-		task.wait(0.1)
-	until hd or os.clock() - t > 10 or f.st ~= "Running"
-	if not hd then return end
-	t = os.clock()
-	repeat
-		for _, m in cs:GetTagged("AnimalPickup") do
-			if m:GetAttribute("HatchId") == hd then pk = m end
-		end
-		task.wait(0.1)
-	until pk or os.clock() - t > 10 or f.st ~= "Running"
-	if not (pk and wn(pk)) then return end
-	local c = pk:GetBoundingBox().Position
-	if gt(f, gy(c.X, c.Z + (math.abs(c.Z) > 3 and -math.sign(c.Z) or 1) * 4, pk)) and tk(pk, f, 8) then hm(f) end
-end
-
-local function af()
-	st.fg += 1
-	local g, f = st.fg, {st = "Running"}
-	st.fj = f
-	lg(`[Farm] Start | Zone {st.za}`)
-	task.spawn(function()
-		local ok, er = pcall(md)
-		if not ok then wz(`Auto Farm Failed: {er}`) end
-		local o2, pc = pcall(function() return require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("PickaxeController")) end)
-		if o2 and ok then
-			task.spawn(function()
-				while st.fg == g and f.st == "Running" and st.fa do
-					task.wait(1.5)
-					local _, r = lc()
-					if r and not st.ej and pc.IsWielding() then
-						local e = st.le
-						if not (e and e.Parent and et.IsLive(e) and et.SurfaceDistance(e, r.Position) <= r1) then e = et.Pick(r.Position, r0, st.le, r1) end
-						if e and cs:HasTag(e, "BreakableEgg") then pcall(pc.Swing, e) end
-					end
-				end
-			end)
-		end
-		task.spawn(function()
-			while st.fg == g and f.st == "Running" do
-				if st.fa then pcall(wq) end
-				task.wait(0.1)
-			end
-		end)
-		while ok and st.fg == g and f.st == "Running" do
-			if not st.fa then
-				local k, e = pcall(function()
-					fr()
-					if lp:GetAttribute("Carrying") ~= nil then
-						hm(f)
-					elseif st.lx and os.clock() - st.lt < 5 then
-						ew(f, st.lx)
-					end
-				end)
-				if not k then wz(`Auto Farm Failed: {e}`) end
-				break
-			end
-			local k, e = xpcall(fc, xe, f)
-			if not k then
-				wz(`Auto Farm Failed: {e}`)
-				task.wait(1)
-			end
-			task.wait()
-		end
-		lg("[Farm] Stop")
-		if st.fj == f then
-			st.mt, st.fj = nil, nil
-			local _, _, h = lc()
-			if h then h:Move(Vector3.zero, false) end
-		end
-	end)
-end
-
-local hv = {dr = {}, hd = {}, fn = {}, bl = setmetatable({}, {__mode = "k"}), pc = nil :: any, sp = {}, sn = {sp = 0, co = 0, am = 0, bn = 0, rm = 0}, bk = 0}
-st.hv, st.hz = hv, 1
-hv.az, hv.ui, hv.ps = {}, {}, {}
-hv.od = {"DisguisedEggs", "TrickOrTreat", "CandyHeist", "BloodMoon"}
-hv.lb = {DisguisedEggs = "Phantom Eggs", TrickOrTreat = "House Of Horrors", CandyHeist = "Candy Carnage", BloodMoon = "Blood Moon"}
-st.ha = {}
-st.hm = {}
-
-function hv.li(k)
-	local a = {}
-	for i, n in hv.nm or {} do if hv.az[k] and hv.az[k][i] then a[#a + 1] = n end end
-	return a
-end
-
-function hv.av(k)
-	if k == "TrickOrTreat" or not hv.nm or not hv.lb[k] then return end
-	local a, ch = hv.az[k] or {}, false
-	hv.az[k] = a
-	local tag = k == "TrickOrTreat" and "BreakableHalloweenDoor" or k == "CandyHeist" and "BreakableCandyPile" or "BreakableEgg"
-	for _, x in cs:GetTagged(tag) do
-		if k == "DisguisedEggs" and (not x:GetAttribute("DisguisedEggRun") or (tonumber(x:GetAttribute("DisguisedEggEndsAt")) or 0) <= workspace:GetServerTimeNow()) then continue end
-		local z = tonumber(x:GetAttribute("ZoneIndex"))
-		if z and z % 1 == 0 and hv.nm[z] and not a[z] then a[z], ch = true, true end
-	end
-	if ch and hv.wc then hv.wc() end
-	local n = k == "CandyHeist" and (st.za or 1) or hv.ps[k] or st.ha[k] or st.za or 1
-	if not a[n] then
-		local _, r = lc()
-		local bd
-		n = nil
-		for z in a do
-			local d = r and rx[z + 1] and math.abs(rx[z + 1] - r.Position.X) or z
-			if not bd or d < bd then n, bd = z, d end
-		end
-	end
-	if not n then return end
-	if k == "CandyHeist" then
-		local v, q, l = hv.ps[k] or {[n] = true}, {}, {}
-		for z, nm in hv.nm do if v[z] and a[z] then q[z], l[#l + 1] = true, nm end end
-		st.hm = q
-		local e = hv.ui[k]
-		if e then
-			local ops = hv.li(k)
-			local sig = table.concat(ops, "\0")
-			hv.rf = true
-			if e.sg ~= sig then e:Refresh(ops) e.sg = sig end
-			e:Set(l)
-			hv.rf = false
-		end
-		return
-	end
-	local e, l = hv.ui[k], hv.li(k)
-	st.ha[k] = n
-	if e then
-		local sig = table.concat(l, "\0")
-		hv.rf = true
-		if e.sg ~= sig then e:Refresh(l) e.sg = sig end
-		if e:Get() ~= hv.nm[n] then e:Set(hv.nm[n]) end
-		hv.rf = false
-	end
-end
-
-function hv.on(f)
-	return st.bg and st.eh and st.ej == f and f.st == "Running" and st.hz == f.z and workspace:GetServerTimeNow() < f.en
-end
-
-function hv.zi(z, p)
-	local b = workspace:FindFirstChild("Build")
-	local h = b and b:FindFirstChild("ZoneHitboxes")
-	local x = h and h:FindFirstChild(tostring(z))
-	if x and x:IsA("BasePart") then
-		local q, s = x.CFrame:PointToObjectSpace(p), x.Size / 2
-		return math.abs(q.X) <= s.X and math.abs(q.Z) <= s.Z
-	end
-	local a, b = zr(z)
-	return p.X >= a and p.X <= b
-end
-
-function hv.zp(p)
-	local k = st.ej and st.ej.k
-	if k == "TrickOrTreat" then return true end
-	if k == "CandyHeist" then
-		for z in st.hm do if hv.zi(z, p) then return true end end
-		return false
-	end
-	return hv.zi(st.hz, p)
-end
-
-function hv.ne(p, q, d)
-	return Vector3.new(p.X - q.X, 0, p.Z - q.Z).Magnitude <= d
-end
-
-function hv.ad(l, ds)
-	if type(ds) ~= "table" then return end
-	local n, t = workspace:GetServerTimeNow(), os.clock()
-	for _, d in ds do
-		if type(d) ~= "table" or type(d.Id) ~= "string" or typeof(d.Position) ~= "Vector3" or d.ClaimUserId ~= nil and d.ClaimUserId ~= lp.UserId then continue end
-		local x = tonumber(d.ExpiresAt) or (tonumber(d.StartAt) or tonumber(d.At) or n) + 120
-		if x ~= x or x == math.huge or x <= n or d.Position.Magnitude ~= d.Position.Magnitude or d.Position.Magnitude == math.huge then continue end
-		local o = typeof(d.Origin) == "Vector3" and d.Origin or d.Position
-		local r = (tonumber(d.StartAt) or tonumber(d.At) or n) + (tonumber(d.FlightTime) or 0) + 0.5
-		local q = l[d.Id]
-		l[d.Id] = {p = d.Position, o = o, x = x, r = r, a = tonumber(d.Amount) or 0, nt = q and q.nt or 0, tr = q and q.tr or 0, s = d.Spilled == true, t = q and q.t or t, b = q and q.b or false}
-		hv.sp[#hv.sp + 1] = {p = o, t = t, l = l}
-		hv.sn.sp += 1
-	end
-	while #hv.sp > 256 do table.remove(hv.sp, 1) end
-	if l == hv.hd then hv.mr() end
-end
-function hv.mr()
-	local r = hv.sr
-	if not r then return end
-	if st.ej ~= r.f or not r.f.bk or os.clock() - r.t > 1.5 then hv.sr = nil return end
-	local gs = {}
-	for id, d in hv.hd do
-		if d.s and d.t >= r.t - 1 and (d.o - r.p).Magnitude <= 60 then
-			local k = ("%.2f,%.2f,%.2f"):format(d.o.X, d.o.Y, d.o.Z)
-			local g = gs[k] or {p = d.o, a = 0, ids = {}, t = d.t}
-			g.a += d.a
-			g.ids[#g.ids + 1] = id
-			g.t = math.min(g.t, d.t)
-			gs[k] = g
-		end
-	end
-	local b, bd
-	for _, g in gs do
-		local d = (g.p - r.p).Magnitude
-		if math.abs(g.a - r.a) < 0.01 and (not bd or d < bd) then b, bd = g, d end
-	end
-	if not b then return end
-	for _, id in b.ids do hv.hd[id].b, hv.hd[id].nt = true, 0 end
-	r.f.rs = {p = b.p, t = b.t}
-	lg(("[Event] Recover Bank Spill | %d Candy | %d Drops"):format(r.a, #b.ids))
-	hv.sr = nil
-end
-
-table.insert(st.pc, rs:WaitForChild("HalloweenCandyDrops").OnClientEvent:Connect(function(a, b)
-	if a == "Spawn" then
-		hv.ad(hv.dr, b)
-	elseif a == "CollectPotion" then
-		local id = type(b) == "table" and b.Id or b
-		if type(id) == "string" and hv.dr[id] then hv.dr[id], hv.sn.co = nil, hv.sn.co + 1 end
-	elseif (a == "Collect" or a == "Remove") and type(b) == "table" then
-		for _, id in b do
-			if a == "Collect" and hv.dr[id] then hv.sn.co += 1 end
-			if a == "Remove" and hv.dr[id] then hv.sn.rm += 1 end
-			hv.dr[id] = nil
-		end
-	end
-end))
-table.insert(st.pc, rs:WaitForChild("HalloweenCandyHeist").OnClientEvent:Connect(function(a, b)
-	if a == "End" or a == "Start" or a == "Snapshot" then table.clear(hv.hd) end
-	if type(b) ~= "table" then return end
-	if a == "Spawn" or a == "Start" or a == "Snapshot" then
-		hv.ad(hv.hd, b.Drops)
-	elseif a == "Remove" and type(b.Ids) == "table" then
-		for _, id in b.Ids do
-			if hv.hd[id] then hv.sn.rm += 1 end
-			hv.hd[id] = nil
-		end
-	elseif a == "Collect" and type(b.Id) == "string" then
-		if b.UserId == lp.UserId then
-			hv.sn.co += 1
-			hv.sn.am += tonumber(b.Amount) or 0
-		end
-		local q, n = hv.hd[b.Id], tonumber(b.Remaining)
-		if n and n > 0 and q then q.a, q.nt = n, 0 else hv.hd[b.Id] = nil end
-	elseif a == "Bank" and b.UserId == lp.UserId then
-		hv.bk = os.clock()
-		hv.sn.bn += tonumber(b.Amount) or 0
-		lg(("[Event] Bank Confirmed | Raw %s | Credited %s"):format(tostring(b.Raw or "?"), tostring(b.Amount or "?")))
-	elseif a == "Spill" and b.UserId == lp.UserId then
-		local f, a = st.ej, tonumber(b.Amount)
-		local _, r = lc()
-		if f and f.bk and r and a and a > 0 and (not f.id or b.RunId == f.id) then
-			hv.sr = {f = f, t = os.clock(), p = r.Position, a = a}
-			hv.mr()
-		end
-	end
-end))
-
-function hv.dm()
-	local ok, v = pcall(function()
-		return require(sh:WaitForChild("PickaxeConfig")).GetDamage(lp:GetAttribute("PickaxeTier")) * require(sh:WaitForChild("PotionConfig")).MultiplierFor(lp, "Damage") * require(sh:WaitForChild("MasteryConfig")).MultiplierFor(lp, "Power") * require(sh:WaitForChild("RobuxShopConfig")).DamageMultiplierFor(lp)
-	end)
-	return ok and type(v) == "number" and v == v and v > 0 and v or 1
-end
-
-function hv.ok(x, m)
-	local h = tonumber(x:GetAttribute("Health"))
-	local d = tonumber(x:GetAttribute("FixedDamage"))
-	return x.Parent ~= nil and (st.ej and st.ej.k == "TrickOrTreat" or st.ej and st.ej.k == "CandyHeist" and st.hm[tonumber(x:GetAttribute("ZoneIndex"))] or tonumber(x:GetAttribute("ZoneIndex")) == st.hz) and not x:GetAttribute("Broken") and not x:GetAttribute("Hatching") and not x:GetAttribute("HatchId") and (hv.bl[x] or -math.huge) < os.clock() and h ~= nil and h > 0 and h <= (d and d > 0 and d * 30 or m)
-end
-
-function hv.dn(x)
-	return not x.Parent or x:GetAttribute("Broken") == true or x:GetAttribute("HatchId") ~= nil or (tonumber(x:GetAttribute("Health")) or 1) <= 0
-end
-
-function hv.tp(f, p)
-	for _ = 1, 15 do
-		local c, r = lc()
-		if not r or not hv.on(f) then return false end
-		if c:GetAttribute("Ragdolled") then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p) return true end
-		local d = p - r.Position
-		if d.Magnitude <= 3 then return true end
-		local q = d.Magnitude > 300 and r.Position + d.Unit * 300 or p
-		r.AssemblyLinearVelocity = Vector3.zero
-		r.CFrame = CFrame.new(q)
-		task.wait(0.3)
-		_, r = lc()
-		if not r or (r.Position - q).Magnitude > 8 then
-			if not hv.on(f) then return false end
-			local bg = (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) > 0
-			lg(("[Move] Hop Pulled Back | %d Studs Left | %s"):format(math.floor(d.Magnitude), bg and "Rail" or "Treadmill"))
-			if not bg and hv.tm(f, p) then return true end
-			local ok = rt(f, p)
-			if not ok then lg("[Move] Rail Walk Failed") end
-			return ok
-		end
-		if q == p then return true end
-	end
-	return false
-end
-
-function hv.tm(f, p)
-	local r = ton(f)
-	if not r or not hv.on(f) then return false end
-	task.wait(0.15)
-	rs:WaitForChild("TreadmillSessionRemote"):FireServer()
-	local t = os.clock()
-	repeat task.wait(0.03) until not r.Anchored or os.clock() - t > 3 or not hv.on(f)
-	if r.Anchored or not hv.on(f) then return false end
-	r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p)
-	task.wait(0.3)
-	local _, q = lc()
-	local ok = q ~= nil and (q.Position - p).Magnitude <= 8
-	lg("[Move] Treadmill Trick " .. (ok and "Ok" or "Failed: Pulled Back"))
-	return ok
-end
-
-function hv.sd(x)
-	local s = math.max(x.Size.X, x.Size.Z) / 2 + 2
-	local v = math.abs(x.Position.Z) > 3 and Vector3.new(0, 0, -math.sign(x.Position.Z)) or Vector3.xAxis
-	return gy(x.Position.X + v.X * s, x.Position.Z + v.Z * s, x)
-end
-
-function hv.hb(f, x, p)
-	if not hv.tp(f, p) then return false end
-	local cn = ru.Heartbeat:Connect(function()
-		local c, r = lc()
-		if hv.on(f) and c and r and c:GetAttribute("Ragdolled") and lp:GetAttribute("Carrying") == nil then
-			r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p)
-		end
-	end)
-	local ok, v = xpcall(function()
-		local c, _, h = lc()
-		if c then eq(c, h) end
-		if hv.pc == nil then
-			local q, m = pcall(function() return require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers"):WaitForChild("PickaxeController")) end)
-			hv.pc = q and m or false
-		end
-		local t, ls = os.clock(), 0
-		while hv.on(f) and not hv.dn(x) and os.clock() - t < 12 do
-			local c2, r, h2 = lc()
-			if not r or lp:GetAttribute("Carrying") ~= nil then return false end
-			if c2:GetAttribute("Ragdolled") then
-				r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p)
-				local b = lp:FindFirstChild("Backpack")
-				local pk = c2:FindFirstChild("Pickaxe") or b and b:FindFirstChild("Pickaxe")
-				if pk and pk:IsA("Tool") and pk.Parent ~= c2 then h2:EquipTool(pk) end
-			end
-			if et.SurfaceDistance(x, r.Position) > r1 + 2 then return false end
-			if c2:FindFirstChild("Pickaxe") then
-				st.id += 1
-				hq:FireServer(x, st.id)
-				if hv.pc and os.clock() - ls >= 1.5 and hv.pc.IsWielding() then
-					ls = os.clock()
-					pcall(hv.pc.Swing, x)
-				end
-			end
-			task.wait(0.37 / rc.SwingMultiplierFor(lp))
-		end
-		return hv.dn(x)
-	end, xe)
-	cn:Disconnect()
-	if not ok then error(v, 0) end
-	return v
-end
-
-function hv.rd(d)
-	local _, _, h = lc()
-	return d / math.max(h and h.WalkSpeed * 0.8 or 16, 8) + 1
-end
-
-function hv.cl(f)
-	if st.ej ~= f then return end
-	st.mt = nil
-	local _, _, h = lc()
-	if h then h:Move(Vector3.zero, false) end
-end
-
-function hv.fl(l)
-	if l ~= hv.hd then return false end
-	return (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) >= (require(sh:WaitForChild("HalloweenEventConfig")).CandyHeist.Capacity or 500)
-end
-
-function hv.pk(l, ag, cp)
-	local _, r = lc()
-	if not r then return nil end
-	local n, t, b, bd = workspace:GetServerTimeNow(), os.clock(), nil, nil
-	for id, d in l do
-		if n >= d.x then
-			l[id] = nil
-		elseif (d.b or hv.zp(d.o)) and (not cp or hv.ne(d.o, cp, 6)) and (ag == math.huge or n >= d.x - ag) and (d.nt or 0) <= t then
-			local q = (d.p - r.Position).Magnitude
-			if not bd or q < bd then b, bd = id, q end
-		end
-	end
-	return b, bd
-end
-
-function hv.mv(f, l, id)
-	local d = l[id]
-	if not d or not hv.on(f) or hv.fl(l) then return false end
-	local _, r = lc()
-	if not r then return false end
-	local ds, t = (d.p - r.Position).Magnitude, os.clock()
-	if ds > 80 and not hv.tp(f, d.p + Vector3.new(0, 2, 0)) then
-		d.nt, d.tr = os.clock() + 1, d.tr + 1
-		return false
-	end
-	while hv.on(f) and l[id] == d and workspace:GetServerTimeNow() < d.x and not hv.fl(l) and os.clock() - t < hv.rd(ds) + 2 do
-		local _, q = lc()
-		if not q then break end
-		if math.abs(d.p.Y - q.Position.Y) > 6 and hv.ne(d.p, q.Position, 15) then
-			if not hv.tp(f, d.p + Vector3.new(0, 2, 0)) then break end
-			_, q = lc()
-			if not q then break end
-		end
-		if (d.p - q.Position).Magnitude <= 8.5 then
-			hv.cl(f)
-			local w = math.max(workspace:GetServerTimeNow(), d.r) + 1
-			repeat task.wait(0.03) until not hv.on(f) or l[id] ~= d or hv.fl(l) or workspace:GetServerTimeNow() >= math.min(d.x, w)
-			break
-		end
-		st.mt, st.ma = d.p, nil
-		task.wait(0.03)
-	end
-	hv.cl(f)
-	if l[id] ~= d then return true end
-	d.tr += 1
-	d.nt = os.clock() + math.min(d.tr, 3)
-	return false
-end
-
-function hv.gc(f, l, cp, w0, at, ex)
-	local t, lt, got = os.clock(), os.clock(), false
-	local co = hv.sn.co
-	local _, r = lc()
-	if r and hv.on(f) then
-		local p = gy(cp.X, cp.Z, ex)
-		if (p - r.Position).Magnitude <= 30 then r.AssemblyLinearVelocity, r.CFrame = Vector3.zero, CFrame.new(p) else st.mt, st.ma = p, nil end
-	end
-	while hv.on(f) and not hv.fl(l) and os.clock() - t < w0 + 8 do
-		if f.k == "TrickOrTreat" and ex and f.ds and (tonumber(ex:GetAttribute("RevealedAt")) or 0) >= f.ds then
-			local o = require(sh:WaitForChild("HalloweenEventConfig")).TrickOrTreat.Outcomes[ex:GetAttribute("Outcome")]
-			if o and o.Treat == false then break end
-		end
-		for _, s in hv.sp do
-			if s.l == l and s.t >= (at or t) and hv.ne(s.p, cp, 6) then got, lt = true, math.max(lt, s.t) end
-		end
-		local id = hv.pk(l, math.huge, cp)
-		if id then
-			hv.mv(f, l, id)
-			lt = os.clock()
-		else
-			local pn, rd = false, false
-			for _, d in l do
-				if workspace:GetServerTimeNow() < d.x and (d.b or hv.zp(d.o)) and hv.ne(d.o, cp, 6) then pn, rd = true, rd or (d.nt or 0) <= os.clock() end
-			end
-			if got and (not pn or not rd) and os.clock() - lt >= 0.15 or not got and os.clock() - t >= w0 then break end
-			task.wait(0.05)
-		end
-	end
-	hv.cl(f)
-	local pn = 0
-	for _, d in l do if workspace:GetServerTimeNow() < d.x and (d.b or hv.zp(d.o)) and hv.ne(d.o, cp, 6) then pn += 1 end end
-	lg(("[Event] Collect | %d Drops Confirmed | %d Pending"):format(hv.sn.co - co, pn))
-	return got and pn == 0
-end
-
-function hv.sw(f, l, ag)
-	local t = os.clock()
-	while hv.on(f) and not hv.fl(l) and os.clock() - t < 12 do
-		local id = hv.pk(l, ag)
-		if not id then break end
-		hv.mv(f, l, id)
-	end
-	hv.cl(f)
-	for _, d in l do
-		if workspace:GetServerTimeNow() < d.x and (d.b or hv.zp(d.o)) and (d.nt or 0) <= os.clock() and (ag == math.huge or workspace:GetServerTimeNow() >= d.x - ag) then return false end
-	end
-	return true
-end
-
-function hv.nr(l, m)
-	local _, r = lc()
-	if not r then return nil end
-	local b, bz, bd
-	for _, x in l do
-		if hv.ok(x, m) then
-			local z = st.ej and st.ej.k == "CandyHeist" and tonumber(x:GetAttribute("ZoneIndex")) or 0
-			local d = (x.Position - r.Position).Magnitude
-			if not b or z > bz or z == bz and d < bd then b, bz, bd = x, z, d end
-		end
-	end
-	return b
-end
-
-function hv.bn(f)
-	local bg, c0, t0, b0 = tonumber(lp:GetAttribute("CandyHeistBag")) or 0, tonumber(lp:GetAttribute("CandyCorn")) or 0, os.clock(), hv.sn.bn
-	local h = require(sh:WaitForChild("SafeZoneQuery")).GetOwnedPlotHitbox(lp.UserId)
-	if not h or not hv.fl(hv.hd) then return false end
-	f.bk, f.rs = true, nil
-	lg(("[Event] Bank Bag %d | Walking Home"):format(bg))
-	local ok, v = xpcall(function()
-		local at = false
-		for _ = 1, 4 do
-			if not hv.on(f) then return false end
-			if f.rs then
-				local q = f.rs
-				f.rs = nil
-				if not hv.fl(hv.hd) then hv.gc(f, hv.hd, q.p, 0, q.t - 0.01) end
-			end
-			if not hv.on(f) then return false end
-			local c = lc()
-			if not c then return false end
-			if c:GetAttribute("Ragdolled") then
-				task.wait(0.1)
-				hv.mr()
-				if f.rs then continue end
-				c = lc()
-				if c and c:GetAttribute("Ragdolled") then at = hv.tp(f, h.Position) break end
-			end
-			local q = rt(f, gy(rx[1], 0), function()
-				local c2 = lc()
-				return f.rs ~= nil or c2 and c2:GetAttribute("Ragdolled")
-			end)
-			c = lc()
-			if f.rs or c and c:GetAttribute("Ragdolled") then continue end
-			if not q or not hv.on(f) then return false end
-			at = hv.tp(f, h.Position)
-			break
-		end
-		if not at then return false end
-		local t = os.clock()
-		repeat task.wait(0.05) until not hv.on(f) or os.clock() - t > 4 or (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg and (hv.bk >= t0 or (tonumber(lp:GetAttribute("CandyCorn")) or 0) > c0)
-		return (tonumber(lp:GetAttribute("CandyHeistBag")) or 0) < bg and (hv.bk >= t0 or (tonumber(lp:GetAttribute("CandyCorn")) or 0) > c0)
-	end, xe)
-	f.bk = nil
-	if hv.sr and hv.sr.f == f then hv.sr = nil end
-	hv.cl(f)
-	local cr = hv.sn.bn - b0
-	if cr <= 0 then cr = math.max(0, (tonumber(lp:GetAttribute("CandyCorn")) or 0) - c0) end
-	lg(("[Event] Bank Bag %d | %s | Credited %d | Candy %s"):format(bg, ok and v and "Ok" or "Failed", cr, tostring(lp:GetAttribute("CandyCorn"))))
-	if not ok then error(v, 0) end
-	return v
-end
-
-function hv.eg(f, l, es)
-	if hv.fl(l) then hv.bn(f) return end
-	if not hv.sw(f, l, math.huge) or not hv.on(f) then return end
-	local e = hv.nr(es, hv.dm() * 30)
-	if not e then task.wait(0.3) return end
-	local t0, p = os.clock(), e.Position
-	if hv.hb(f, e, hv.sd(e)) then
-		hv.gc(f, l, p, 12, t0, e)
-		lg(("[Event] %s Egg Zone %d | Ok | %.1f s | Candy %s | Bag %s"):format(f.k, f.z, os.clock() - t0, tostring(lp:GetAttribute("CandyCorn")), tostring(lp:GetAttribute("CandyHeistBag") or 0)))
-	else
-		hv.bl[e] = os.clock() + 3
-		lg(("[Event] %s Egg Zone %d | Failed"):format(f.k, f.z))
-	end
-end
-
-hv.fn.DisguisedEggs = function(f)
-	local l = {}
-	for _, e in cs:GetTagged("BreakableEgg") do
-		if e:GetAttribute("DisguisedEggRun") and (tonumber(e:GetAttribute("DisguisedEggEndsAt")) or 0) > workspace:GetServerTimeNow() then table.insert(l, e) end
-	end
-	hv.eg(f, hv.dr, l)
-end
-
-hv.fn.BloodMoon = function(f)
-	hv.eg(f, hv.hd, cs:GetTagged("BreakableEgg"))
-end
-
-hv.fn.TrickOrTreat = function(f)
-	if not hv.sw(f, hv.dr, math.huge) or not hv.on(f) then return end
-	local l = {}
-	for _, x in cs:GetTagged("BreakableHalloweenDoor") do
-		if typeof(x:GetAttribute("KnockPosition")) == "Vector3" then table.insert(l, x) end
-	end
-	local x = hv.nr(l, hv.dm() * 30)
-	if not x then task.wait(0.3) return end
-	f.ds = workspace:GetServerTimeNow()
-	local t0, p = os.clock(), x:GetAttribute("KnockPosition")
-	if hv.hb(f, x, p) then
-		hv.gc(f, hv.dr, p, 4, t0, x)
-		lg(("[Event] Door Zone %s | Ok | Candy %s"):format(tostring(x:GetAttribute("ZoneIndex") or "?"), tostring(lp:GetAttribute("CandyCorn"))))
-	else
-		hv.bl[x] = os.clock() + 3
-	end
-end
-
-hv.fn.CandyHeist = function(f)
-	local cf = require(sh:WaitForChild("HalloweenEventConfig")).CandyHeist
-	if hv.fl(hv.hd) then hv.bn(f) return end
-	if not hv.sw(f, hv.hd, math.huge) or not hv.on(f) then return end
-	local a, c, b, m = {}, {}, nil, -math.huge
-	for _, v in cf.PileVariants or {} do if (tonumber(v.CandyMultiplier) or 0) > m then b, m = v, tonumber(v.CandyMultiplier) or 0 end end
-	for _, x in cs:GetTagged(cf.PileTag or "BreakableCandyPile") do
-		local n = tostring(x:GetAttribute("PileLabel") or "")
-		if b and (n == b.Label or n == b.Name) or n:lower() == "big" then a[#a + 1] = x else c[#c + 1] = x end
-	end
-	local d = hv.dm() * 30
-	local x = hv.nr(a, d) or hv.nr(c, d)
-	if not x then task.wait(0.3) return end
-	local t0, p = os.clock(), x.Position
-	if hv.hb(f, x, hv.sd(x)) then
-		hv.gc(f, hv.hd, p, 2, t0, x)
-		lg(("[Event] %s Zone %s | Ok | Bag %s"):format(tostring(x:GetAttribute("PileLabel") or "Candy Pile"), tostring(x:GetAttribute("ZoneIndex") or "?"), tostring(lp:GetAttribute("CandyHeistBag"))))
-	else
-		hv.bl[x] = os.clock() + 3
-	end
-end
-
-function hv.ak()
-	local ok, d = pcall(function() return game:GetService("HttpService"):JSONDecode(tostring(workspace:GetAttribute("HalloweenScheduleState") or "")) end)
-	if not ok or type(d) ~= "table" or d.Enabled == false or type(d.Active) ~= "table" then return nil end
-	for _, a in d.Active do
-		if type(a) == "table" and hv.fn[a.Key] and (tonumber(a.EndsAt) or 0) > workspace:GetServerTimeNow() then return a.Key, tonumber(a.EndsAt), a.Id end
-	end
-	return nil
-end
-
-function hv.rn(k, en, id)
-	if k ~= "TrickOrTreat" then hv.av(k) end
-	local z = k == "TrickOrTreat" and 0 or k == "CandyHeist" and -1 or st.ha[k]
-	if k == "CandyHeist" and next(st.hm) == nil then return end
-	if k ~= "TrickOrTreat" and k ~= "CandyHeist" and (not z or not hv.az[k] or not hv.az[k][z]) then return end
-	st.hz = z
-	local f = {st = "Running", k = k, en = en, id = id, z = z}
-	st.ej = f
-	task.spawn(function()
-		while hv.on(f) and not f.sw do
-			local q, _, i = hv.ak()
-			if q ~= k or id ~= nil and i ~= id then f.why = "Event Over" break end
-			task.wait(0.2)
-		end
-		if f.st == "Running" and not f.sw then f.why, f.st = f.why or (workspace:GetServerTimeNow() >= en and "Event Over" or "Stopped"), "Stopped" end
-	end)
-	local c0, b0 = tonumber(lp:GetAttribute("CandyCorn")) or 0, hv.sn.bn
-	local ok, e = xpcall(function()
-		local t = os.clock()
-		while hv.on(f) and lp:GetAttribute("Carrying") ~= nil and os.clock() - t < 30 do task.wait(0.1) end
-		if not hv.on(f) then return end
-		if lp:GetAttribute("Carrying") ~= nil then error("Event Start Failed: Still Carrying", 0) end
-		md()
-		fr()
-		if not hv.on(f) then return end
-		local q = k == "DisguisedEggs" or k == "TrickOrTreat"
-		rs:WaitForChild(q and "HalloweenCandyDrops" or "HalloweenCandyHeist"):FireServer("Ready")
-		lg(("[Event] Start %s | Area %s | Ends In %d s | Candy %s | Damage %s"):format(k, k == "TrickOrTreat" and "All Houses" or k == "CandyHeist" and "Selected Areas" or tostring(f.z), math.max(0, math.floor(en - workspace:GetServerTimeNow())), tostring(c0), tostring(hv.dm())))
-		while hv.on(f) do
-			rw()
-			if lp:GetAttribute("Carrying") ~= nil then task.wait(0.2) else hv.fn[k](f) end
-			task.wait()
-		end
-	end, xe)
-	f.why = f.why or (workspace:GetServerTimeNow() >= en and "Event Over" or not st.bg and "Hub Reloaded" or not st.eh and "Turned Off" or st.hz ~= f.z and "Area Changed" or "Stopped")
-	if ok and f.why == "Event Over" and (k == "DisguisedEggs" or k == "TrickOrTreat") and st.bg and st.eh and st.ej == f and st.hz == f.z then
-		f.sw, f.st, f.en = true, "Running", workspace:GetServerTimeNow() + 15
-		local a, z = xpcall(hv.sw, xe, f, hv.dr, math.huge)
-		if not a then ok, e = false, z end
-	end
-	f.st = "Stopped"
-	hv.cl(f)
-	if st.ej == f then st.ej = nil end
-	lg(("[Event] End %s | %s | Candy %s -> %s | Banked %d"):format(k, f.why or "Stopped", tostring(c0), tostring(lp:GetAttribute("CandyCorn")), hv.sn.bn - b0))
-	if not ok then error(e, 0) end
-end
-
-local L
-L = (function()
-local ps, uis, tws, gs, hs = game:GetService("Players"), game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("GuiService"), game:GetService("HttpService")
-local ge = getgenv and getgenv() or _G
-local c = {bg = Color3.fromRGB(37, 37, 34), cd = Color3.fromRGB(47, 47, 43), hv = Color3.fromRGB(58, 58, 54), pr = Color3.fromRGB(68, 68, 63), tx = Color3.fromRGB(244, 240, 232), dm = Color3.fromRGB(168, 164, 156), ac = Color3.fromRGB(76, 194, 255), er = Color3.fromRGB(214, 106, 94)}
-local fn, fb, ww, wh, nw, th = Enum.Font.BuilderSansMedium, Enum.Font.BuilderSansBold, 580, 340, 150, 40
-local ip = "rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"
-local ir, ib = Font.new(ip), Font.new(ip, Enum.FontWeight.Bold)
-local mb, tc, mm, kb = Enum.UserInputType.MouseButton1, Enum.UserInputType.Touch, Enum.UserInputType.MouseMovement, Enum.UserInputType.Keyboard
-local ti = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local L = {Flags = {}, Lg = nil :: any}
-
-local function mk(k, p, ch)
-	local o = Instance.new(k)
-	for i, v in p do
-		if i ~= "Parent" then o[i] = v end
-	end
-	for _, x in ch or {} do x.Parent = o end
-	o.Parent = p.Parent
-	return o
-end
-
-local function rc(r) return mk("UICorner", {CornerRadius = UDim.new(0, r)}) end
-local function sk(t, col) return mk("UIStroke", {Color = col or c.tx, Transparency = t, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}) end
-local function pd(l, r, t, b) return mk("UIPadding", {PaddingLeft = UDim.new(0, l), PaddingRight = UDim.new(0, r or l), PaddingTop = UDim.new(0, t or 0), PaddingBottom = UDim.new(0, b or t or 0)}) end
-local function ll(g) return mk("UIListLayout", {Padding = UDim.new(0, g), SortOrder = Enum.SortOrder.LayoutOrder}) end
-local function tw(o, p, d) tws:Create(o, d and TweenInfo.new(d, Enum.EasingStyle.Quad, Enum.EasingDirection.Out) or ti, p):Play() end
-
-local function tl(p, ch)
-	local d = {BackgroundTransparency = 1, Font = fn, TextColor3 = c.tx, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, Text = ""}
-	for i, v in p do d[i] = v end
-	return mk("TextLabel", d, ch)
-end
-
-local function ig(p, ch)
-	local d = {BackgroundTransparency = 1, FontFace = ir, TextColor3 = c.tx, TextSize = 16, Text = ""}
-	for i, v in p do d[i] = v end
-	return mk("TextLabel", d, ch)
-end
-
-local function bt(p, ch)
-	local d = {BackgroundTransparency = 1, AutoButtonColor = false, Text = "", BorderSizePixel = 0}
-	for i, v in p do d[i] = v end
-	return mk("TextButton", d, ch)
-end
-
-local function hov(b, base)
-	b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundColor3 = c.hv}) end end)
-	b.MouseLeave:Connect(function() tw(b, {BackgroundColor3 = base()}) end)
-	b.MouseButton1Down:Connect(function() tw(b, {BackgroundColor3 = c.pr}, 0.05) end)
-	b.MouseButton1Up:Connect(function() tw(b, {BackgroundColor3 = uis.MouseEnabled and c.hv or base()}) end)
-end
-
-local function gui()
-	local sg = mk("ScreenGui", {Name = hs:GenerateGUID(false), IgnoreGuiInset = true, ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 999})
-	if not pcall(function() sg.Parent = gethui and gethui() or game:GetService("CoreGui") end) then sg.Parent = ps.LocalPlayer:WaitForChild("PlayerGui") end
-	return sg
-end
-
-local function fit(sg, f, sc, w, h)
-	local s, i = sg.AbsoluteSize, gs:GetGuiInset().Y
-	local v = math.clamp(math.min((s.X - 24) / w, (s.Y - i - 24) / h), 0.5, 1)
-	sc.Scale = v
-	f.Position = UDim2.fromOffset(s.X / 2, i + (s.Y - i) / 2)
-	return v
-end
-
-local function cfn(s)
-	if s == nil then return true end
-	if type(s) ~= "string" or s == "" then return false end
-	for seg in (s .. "/"):gmatch("([^/]*)/") do
-		if not seg:match("^[%w _%-]+$") then return false end
-	end
-	return true
-end
-
-local function mkd(p)
-	local d = ""
-	for seg in p:gmatch("([^/]+)/") do
-		d = d == "" and seg or d .. "/" .. seg
-		if not isfolder(d) then makefolder(d) end
-	end
-end
-
-local function inv(u)
-	local code = u:match("([%w%-_]+)/?%s*$")
-	if not code then return end
-	local body = hs:JSONEncode({cmd = "INVITE_BROWSER", nonce = hs:GenerateGUID(false), args = {code = code}})
-	for p = 6463, 6472 do
-		local ok, r = pcall(request, {Url = `http://127.0.0.1:{p}/rpc?v=1`, Method = "POST", Headers = {["Content-Type"] = "application/json", Origin = "https://discord.com"}, Body = body})
-		if ok and type(r) == "table" and r.StatusCode == 200 then return end
-	end
-end
-
-local kr, ka = "^NGAO%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]%-[A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9][A-HJ-NP-Z2-9]$", nil
-
-local function fv(s)
-	local hi, lo = 0xcbf29ce4, 0x84222325
-	for i = 1, #s do
-		lo = bit32.bxor(lo, string.byte(s, i))
-		local p = lo * 435
-		hi = (hi * 435 + p // 4294967296 + bit32.lshift(lo, 8)) % 4294967296
-		lo = p % 4294967296
-	end
-	return string.format("%08x%08x", hi, lo)
-end
-L.Digest = fv
-
-local function gd(v)
-	if type(v) ~= "string" then return false end
-	local s, t, n = v:gsub("[ %-]", ""), {}, 0
-	if #s < 16 then return false end
-	for ch in s:lower():gmatch(".") do
-		if not t[ch] then t[ch], n = true, n + 1 end
-	end
-	return n >= 4
-end
-
-local function hw()
-	for _, nm in {"gethwid", "get_hwid"} do
-		local f = ge[nm]
-		if type(f) == "function" then
-			local a, v = pcall(f)
-			if a and gd(v) then return v end
-		end
-	end
-	local e, w = pcall(function() return game:GetService("RbxAnalyticsService"):GetClientId() end)
-	if e and gd(w) then return w end
-	local b, u = pcall(function() return ps.LocalPlayer.UserId end)
-	return b and type(u) == "number" and "U" .. u or nil
-end
-
-local function dv()
-	local v, d = nil, false
-	task.spawn(function()
-		local a, r = pcall(hw)
-		v, d = a and r or nil, true
-	end)
-	while not d do task.wait() end
-	return v and fv(v)
-end
-
-function L.Http(u)
-	local f = ge.request or ge.http_request or (type(ge.http) == "table" and ge.http.request)
-	if type(f) == "function" then
-		local a, r = pcall(f, {Url = u, Method = "GET"})
-		if a and type(r) == "table" and r.StatusCode == 200 and type(r.Body) == "string" then return r.Body end
-	end
-	local b, s = pcall(function() return game:HttpGet(u, true) end)
-	return b and type(s) == "string" and s or nil
-end
-
-local function ak(o, k, d)
-	local u, v, dn = `{o.Server}/api/check?h={hs:UrlEncode(o.Hub)}&k={hs:UrlEncode(k)}&d={hs:UrlEncode(d)}&n={hs:GenerateGUID(false)}`, nil, false
-	task.spawn(function()
-		local a, b = pcall(L.Http, u)
-		if a and type(b) == "string" then
-			local e, j = pcall(function() return hs:JSONDecode(b) end)
-			if e then v = j end
-		end
-		dn = true
-	end)
-	local t = os.clock()
-	while not dn and os.clock() - t < 10 do task.wait() end
-	if not dn or type(v) ~= "table" then return nil end
-	if v.ok == true and type(v.ex) == "number" then return {true, v.ex} end
-	if v.ok == false and table.find({"Bad Request", "Wrong Key", "Wrong Hub", "Wrong Device", "Key Expired"}, v.err) then return {false, v.err} end
-	return nil
-end
-
-local function rk(p)
-	if not (isfile and isfile(p)) then return nil end
-	local a, s = pcall(readfile, p)
-	if not (a and type(s) == "string") then return nil end
-	local k, x = s:match("^%s*(%S+)%s*\n%s*(%d+)%s*$")
-	if k and k:match(kr) then return k, tonumber(x) end
-	return nil
-end
-
-local function gr(x)
-	local a, n = pcall(function() return workspace:GetServerTimeNow() end)
-	return a and type(n) == "number" and type(x) == "number" and n < x and x <= n + 259200
-end
-
-local function gc(o, lk)
-	local sg = gui()
-	L.GateGui = sg
-	bt({Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(), BackgroundTransparency = 0.5, Parent = sg})
-	local f = mk("Frame", {Size = UDim2.fromOffset(300, 180), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 2, Parent = sg}, {rc(12), sk(0.85), pd(20, 20, 20, 20)})
-	local sc = mk("UIScale", {Parent = f})
-	fit(sg, f, sc, 300, 180)
-	local u = {sg = sg, cn = sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() fit(sg, f, sc, 300, 180) end)}
-	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, TextSize = 16, Size = UDim2.new(1, 0, 0, 20), Parent = f})
-	tl({Text = "Enter your key to continue", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 16), Parent = f})
-	local bx = mk("Frame", {Position = UDim2.fromOffset(0, 48), Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(6), sk(0.9)})
-	local st = bx:FindFirstChildOfClass("UIStroke")
-	u.tb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), Font = fn, TextSize = 14, TextColor3 = c.tx, PlaceholderText = "Key", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = bx})
-	u.ml = tl({Text = "", TextSize = 12, TextColor3 = c.er, Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 16), Visible = false, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
-	u.sb = bt({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = lk and UDim2.new(0.5, -4, 0, 32) or UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.ac, BackgroundTransparency = 0, Font = fb, TextSize = 13, TextColor3 = c.bg, Text = "Submit", Parent = f}, {rc(6)})
-	if lk then
-		u.gk = bt({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(0.5, -4, 0, 32), BackgroundColor3 = c.cd, BackgroundTransparency = 0, Font = fn, TextSize = 13, TextColor3 = c.tx, Text = "Get Key", Parent = f}, {rc(6), sk(0.9)})
-		hov(u.gk, function() return c.cd end)
-	end
-	u.tb.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
-	u.tb.FocusLost:Connect(function() tw(st, {Color = c.tx, Transparency = 0.9}) end)
-	function u.m(s, col) u.ml.Text, u.ml.TextColor3, u.ml.Visible = s, col or c.er, true end
-	function u.x()
-		u.cn:Disconnect()
-		u.sg:Destroy()
-		if L.GateGui == u.sg then L.GateGui = nil end
-	end
-	return u
-end
-
-local function sgt(o)
-	local sv, hb = o.Server, o.Hub
-	if type(sv) ~= "string" or not sv:match("^https://[%w%.%-]+$") then error("Gate Failed: Bad Server", 0) end
-	if type(hb) ~= "string" or not hb:match("^[a-z]+$") then error("Gate Failed: Bad Hub", 0) end
-	if o.Link ~= nil then error("Gate Failed: Link And Server", 0) end
-	if o.Config == nil then error("Gate Failed: No Config", 0) end
-	if not cfn(o.Config) then error("Gate Failed: Bad Config", 0) end
-	local mx = o.Max == nil and 24 or tonumber(o.Max)
-	if not (mx and mx >= 1) then error("Gate Failed: Bad Max", 0) end
-	local dg = dv()
-	if not dg then error("Gate Failed: No Device Id", 0) end
-	local tk, pv, kp = {}, ge.__AvG, `Avenoric/Keys/{o.Config}.txt`
-	if type(pv) == "table" and pv.sg then pcall(function() pv.sg:Destroy() end) end
-	ge.__AvG = tk
-	local lk, kk, kx = `{sv}/k/{hb}?d={dg}`, rk(kp)
-	local u, lc, by, got
-	local function ac(k, x, w)
-		if w then pcall(function() mkd(kp); writefile(kp, k .. "\n" .. x) end) end
-		ka = {p = kp, t = os.clock() + 30, v = true}
-	end
-	local function fin()
-		if u then u.x() end
-		if ge.__AvG == tk then tk.sg = nil end
-	end
-	local function rs(e) return e == "Bad Request" and "Key Check Failed: Bad Request" or e end
-	local function sub()
-		if by or lc or not u then return end
-		local s = (u.tb.Text:gsub("^%s+", ""):gsub("%s+$", "")):upper()
-		if s == "" then u.m("Enter A Key"); return end
-		if not s:match(kr) then u.m("Wrong Key"); return end
-		by, u.sb.Text = true, "Checking..."
-		local v = ak(o, s, dg)
-		by, u.sb.Text = false, "Submit"
-		if ge.__AvG ~= tk then return end
-		if not v then u.m("Key Server Unreachable"); return end
-		if not v[1] then u.m(rs(v[2])); return end
-		ac(s, v[2], true)
-		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
-		got = s
-	end
-	local function sh()
-		if u then return end
-		u = gc(o, true)
-		tk.sg = u.sg
-		u.tb:GetPropertyChangedSignal("Text"):Connect(function() if u.tb.Text ~= lk and #u.tb.Text > mx then u.tb.Text = u.tb.Text:sub(1, mx) end end)
-		u.tb.FocusLost:Connect(function(en) if en then sub() end end)
-		u.sb.Activated:Connect(sub)
-		u.gk.Activated:Connect(function()
-			for _, nm in {"setclipboard", "toclipboard"} do
-				local f = ge[nm]
-				if type(f) == "function" and pcall(f, lk) then u.m("Link Copied", c.dm); return end
-			end
-			u.tb.Text = lk
-			u.m("Copy The Link From The Box", c.dm)
-		end)
-	end
-	if kk then
-		local v, dn = nil, false
-		task.spawn(function() v, dn = ak(o, kk, dg), true end)
-		local t = os.clock()
-		while not dn do
-			if not u and ge.__AvG == tk and os.clock() - t >= 2 then
-				sh()
-				lc, u.sb.TextTransparency = true, 0.5
-				u.m("Checking Key...", c.dm)
-			end
-			task.wait()
-		end
-		lc = false
-		if u then u.sb.TextTransparency = 0 end
-		if ge.__AvG ~= tk then
-			if u then u.x() end
-			error("Gate Failed: Replaced", 0)
-		end
-		if v and v[1] then ac(kk, v[2], true); fin(); return kk end
-		if v then
-			sh()
-			u.m(rs(v[2]))
-		elseif gr(kx) then
-			ac(kk, kx, false)
-			fin()
-			return kk
-		else
-			sh()
-			u.m("Key Server Unreachable")
-		end
-	else
-		sh()
-	end
-	repeat task.wait() until got ~= nil
-	fin()
-	return got
-end
-
-function L:Gate(o)
-	o = o or {}
-	if o.Server ~= nil then
-		if o.Check ~= nil then error("Gate Failed: Check And Server", 0) end
-		return sgt(o)
-	end
-	if type(o.Check) ~= "function" then error("Gate Failed: No Check", 0) end
-	if not cfn(o.Config) then error("Gate Failed: Bad Config", 0) end
-	local mx = o.Max == nil and 24 or tonumber(o.Max)
-	if not (mx and mx >= 1) then error("Gate Failed: Bad Max", 0) end
-	local kp = o.Config and `Avenoric/Keys/{o.Config}.txt`
-	if kp and isfile and isfile(kp) then
-		local ok, s = pcall(readfile, kp)
-		if ok and type(s) == "string" and s ~= "" then
-			local ok2, r = pcall(o.Check, s)
-			if ok2 and r == true then return s end
-		end
-	end
-	local u, busy, got = gc(o, o.Link), false, nil
-	u.tb:GetPropertyChangedSignal("Text"):Connect(function() if #u.tb.Text > mx then u.tb.Text = u.tb.Text:sub(1, mx) end end)
-	local function sub()
-		if busy then return end
-		local s = (u.tb.Text:gsub("^%s+", ""):gsub("%s+$", ""))
-		if s == "" then u.m("Enter A Key"); return end
-		busy, u.sb.Text = true, "Checking..."
-		local ok, r, m = pcall(o.Check, s)
-		busy, u.sb.Text = false, "Submit"
-		if not ok then u.m("Key Check Failed: " .. tostring(r)); return end
-		if r ~= true then u.m(m and tostring(m) or "Wrong Key"); return end
-		if kp then pcall(function() mkd(kp); writefile(kp, s) end) end
-		if o.Discord and request then task.spawn(inv, tostring(o.Discord)) end
-		got = s
-	end
-	u.tb.FocusLost:Connect(function(en) if en then sub() end end)
-	u.sb.Activated:Connect(sub)
-	if u.gk then
-		u.gk.Activated:Connect(function()
-			if setclipboard then setclipboard(tostring(o.Link)) end
-			u.m("Link Copied", c.dm)
-		end)
-	end
-	repeat task.wait() until got ~= nil
-	u.x()
-	return got
-end
-
-function L:Keyed()
-	if not ka then return false end
-	if os.clock() < ka.t then return ka.v end
-	local a, s = pcall(readfile, ka.p)
-	ka.v, ka.t = a and type(s) == "string" and ((s:match("^[^\n]*") or ""):match("^%s*(.-)%s*$") or ""):match(kr) ~= nil, os.clock() + 30
-	return ka.v
-end
-
-function L:Window(o)
-	o = o or {}
-	if not cfn(o.Config) then error("Window Failed: Bad Config", 0) end
-	if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
-	local W = {Tabs = {}, Current = nil, cn = {}, key = o.Key == nil and Enum.KeyCode.LeftControl or o.Key, sx = false, sl = "", kw = false, fc = nil, sv = 1, fd = nil, w = ww, h = wh}
-	local sg = gui()
-	W.Gui = sg
-	local mn = mk("Frame", {Name = "Main", Size = UDim2.fromOffset(ww, wh), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = c.bg, BorderSizePixel = 0, Parent = sg}, {rc(12), sk(0.85)})
-	W.Main = mn
-	local sc = mk("UIScale", {Parent = mn})
-	local tb = mk("Frame", {Size = UDim2.new(1, 0, 0, th), BackgroundTransparency = 1, Parent = mn})
-	tl({Text = tostring(o.Title or "Avenoric"), Font = fb, Position = UDim2.fromOffset(16, 0), Size = UDim2.new(1, -116, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = tb})
-	local function cap(x, g)
-		local b = bt({Size = UDim2.fromOffset(40, 28), Position = UDim2.new(1, x, 0, 6), BackgroundColor3 = c.hv, Parent = tb}, {rc(6)})
-		local i = ig({Text = g, TextSize = 14, TextColor3 = c.dm, Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, Parent = b})
-		b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundTransparency = 0}) end end)
-		b.MouseLeave:Connect(function() tw(b, {BackgroundTransparency = 1}) end)
-		return b, i
-	end
-	local xb, xi = cap(-46, "x")
-	local nb = cap(-88, "minus")
-	local tsf = mk("Frame", {AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -12, 1, -12), Size = UDim2.fromOffset(300, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 100, Parent = sg}, {ll(8)})
-
-	function W:Notify(n)
-		n = n or {}
-		if n.Title == nil and n.Text == nil then error("Notify Failed: No Text", 0) end
-		local t = n.Time == nil and 4 or n.Time
-		if type(t) ~= "number" or t ~= t or t <= 0 then error("Notify Failed: Bad Time", 0) end
-		local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = c.cd, BorderSizePixel = 0, ZIndex = 100, Parent = tsf}, {rc(8), sk(0.9), pd(18, 14, 10, 10)})
-		mk("Frame", {Position = UDim2.fromOffset(-12, 2), Size = UDim2.new(0, 3, 1, -4), BackgroundColor3 = n.Error and c.er or c.ac, BorderSizePixel = 0, ZIndex = 101, Parent = f}, {rc(2)})
-		local lay = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 101, Parent = f}, {ll(2)})
-		tl({Text = tostring(n.Title or "Avenoric"), Font = fb, Size = UDim2.new(1, 0, 0, 18), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 102, LayoutOrder = 1, Parent = lay})
-		if n.Text ~= nil then tl({Text = tostring(n.Text), TextSize = 13, TextColor3 = c.dm, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextWrapped = true, ZIndex = 102, LayoutOrder = 2, Parent = lay}) end
-		local us = mk("UIScale", {Scale = 0.9, Parent = f})
-		tw(us, {Scale = 1})
-		task.delay(t, function() if f.Parent then f:Destroy() end end)
-		return f
-	end
-
-	local function run(f, ...)
-		if not f then return end
-		local ok, e = xpcall(f, function(m) return debug.traceback(tostring(m), 2) end, ...)
-		if ok then return end
-		warn("Callback Failed: " .. tostring(e))
-		if L.Lg then pcall(L.Lg, "[Hub] Callback Failed: " .. tostring(e)) end
-		W:Notify({Title = "Callback Failed", Text = string.match(tostring(e), "^[^\n]*"), Error = true})
-	end
-
-	local cp, cd, dirty, pend, dead = o.Config and `Avenoric/Configs/{o.Config}.json`, {}, false, false, false
-	if cp and isfile and isfile(cp) then
-		local ok, d = pcall(function() return hs:JSONDecode(readfile(cp)) end)
-		if ok and type(d) == "table" then cd = d else
-			pcall(function() writefile(cp .. ".bad", readfile(cp)); delfile(cp) end)
-			W:Notify({Title = "Config Load Failed", Text = "Invalid Json", Error = true})
-		end
-	end
-	local function save()
-		if not cp or not dirty then return end
-		dirty = false
-		pcall(function()
-			mkd(cp)
-			writefile(cp, hs:JSONEncode(cd))
-		end)
-	end
-	local function put(e, v)
-		if not e.Flag then return end
-		L.Flags[e.Flag] = v
-		if not cp then return end
-		if e.sv then cd[e.Flag] = e.sv(v) else cd[e.Flag] = v end
-		dirty = true
-		if pend or dead then return end
-		pend = true
-		task.delay(0.5, function() pend = false; save() end)
-	end
-	local function done(e)
-		if not e.Flag then return end
-		L.Flags[e.Flag] = e:Get()
-		local s = cd[e.Flag]
-		if s == nil then return end
-		pcall(function()
-			if e.ld then s = e.ld(s) end
-			e:Set(s)
-		end)
-	end
-
-	local nv = mk("Frame", {Position = UDim2.fromOffset(12, th + 4), Size = UDim2.new(0, nw, 1, -(th + 16)), BackgroundTransparency = 1, Parent = mn})
-	local sbx = mk("Frame", {Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.cd, BorderSizePixel = 0, ClipsDescendants = true, Parent = nv}, {rc(6), sk(0.9)})
-	local sst = sbx:FindFirstChildOfClass("UIStroke")
-	ig({Text = "magnifying-glass", TextSize = 14, TextColor3 = c.dm, Position = UDim2.fromOffset(9, 0), Size = UDim2.fromOffset(16, 32), Parent = sbx})
-	local sb = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(30, 0), Size = UDim2.new(1, -36, 1, 0), Font = fn, TextSize = 13, TextColor3 = c.tx, PlaceholderText = "Search", PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = "", Parent = sbx})
-	sb.Focused:Connect(function() tw(sst, {Color = c.ac, Transparency = 0}) end)
-	sb.FocusLost:Connect(function() tw(sst, {Color = c.tx, Transparency = 0.9}) end)
-	local tf = mk("ScrollingFrame", {Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, 0, 1, -40), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = nv}, {ll(4)})
-	local pg = mk("Frame", {Position = UDim2.fromOffset(nw + 20, th + 4), Size = UDim2.new(1, -(nw + 32), 1, -(th + 16)), BackgroundTransparency = 1, ClipsDescendants = true, Parent = mn})
-	local function page()
-		local p = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Visible = false, Parent = pg}, {ll(4), pd(2, 2, 2, 4)})
-		for _, k in {"CanvasPosition", "AbsoluteCanvasSize", "AbsoluteWindowSize"} do p:GetPropertyChangedSignal(k):Connect(function() W.fd() end) end
-		return p
-	end
-	local sr = page()
-	local function fade(top)
-		local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 20), Position = top and UDim2.new() or UDim2.new(0, 0, 1, -20), BackgroundColor3 = c.bg, BorderSizePixel = 0, ZIndex = 5, Visible = false, Parent = pg})
-		mk("UIGradient", {Rotation = 90, Transparency = NumberSequence.new(top and 0 or 1, top and 1 or 0), Parent = f})
-		return f
-	end
-	local ft, fb2 = fade(true), fade(false)
-	local function fd()
-		local p = W.sx and sr or W.Current and W.Current.Page
-		if not p then ft.Visible, fb2.Visible = false, false; return end
-		ft.Visible, fb2.Visible = p.CanvasPosition.Y > 1, p.AbsoluteCanvasSize.Y - p.AbsoluteWindowSize.Y - p.CanvasPosition.Y > 1
-	end
-	W.fd = fd
-	local ov = bt({Size = UDim2.fromScale(1, 1), ZIndex = 50, Visible = false, Parent = mn})
-	ov.Activated:Connect(function() if W.fc then W.fc() end end)
-	local fl = bt({Size = UDim2.fromOffset(44, 44), BackgroundColor3 = Color3.fromRGB(18, 18, 21), BackgroundTransparency = 0.08, Parent = sg}, {rc(22)})
-	ig({Text = "studio", FontFace = ib, TextSize = 24, TextColor3 = Color3.fromRGB(247, 247, 248), Position = UDim2.fromOffset(10, 10), Size = UDim2.fromOffset(24, 24), Active = false, Parent = fl})
-
-	local function cl()
-		local s, n, hw, hh = sg.AbsoluteSize, gs:GetGuiInset().Y, W.w * sc.Scale / 2, W.h * sc.Scale / 2
-		mn.Position = UDim2.fromOffset(math.clamp(mn.Position.X.Offset, hw, s.X - hw), math.clamp(mn.Position.Y.Offset, n + hh, s.Y - hh))
-	end
-	local function rsz(w, h)
-		local s, n = sg.AbsoluteSize, gs:GetGuiInset().Y
-		W.w, W.h = math.clamp(math.round(tonumber(w) or W.w), 420, math.max(420, s.X - 24)), math.clamp(math.round(tonumber(h) or W.h), 260, math.max(260, s.Y - n - 24))
-		mn.Size = UDim2.fromOffset(W.w, W.h)
-		W.sv = math.clamp(math.min((s.X - 24) / W.w, (s.Y - n - 24) / W.h), 0.5, 1)
-		sc.Scale = W.sv
-		cl()
-	end
-	local function fx()
-		W.sv = fit(sg, mn, sc, W.w, W.h)
-		fl.Position = UDim2.fromOffset(16, gs:GetGuiInset().Y + 8)
-	end
-	function W:Resize(w, h) rsz(w, h) end
-	fx()
-	local dr
-	local function hd(p, ax, ay)
-		local b = bt({AnchorPoint = p.AnchorPoint, Position = p.Position, Size = p.Size, ZIndex = 3, Parent = mn})
-		table.insert(W.cn, b.InputBegan:Connect(function(i)
-			if i.UserInputType ~= mb and i.UserInputType ~= tc then return end
-			local w0, h0, d0, s0 = W.w, W.h, i.Position, sc.Scale
-			local lx, ly = mn.Position.X.Offset - W.w * s0 / 2, mn.Position.Y.Offset - W.h * s0 / 2
-			dr = {i = i, mv = function(q)
-				rsz(ax and w0 + (q.X - d0.X) / s0 or W.w, ay and h0 + (q.Y - d0.Y) / s0 or W.h)
-				mn.Position = UDim2.fromOffset(lx + W.w * sc.Scale / 2, ly + W.h * sc.Scale / 2)
-				cl()
-			end}
-		end))
-	end
-	hd({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 1, 0), Size = UDim2.fromOffset(16, 16)}, true, true)
-	hd({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0), Size = UDim2.new(1, -16, 0, 10)}, false, true)
-	hd({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, th), Size = UDim2.new(0, 10, 1, -(th + 16))}, true, false)
-	table.insert(W.cn, sg:GetPropertyChangedSignal("AbsoluteSize"):Connect(fx))
-
-	function W:Show()
-		mn.Visible, sc.Scale = true, W.sv
-	end
-	function W:Hide() mn.Visible = false end
-	local function tg() if mn.Visible then W:Hide() else W:Show() end end
-	fl.Activated:Connect(tg)
-	nb.Activated:Connect(function() W:Hide() end)
-	local arm, an = false, 0
-	xb.Activated:Connect(function()
-		if arm then (W :: any):Destroy(); return end
-		arm, an = true, an + 1
-		local n = an
-		tw(xb, {BackgroundColor3 = c.er, BackgroundTransparency = 0})
-		xi.TextColor3 = Color3.new(1, 1, 1)
-		task.delay(3, function()
-			if an ~= n or not arm then return end
-			arm = false
-			tw(xb, {BackgroundColor3 = c.hv, BackgroundTransparency = 1})
-			xi.TextColor3 = c.dm
-		end)
-	end)
-
-	table.insert(W.cn, tb.InputBegan:Connect(function(i)
-		if i.UserInputType ~= mb and i.UserInputType ~= tc then return end
-		local p0, d0 = mn.Position, i.Position
-		dr = {i = i, mv = function(p)
-			local s, n, hw, hh = sg.AbsoluteSize, gs:GetGuiInset().Y, mn.AbsoluteSize.X / 2, mn.AbsoluteSize.Y / 2
-			mn.Position = UDim2.fromOffset(math.clamp(p0.X.Offset + p.X - d0.X, hw, s.X - hw), math.clamp(p0.Y.Offset + p.Y - d0.Y, n + hh, s.Y - hh))
-		end}
-	end))
-	table.insert(W.cn, uis.InputChanged:Connect(function(i)
-		if not dr or (i.UserInputType ~= mm and i ~= dr.i) then return end
-		dr.mv(i.Position)
-	end))
-	table.insert(W.cn, uis.InputEnded:Connect(function(i)
-		if not dr or (i ~= dr.i and i.UserInputType ~= mb) then return end
-		if dr.up then dr.up() end
-		dr = nil
-	end))
-	table.insert(W.cn, uis.InputBegan:Connect(function(i)
-		if i.UserInputType ~= kb or W.kw or not W.key or i.KeyCode ~= W.key or uis:GetFocusedTextBox() then return end
-		tg()
-	end))
-
-	local function jump(e)
-		local p = e.Tab.Page
-		p.CanvasPosition = Vector2.new(0, math.max(0, (e.Row.AbsolutePosition.Y - p.AbsolutePosition.Y) / sc.Scale + p.CanvasPosition.Y - 4))
-		local st = e.Row:FindFirstChildOfClass("UIStroke")
-		if not st then return end
-		tw(st, {Color = c.ac, Transparency = 0})
-		task.delay(0.8, function() tw(st, {Color = c.tx, Transparency = 0.92}, 0.4) end)
-	end
-
-	function W:Search(s)
-		s = tostring(s or "")
-		W.sl = s
-		if sb.Text ~= s then sb.Text = s end
-		for _, x in sr:GetChildren() do
-			if x:IsA("GuiButton") then x:Destroy() end
-		end
-		if s == "" then
-			if not W.sx then return nil end
-			W.sx, sr.Visible = false, false
-			if W.Current then W.Current.Page.Visible = true end
-			fd()
-			return nil
-		end
-		local n, q = 0, s:lower()
-		for _, T in W.Tabs do
-			for _, e in T.Rows do
-				if e.Kind ~= "Section" and e.Kind ~= "Label" and e.Name:lower():find(q, 1, true) then
-					n += 1
-					local b = bt({Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = c.cd, LayoutOrder = n, Parent = sr}, {rc(6), sk(0.92), pd(12, 12)})
-					tl({Text = e.Name, Size = UDim2.new(0.6, 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
-					tl({Text = e.Sec and `{T.Name} · {e.Sec}` or T.Name, TextSize = 12, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.4, 0, 1, 0), TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
-					hov(b, function() return c.cd end)
-					b.Activated:Connect(function()
-						W:Search("")
-						T:Select()
-						task.defer(jump, e)
-					end)
-				end
-			end
-		end
-		if not W.sx then
-			W.sx, sr.Visible = true, true
-			if W.Current then W.Current.Page.Visible = false end
-		end
-		fd()
-		return n
-	end
-	sb:GetPropertyChangedSignal("Text"):Connect(function() if sb.Text ~= W.sl then W:Search(sb.Text) end end)
-
-	function W:Tab(t)
-		t = t or {}
-		local T = {Rows = {}, Name = tostring(t.Name or "Tab"), W = W, n = 0, sec = nil}
-		local b = bt({Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = c.cd, LayoutOrder = #W.Tabs + 1, Parent = tf}, {rc(6)})
-		local bar = mk("Frame", {Size = UDim2.fromOffset(3, 16), Position = UDim2.fromOffset(0, 10), BackgroundColor3 = c.ac, BorderSizePixel = 0, Visible = false, Parent = b}, {rc(2)})
-		local ico = t.Icon and ig({Text = tostring(t.Icon), TextColor3 = c.dm, Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(20, 36), TextXAlignment = Enum.TextXAlignment.Center, Parent = b})
-		local nm = tl({Text = T.Name, TextColor3 = c.dm, Position = UDim2.fromOffset(ico and 38 or 12, 0), Size = UDim2.new(1, -(ico and 46 or 20), 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
-		local p = page()
-		T.Page, T.Btn = p, b
-		local function paint(on)
-			tw(b, {BackgroundTransparency = on and 0 or 1})
-			bar.Visible, nm.TextColor3 = on, on and c.tx or c.dm
-			if ico then ico.TextColor3, ico.FontFace = on and c.tx or c.dm, on and ib or ir end
-		end
-		T.pt = paint
-		b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundColor3 = c.hv, BackgroundTransparency = 0}) end end)
-		b.MouseLeave:Connect(function() tw(b, {BackgroundColor3 = c.cd, BackgroundTransparency = W.Current == T and 0 or 1}) end)
-		function T:Select()
-			if W.sx then W:Search("") end
-			if W.Current == T then return end
-			if W.Current then W.Current.Page.Visible = false; W.Current.pt(false) end
-			W.Current, p.Visible = T, true
-			paint(true)
-			fd()
-		end
-		b.Activated:Connect(function() T:Select() end)
-		table.insert(W.Tabs, T)
-		if not W.Current then T:Select() else paint(false) end
-
-		local function add(e)
-			T.n += 1
-			e.Row.LayoutOrder = T.n
-			table.insert(T.Rows, e)
-			return e
-		end
-		local function row(k, r)
-			if type(r.Name) ~= "string" then error(`{k} Failed: Bad Name`, 0) end
-			if r.Flag ~= nil and type(r.Flag) ~= "string" then error(`{k} Failed: Bad Flag`, 0) end
-			local f = bt({Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = c.cd, Parent = p}, {rc(6), sk(0.92), pd(12, 12)})
-			hov(f, function() return c.cd end)
-			local l = tl({Text = r.Name, Size = UDim2.new(0.5, 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
-			local e = {Row = f, Kind = k, Name = r.Name, Flag = r.Flag, Tab = T, Sec = T.sec, Label = l}
-			function e:Get() return (e :: any).v end
-			return add(e), f, l
-		end
-		local function txt(e, l)
-			function e:Set(s) l.Text = tostring(s) end
-			function e:Get() return l.Text end
-			return e
-		end
-
-		function T:Section(r)
-			r = r or {}
-			local l = tl({Text = tostring(r.Name or ""), Font = fb, TextSize = 13, Size = UDim2.new(1, 0, 0, 30), TextYAlignment = Enum.TextYAlignment.Bottom, Parent = p}, {pd(4, 0, 0, 4)})
-			T.sec = l.Text
-			return txt(add({Row = l, Kind = "Section", Name = l.Text, Tab = T}), l)
-		end
-
-		function T:Label(r)
-			r = r or {}
-			local f = mk("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = c.cd, BorderSizePixel = 0, Parent = p}, {rc(6), sk(0.92), pd(12, 12, 10, 10)})
-			local l = tl({Text = tostring(r.Text or ""), TextSize = 13, TextColor3 = c.dm, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextWrapped = true, Parent = f})
-			return txt(add({Row = f, Kind = "Label", Name = l.Text, Tab = T, Sec = T.sec}), l)
-		end
-
-		function T:Button(r)
-			r = r or {}
-			local e, f, l = row("Button", r)
-			ig({Text = "chevron-small-right", TextSize = 14, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(16, 44), TextXAlignment = Enum.TextXAlignment.Center, Parent = f})
-			f.Activated:Connect(function() run(r.Callback) end)
-			return txt(e, l)
-		end
-
-		function T:Toggle(r)
-			r = r or {}
-			local e, f = row("Toggle", r)
-			local sw = mk("Frame", {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(40, 20), BackgroundColor3 = c.ac, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = f}, {rc(10), sk(0.2, c.dm)})
-			local st = sw:FindFirstChildOfClass("UIStroke")
-			local kn = mk("Frame", {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 4, 0.5, 0), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = c.dm, BorderSizePixel = 0, Parent = sw}, {rc(6)})
-			local sl = tl({Text = "Off", TextSize = 13, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -48, 0, 0), Size = UDim2.fromOffset(40, 44), TextXAlignment = Enum.TextXAlignment.Right, Parent = f})
-			e.v, e.ld = r.Default == true, function(s) return s == true end
-			local function draw(a)
-				local on, g = e.v, a and tw or function(x, q) for i, v in q do x[i] = v end end
-				g(sw, {BackgroundTransparency = on and 0 or 1})
-				g(st, {Transparency = on and 1 or 0.2})
-				g(kn, {Position = UDim2.new(0, on and 24 or 4, 0.5, 0), BackgroundColor3 = on and c.bg or c.dm})
-				sl.Text = on and "On" or "Off"
-			end
-			draw(false)
-			function e:Set(v)
-				v = v == true
-				if v == e.v then return end
-				e.v = v
-				draw(true)
-				put(e, v)
-				run(r.Callback, v)
-			end
-			f.Activated:Connect(function() e:Set(not e.v) end)
-			done(e)
-			return e
-		end
-
-		function T:Slider(r)
-			r = r or {}
-			local lo, hi, st = tonumber(r.Min), tonumber(r.Max), r.Step == nil and 1 or tonumber(r.Step)
-			if not (lo and hi and hi > lo) then error("Slider Failed: Bad Range", 0) end
-			if not (st and st > 0) then error("Slider Failed: Bad Step", 0) end
-			local e, f = row("Slider", r)
-			local vl = tl({Text = "", TextSize = 13, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(44, 44), TextXAlignment = Enum.TextXAlignment.Right, Parent = f})
-			local hit = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -52, 0.5, 0), Size = UDim2.fromOffset(120, 28), Parent = f})
-			local tr = mk("Frame", {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = c.hv, BorderSizePixel = 0, Parent = hit}, {rc(2)})
-			local fi = mk("Frame", {Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = c.ac, BorderSizePixel = 0, Parent = tr}, {rc(2)})
-			local kn = mk("Frame", {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = c.ac, BorderSizePixel = 0, Parent = hit}, {rc(7), mk("UIStroke", {Color = c.bg, Thickness = 2})})
-			local function q(v) return math.clamp(lo + math.round((v - lo) / st) * st, lo, hi) end
-			local d0 = r.Default
-			e.v, e.ld = q(type(d0) == "number" and d0 == d0 and d0 or lo), tonumber
-			local function draw()
-				local a = (e.v - lo) / (hi - lo)
-				fi.Size, kn.Position, vl.Text = UDim2.new(a, 0, 1, 0), UDim2.new(a, 0, 0.5, 0), ("%g"):format(e.v)
-			end
-			draw()
-			function e:Set(v)
-				if type(v) ~= "number" or v ~= v then error("Slider Set Failed: Not A Number", 0) end
-				v = q(v)
-				if v == e.v then return end
-				e.v = v
-				draw()
-				put(e, v)
-				run(r.Callback, v)
-			end
-			local function at(x) e:Set(lo + math.clamp((x - hit.AbsolutePosition.X) / hit.AbsoluteSize.X, 0, 1) * (hi - lo)) end
-			hit.InputBegan:Connect(function(i)
-				if i.UserInputType ~= mb and i.UserInputType ~= tc then return end
-				p.ScrollingEnabled = false
-				dr = {i = i, mv = function(v) at(v.X) end, up = function() p.ScrollingEnabled = true end}
-				at(i.Position.X)
-			end)
-			done(e)
-			return e
-		end
-
-		function T:Dropdown(r)
-			r = r or {}
-			if type(r.Options) ~= "table" then error("Dropdown Failed: Bad Options", 0) end
-			local e, f = row("Dropdown", r)
-			local mu = r.Multi == true
-			e.Options = {}
-			local function opts(l)
-				local seen = {}
-				e.Options = {}
-				for _, s in l do
-					if type(s) == "string" and not seen[s] then seen[s] = true; table.insert(e.Options, s) end
-				end
-			end
-			opts(r.Options)
-			local box = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(150, 28), BackgroundColor3 = c.bg, Parent = f}, {rc(4), sk(0.9)})
-			local bl = tl({Text = "", TextSize = 13, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -34, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = box})
-			ig({Text = "chevron-small-down", TextSize = 14, TextColor3 = c.dm, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, 0), Size = UDim2.fromOffset(16, 28), TextXAlignment = Enum.TextXAlignment.Center, Parent = box})
-			local function norm(v)
-				if mu then
-					if type(v) ~= "table" then error("Dropdown Set Failed: Not A Table", 0) end
-					local want, out = {}, {}
-					for _, s in v do want[s] = true end
-					for _, s in e.Options do
-						if want[s] then table.insert(out, s) end
-					end
-					return out
-				end
-				if v == nil then return nil end
-				if table.find(e.Options, v) then return v end
-				error("Dropdown Set Failed: Unknown Option", 0)
-			end
-			local function same(a, b)
-				if not mu then return a == b end
-				if #a ~= #b then return false end
-				for i, s in a do
-					if b[i] ~= s then return false end
-				end
-				return true
-			end
-			e.v = if mu then (if type(r.Default) == "table" then norm(r.Default) else {}) else (if table.find(e.Options, r.Default) then r.Default else nil)
-			if mu then e.ld = function(s) return type(s) == "table" and s or {} end else e.sv, e.ld = function(v) return if v == nil then false else v end, function(s) return s ~= false and s or nil end end
-			local function has(s) return mu and table.find(e.v, s) ~= nil or not mu and e.v == s end
-			local function draw()
-				local any = mu and #e.v > 0 or not mu and e.v ~= nil
-				bl.Text, bl.TextColor3 = any and (mu and table.concat(e.v, ", ") or e.v) or "None", any and c.tx or c.dm
-			end
-			draw()
-			function e:Get() return mu and table.clone(e.v) or e.v end
-			local function emit(v)
-				e.v = v
-				draw()
-				put(e, e:Get())
-				run(r.Callback, e:Get())
-			end
-			function e:Set(v)
-				v = norm(v)
-				if same(v, e.v) then return end
-				emit(v)
-			end
-			function e:Refresh(l)
-				if type(l) ~= "table" then error("Dropdown Refresh Failed: Bad Options", 0) end
-				opts(l)
-				local v = mu and norm(e.v) or (table.find(e.Options, e.v) and e.v or nil)
-				if not same(v, e.v) then emit(v) end
-				draw()
-			end
-			local fy
-			local function close()
-				if not fy then return end
-				fy:Destroy()
-				fy, ov.Visible, W.fc = nil, false, nil
-			end
-			local function open()
-				if fy then close(); return end
-				if W.fc then W.fc() end
-				W.fc, ov.Visible = close, true
-				local s, bp = sc.Scale, (box.AbsolutePosition - mn.AbsolutePosition) / sc.Scale
-				local h = math.max(math.min(#e.Options, 5), 1) * 32 + 8
-				fy = mk("Frame", {Position = UDim2.fromOffset(bp.X, bp.Y + 32), Size = UDim2.fromOffset(box.AbsoluteSize.X / s, h), BackgroundColor3 = c.cd, BorderSizePixel = 0, Parent = ov}, {rc(6), sk(0.85), pd(4, 4, 4, 4)})
-				local ls = mk("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollingDirection = Enum.ScrollingDirection.Y, Parent = fy}, {ll(0)})
-				if #e.Options == 0 then tl({Text = "No Options", TextSize = 13, TextColor3 = c.dm, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -10, 0, 32), Parent = ls}) end
-				for n, s in e.Options do
-					local sel = has(s)
-					local b = bt({Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = c.hv, BackgroundTransparency = sel and 0 or 1, LayoutOrder = n, Parent = ls}, {rc(4)})
-					tl({Text = s, TextSize = 13, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -36, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
-					local ck = ig({Text = "check", TextSize = 14, TextColor3 = c.ac, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 0), Size = UDim2.fromOffset(16, 32), TextXAlignment = Enum.TextXAlignment.Center, Visible = sel, Parent = b})
-					b.MouseEnter:Connect(function() if uis.MouseEnabled then tw(b, {BackgroundTransparency = 0}) end end)
-					b.MouseLeave:Connect(function() tw(b, {BackgroundTransparency = has(s) and 0 or 1}) end)
-					b.Activated:Connect(function()
-						if not mu then e:Set(s); close(); return end
-						local v, i = e:Get(), table.find(e.v, s)
-						if i then table.remove(v, i) else table.insert(v, s) end
-						e:Set(v)
-						ck.Visible = has(s)
-						tw(b, {BackgroundTransparency = ck.Visible and 0 or 1})
-					end)
-				end
-			end
-			box.Activated:Connect(open)
-			hov(box, function() return c.bg end)
-			done(e)
-			return e
-		end
-
-		function T:TextBox(r)
-			r = r or {}
-			local e, f = row("TextBox", r)
-			local bx = mk("Frame", {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(150, 28), BackgroundColor3 = c.bg, BorderSizePixel = 0, ClipsDescendants = true, Parent = f}, {rc(4), sk(0.9)})
-			local st = bx:FindFirstChildOfClass("UIStroke")
-			local x = mk("TextBox", {BackgroundTransparency = 1, Position = UDim2.fromOffset(8, 0), Size = UDim2.new(1, -16, 1, 0), Font = fn, TextSize = 13, TextColor3 = c.tx, PlaceholderText = tostring(r.Placeholder or ""), PlaceholderColor3 = c.dm, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Text = type(r.Default) == "string" and r.Default or "", Parent = bx})
-			e.v, e.ld = x.Text, tostring
-			function e:Set(v)
-				v = tostring(v)
-				x.Text = v
-				if v == e.v then return end
-				e.v = v
-				put(e, v)
-				run(r.Callback, v)
-			end
-			x.Focused:Connect(function() tw(st, {Color = c.ac, Transparency = 0}) end)
-			x.FocusLost:Connect(function()
-				tw(st, {Color = c.tx, Transparency = 0.9})
-				e:Set(x.Text)
-			end)
-			done(e)
-			return e
-		end
-
-		local function kc(v)
-			if v == nil then return nil end
-			if typeof(v) == "EnumItem" and v.EnumType == Enum.KeyCode then return v end
+	for segment in (name .. "/"):gmatch("([^/]*)/") do
+		if not segment:match("^[%w _%-]+$") then
 			return false
 		end
+	end
 
-		function T:Keybind(r)
-			r = r or {}
-			local d = kc(r.Default)
-			if d == false then error("Keybind Failed: Bad Key", 0) end
-			local e, f = row("Keybind", r)
-			local cb = bt({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(0, 24), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = c.bg, Parent = f}, {rc(4), sk(0.9), pd(10, 10)})
-			local kl = tl({Text = "", TextSize = 12, Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, TextXAlignment = Enum.TextXAlignment.Center, Parent = cb})
-			local wt = false
-			e.v, e.sv, e.ld = d, function(v) return v and v.Name or false end, function(s) return type(s) == "string" and Enum.KeyCode[s] or nil end
+	return true
+end
+
+local function ensureParentFolders(path)
+	local folder = ""
+
+	for segment in path:gmatch("([^/]+)/") do
+		if folder == "" then
+			folder = segment
+		else
+			folder = folder .. "/" .. segment
+		end
+
+		if not isfolder(folder) then
+			makefolder(folder)
+		end
+	end
+end
+
+local function openDiscordInvite(link)
+	local inviteCode = link:match("([%w%-_]+)/?%s*$")
+	if not inviteCode then
+		return
+	end
+
+	local body = HttpService:JSONEncode({
+		cmd = "INVITE_BROWSER",
+		nonce = HttpService:GenerateGUID(false),
+		args = {code = inviteCode},
+	})
+
+	for port = 6463, 6472 do
+		local succeeded, response = pcall(request, {
+			Url = `http://127.0.0.1:{port}/rpc?v=1`,
+			Method = "POST",
+			Headers = {["Content-Type"] = "application/json", Origin = "https://discord.com"},
+			Body = body,
+		})
+
+		if succeeded and type(response) == "table" and response.StatusCode == 200 then
+			return
+		end
+	end
+end
+
+local function computeDigest(text)
+	local high = 0xcbf29ce4
+	local low = 0x84222325
+
+	for index = 1, #text do
+		low = bit32.bxor(low, string.byte(text, index))
+		local product = low * 435
+		high = (high * 435 + product // 4294967296 + bit32.lshift(low, 8)) % 4294967296
+		low = product % 4294967296
+	end
+
+	return string.format("%08x%08x", high, low)
+end
+
+Library.Digest = computeDigest
+
+local function isUsableDeviceId(value)
+	if type(value) ~= "string" then
+		return false
+	end
+
+	local compactId = value:gsub("[ %-]", "")
+	if #compactId < 16 then
+		return false
+	end
+
+	local seenCharacters = {}
+	local distinctCount = 0
+
+	for character in compactId:lower():gmatch(".") do
+		if not seenCharacters[character] then
+			seenCharacters[character] = true
+			distinctCount += 1
+		end
+	end
+
+	return distinctCount >= 4
+end
+
+local function readRawDeviceId()
+	for _, functionName in {"gethwid", "get_hwid"} do
+		local readHardwareId = sharedEnvironment[functionName]
+
+		if type(readHardwareId) == "function" then
+			local succeeded, hardwareId = pcall(readHardwareId)
+
+			if succeeded and isUsableDeviceId(hardwareId) then
+				return hardwareId
+			end
+		end
+	end
+
+	local clientIdRead, clientId = pcall(function()
+		return game:GetService("RbxAnalyticsService"):GetClientId()
+	end)
+
+	if clientIdRead and isUsableDeviceId(clientId) then
+		return clientId
+	end
+
+	local userIdRead, userId = pcall(function()
+		return Players.LocalPlayer.UserId
+	end)
+
+	if userIdRead and type(userId) == "number" then
+		return "U" .. userId
+	end
+
+	return nil
+end
+
+local function readDeviceDigest()
+	local rawId = nil
+	local isDone = false
+
+	task.spawn(function()
+		local succeeded, result = pcall(readRawDeviceId)
+		rawId = succeeded and result or nil
+		isDone = true
+	end)
+
+	while not isDone do
+		task.wait()
+	end
+
+	return rawId and computeDigest(rawId)
+end
+
+function Library.Http(url)
+	local requestFunction = sharedEnvironment.request
+		or sharedEnvironment.http_request
+		or (type(sharedEnvironment.http) == "table" and sharedEnvironment.http.request)
+
+	if type(requestFunction) == "function" then
+		local succeeded, response = pcall(requestFunction, {Url = url, Method = "GET"})
+
+		if succeeded and type(response) == "table" and response.StatusCode == 200 and type(response.Body) == "string" then
+			return response.Body
+		end
+	end
+
+	local fetched, body = pcall(function()
+		return game:HttpGet(url, true)
+	end)
+
+	return fetched and type(body) == "string" and body or nil
+end
+
+local function askKeyServer(options, key, digest)
+	local hubQuery = HttpService:UrlEncode(options.Hub)
+	local keyQuery = HttpService:UrlEncode(key)
+	local digestQuery = HttpService:UrlEncode(digest)
+	local url = `{options.Server}/api/check?h={hubQuery}&k={keyQuery}&d={digestQuery}&n={HttpService:GenerateGUID(false)}`
+
+	local answer = nil
+	local isDone = false
+
+	task.spawn(function()
+		local fetched, body = pcall(Library.Http, url)
+
+		if fetched and type(body) == "string" then
+			local decoded, json = pcall(function()
+				return HttpService:JSONDecode(body)
+			end)
+
+			if decoded then
+				answer = json
+			end
+		end
+
+		isDone = true
+	end)
+
+	local startedAt = os.clock()
+	while not isDone and os.clock() - startedAt < 10 do
+		task.wait()
+	end
+
+	if not isDone or type(answer) ~= "table" then
+		return nil
+	end
+
+	if answer.ok == true and type(answer.ex) == "number" then
+		return {true, answer.ex}
+	end
+
+	if answer.ok == false and table.find(serverVerdicts, answer.err) then
+		return {false, answer.err}
+	end
+
+	return nil
+end
+
+local function readSavedServerKey(path)
+	if not (isfile and isfile(path)) then
+		return nil
+	end
+
+	local readSucceeded, contents = pcall(readfile, path)
+	if not (readSucceeded and type(contents) == "string") then
+		return nil
+	end
+
+	local key, expiry = contents:match("^%s*(%S+)%s*\n%s*(%d+)%s*$")
+	if key and key:match(keyPattern) then
+		return key, tonumber(expiry)
+	end
+
+	return nil
+end
+
+local function isWithinGracePeriod(expiry)
+	local succeeded, now = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+
+	if not succeeded or type(now) ~= "number" or type(expiry) ~= "number" then
+		return false
+	end
+
+	return now < expiry and expiry <= now + gracePeriodSeconds
+end
+
+local function readMaxLength(value)
+	if value == nil then
+		return 24
+	end
+
+	return tonumber(value)
+end
+
+local function claimGateToken()
+	local token = {}
+	local previousToken = sharedEnvironment.__AvG
+
+	sharedEnvironment.__AvG = token
+
+	if type(previousToken) == "table" and previousToken.sg then
+		pcall(function()
+			previousToken.sg:Destroy()
+		end)
+	end
+
+	return token
+end
+
+local function createGateCard(options, showsGetKey)
+	local screenGui = createScreenGui()
+	Library.GateGui = screenGui
+
+	createButton({
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(),
+		BackgroundTransparency = 0.5,
+		Parent = screenGui,
+	})
+
+	local cardFrame = createInstance("Frame", {
+		Size = UDim2.fromOffset(300, 180),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = colors.Background,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = screenGui,
+	}, {createCorner(12), createStroke(0.85), createPadding(20, 20, 20, 20)})
+
+	local cardScale = createInstance("UIScale", {Parent = cardFrame})
+	fitToScreen(screenGui, cardFrame, cardScale, 300, 180)
+
+	local card = {}
+	card.screenGui = screenGui
+	card.sizeConnection = screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		fitToScreen(screenGui, cardFrame, cardScale, 300, 180)
+	end)
+
+	screenGui.Destroying:Connect(function()
+		card.sizeConnection:Disconnect()
+
+		if Library.GateGui == screenGui then
+			Library.GateGui = nil
+		end
+	end)
+
+	createLabel({
+		Text = tostring(options.Title or "Avenoric"),
+		Font = boldFont,
+		TextSize = 16,
+		Size = UDim2.new(1, 0, 0, 20),
+		Parent = cardFrame,
+	})
+
+	createLabel({
+		Text = "Enter your key to continue",
+		TextSize = 13,
+		TextColor3 = colors.Dim,
+		Position = UDim2.fromOffset(0, 22),
+		Size = UDim2.new(1, 0, 0, 16),
+		Parent = cardFrame,
+	})
+
+	local keyBoxFrame = createInstance("Frame", {
+		Position = UDim2.fromOffset(0, 48),
+		Size = UDim2.new(1, 0, 0, 34),
+		BackgroundColor3 = colors.Card,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		Parent = cardFrame,
+	}, {createCorner(6), createStroke(0.9)})
+
+	local keyBoxStroke = keyBoxFrame:FindFirstChildOfClass("UIStroke")
+
+	card.keyBox = createInstance("TextBox", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(12, 0),
+		Size = UDim2.new(1, -24, 1, 0),
+		Font = textFont,
+		TextSize = 14,
+		TextColor3 = colors.Text,
+		PlaceholderText = "Key",
+		PlaceholderColor3 = colors.Dim,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ClearTextOnFocus = false,
+		Text = "",
+		Parent = keyBoxFrame,
+	})
+
+	card.messageLabel = createLabel({
+		Text = "",
+		TextSize = 12,
+		TextColor3 = colors.Error,
+		Position = UDim2.fromOffset(0, 86),
+		Size = UDim2.new(1, 0, 0, 16),
+		Visible = false,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Parent = cardFrame,
+	})
+
+	local submitSize = UDim2.new(1, 0, 0, 32)
+	if showsGetKey then
+		submitSize = UDim2.new(0.5, -4, 0, 32)
+	end
+
+	card.submitButton = createButton({
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
+		Size = submitSize,
+		BackgroundColor3 = colors.Accent,
+		BackgroundTransparency = 0,
+		Font = boldFont,
+		TextSize = 13,
+		TextColor3 = colors.Background,
+		Text = "Submit",
+		Parent = cardFrame,
+	}, {createCorner(6)})
+
+	if showsGetKey then
+		card.getKeyButton = createButton({
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(0.5, -4, 0, 32),
+			BackgroundColor3 = colors.Card,
+			BackgroundTransparency = 0,
+			Font = textFont,
+			TextSize = 13,
+			TextColor3 = colors.Text,
+			Text = "Get Key",
+			Parent = cardFrame,
+		}, {createCorner(6), createStroke(0.9)})
+
+		bindHoverColors(card.getKeyButton, function()
+			return colors.Card
+		end)
+	end
+
+	card.keyBox.Focused:Connect(function()
+		tween(keyBoxStroke, {Color = colors.Accent, Transparency = 0})
+	end)
+
+	card.keyBox.FocusLost:Connect(function()
+		tween(keyBoxStroke, {Color = colors.Text, Transparency = 0.9})
+	end)
+
+	function card.showMessage(text, color)
+		card.messageLabel.Text = text
+		card.messageLabel.TextColor3 = color or colors.Error
+		card.messageLabel.Visible = true
+	end
+
+	function card.close()
+		card.sizeConnection:Disconnect()
+		card.screenGui:Destroy()
+
+		if Library.GateGui == card.screenGui then
+			Library.GateGui = nil
+		end
+	end
+
+	return card
+end
+
+local function runServerGate(options)
+	local server = options.Server
+	local hub = options.Hub
+
+	if type(server) ~= "string" or not server:match("^https://[%w%.%-]+$") then
+		error("Gate Failed: Bad Server", 0)
+	end
+
+	if type(hub) ~= "string" or not hub:match("^[a-z]+$") then
+		error("Gate Failed: Bad Hub", 0)
+	end
+
+	if options.Link ~= nil then
+		error("Gate Failed: Link And Server", 0)
+	end
+
+	if options.Config == nil then
+		error("Gate Failed: No Config", 0)
+	end
+
+	if not isValidConfigName(options.Config) then
+		error("Gate Failed: Bad Config", 0)
+	end
+
+	local maxLength = readMaxLength(options.Max)
+	if not (maxLength and maxLength >= 1) then
+		error("Gate Failed: Bad Max", 0)
+	end
+
+	local digest = readDeviceDigest()
+	if not digest then
+		error("Gate Failed: No Device Id", 0)
+	end
+
+	local token = claimGateToken()
+	local keyPath = `Avenoric/Keys/{options.Config}.txt`
+	local keyLink = `{server}/k/{hub}?d={digest}`
+	local savedKey, savedExpiry = readSavedServerKey(keyPath)
+
+	local card = nil
+	local isLocked = false
+	local isBusy = false
+	local acceptedKey = nil
+
+	local function acceptKey(key, expiry, shouldSave)
+		if shouldSave then
+			pcall(function()
+				ensureParentFolders(keyPath)
+				writefile(keyPath, key .. "\n" .. expiry)
+			end)
+		end
+
+		keyedState = {path = keyPath, checkAfter = os.clock() + 30, isValid = true}
+	end
+
+	local function finish()
+		if card then
+			card.close()
+		end
+
+		if sharedEnvironment.__AvG == token then
+			token.sg = nil
+		end
+	end
+
+	local function isAlive()
+		return sharedEnvironment.__AvG == token and (not card or card.screenGui.Parent ~= nil)
+	end
+
+	local function assertAlive()
+		if isAlive() then
+			return
+		end
+
+		local reason = "Closed"
+		if sharedEnvironment.__AvG ~= token then
+			reason = "Replaced"
+		end
+
+		finish()
+		error("Gate Failed: " .. reason, 0)
+	end
+
+	local function describeVerdict(verdict)
+		if verdict == "Bad Request" then
+			return "Key Check Failed: Bad Request"
+		end
+
+		return verdict
+	end
+
+	local function submit()
+		if isBusy or isLocked or not card or not isAlive() then
+			return
+		end
+
+		local trimmedText = card.keyBox.Text:gsub("^%s+", ""):gsub("%s+$", "")
+		local key = trimmedText:upper()
+
+		if key == "" then
+			card.showMessage("Enter A Key")
+			return
+		end
+
+		if not key:match(keyPattern) then
+			card.showMessage("Wrong Key")
+			return
+		end
+
+		isBusy = true
+		card.submitButton.Text = "Checking..."
+		local verdict = askKeyServer(options, key, digest)
+		isBusy = false
+
+		if not isAlive() then
+			return
+		end
+
+		card.submitButton.Text = "Submit"
+
+		if not verdict then
+			card.showMessage("Key Server Unreachable")
+			return
+		end
+
+		if not verdict[1] then
+			card.showMessage(describeVerdict(verdict[2]))
+			return
+		end
+
+		acceptKey(key, verdict[2], true)
+
+		if options.Discord and request then
+			task.spawn(openDiscordInvite, tostring(options.Discord))
+		end
+
+		acceptedKey = key
+	end
+
+	local function copyKeyLink()
+		for _, functionName in {"setclipboard", "toclipboard"} do
+			local copyToClipboard = sharedEnvironment[functionName]
+
+			if type(copyToClipboard) == "function" and pcall(copyToClipboard, keyLink) then
+				card.showMessage("Link Copied", colors.Dim)
+				return
+			end
+		end
+
+		card.keyBox.Text = keyLink
+		card.showMessage("Copy The Link From The Box", colors.Dim)
+	end
+
+	local function showCard()
+		if card then
+			return
+		end
+
+		card = createGateCard(options, true)
+		token.sg = card.screenGui
+
+		card.keyBox:GetPropertyChangedSignal("Text"):Connect(function()
+			local text = card.keyBox.Text
+
+			if text ~= keyLink and #text > maxLength then
+				card.keyBox.Text = text:sub(1, maxLength)
+			end
+		end)
+
+		card.keyBox.FocusLost:Connect(function(enterPressed)
+			if enterPressed then
+				submit()
+			end
+		end)
+
+		card.submitButton.Activated:Connect(submit)
+		card.getKeyButton.Activated:Connect(copyKeyLink)
+	end
+
+	if savedKey then
+		local verdict = nil
+		local isAnswered = false
+
+		task.spawn(function()
+			verdict = askKeyServer(options, savedKey, digest)
+			isAnswered = true
+		end)
+
+		local startedAt = os.clock()
+		while not isAnswered do
+			assertAlive()
+
+			if not card and sharedEnvironment.__AvG == token and os.clock() - startedAt >= 2 then
+				showCard()
+				isLocked = true
+				card.submitButton.TextTransparency = 0.5
+				card.showMessage("Checking Key...", colors.Dim)
+			end
+
+			task.wait()
+		end
+
+		isLocked = false
+		assertAlive()
+
+		if card then
+			card.submitButton.TextTransparency = 0
+		end
+
+		if verdict and verdict[1] then
+			acceptKey(savedKey, verdict[2], true)
+			finish()
+			return savedKey
+		end
+
+		if verdict then
+			showCard()
+			card.showMessage(describeVerdict(verdict[2]))
+		elseif isWithinGracePeriod(savedExpiry) then
+			acceptKey(savedKey, savedExpiry, false)
+			finish()
+			return savedKey
+		else
+			showCard()
+			card.showMessage("Key Server Unreachable")
+		end
+	else
+		showCard()
+	end
+
+	repeat
+		task.wait()
+	until acceptedKey ~= nil or not isAlive()
+
+	assertAlive()
+	finish()
+
+	return acceptedKey
+end
+
+function Library:Gate(options)
+	options = options or {}
+
+	if options.Server ~= nil then
+		if options.Check ~= nil then
+			error("Gate Failed: Check And Server", 0)
+		end
+
+		return runServerGate(options)
+	end
+
+	if type(options.Check) ~= "function" then
+		error("Gate Failed: No Check", 0)
+	end
+
+	if not isValidConfigName(options.Config) then
+		error("Gate Failed: Bad Config", 0)
+	end
+
+	local maxLength = readMaxLength(options.Max)
+	if not (maxLength and maxLength >= 1) then
+		error("Gate Failed: Bad Max", 0)
+	end
+
+	local token = claimGateToken()
+
+	local keyPath = nil
+	if options.Config then
+		keyPath = `Avenoric/Keys/{options.Config}.txt`
+	end
+
+	if keyPath and isfile and isfile(keyPath) then
+		local readSucceeded, savedKey = pcall(readfile, keyPath)
+
+		if readSucceeded and type(savedKey) == "string" and savedKey ~= "" then
+			local checkSucceeded, passed = pcall(options.Check, savedKey)
+
+			if sharedEnvironment.__AvG ~= token then
+				error("Gate Failed: Replaced", 0)
+			end
+
+			if checkSucceeded and passed == true then
+				return savedKey
+			end
+		end
+	end
+
+	local card = createGateCard(options, options.Link)
+	local isBusy = false
+	local acceptedKey = nil
+
+	token.sg = card.screenGui
+
+	local function isAlive()
+		return sharedEnvironment.__AvG == token and card.screenGui.Parent ~= nil
+	end
+
+	card.keyBox:GetPropertyChangedSignal("Text"):Connect(function()
+		local text = card.keyBox.Text
+
+		if #text > maxLength then
+			card.keyBox.Text = text:sub(1, maxLength)
+		end
+	end)
+
+	local function submit()
+		if isBusy or not isAlive() then
+			return
+		end
+
+		local key = card.keyBox.Text:gsub("^%s+", ""):gsub("%s+$", "")
+
+		if key == "" then
+			card.showMessage("Enter A Key")
+			return
+		end
+
+		isBusy = true
+		card.submitButton.Text = "Checking..."
+		local checkSucceeded, passed, message = pcall(options.Check, key)
+		isBusy = false
+
+		if not isAlive() then
+			return
+		end
+
+		card.submitButton.Text = "Submit"
+
+		if not checkSucceeded then
+			card.showMessage("Key Check Failed: " .. tostring(passed))
+			return
+		end
+
+		if passed ~= true then
+			card.showMessage(message and tostring(message) or "Wrong Key")
+			return
+		end
+
+		if keyPath then
+			pcall(function()
+				ensureParentFolders(keyPath)
+				writefile(keyPath, key)
+			end)
+		end
+
+		if options.Discord and request then
+			task.spawn(openDiscordInvite, tostring(options.Discord))
+		end
+
+		acceptedKey = key
+	end
+
+	card.keyBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			submit()
+		end
+	end)
+
+	card.submitButton.Activated:Connect(submit)
+
+	if card.getKeyButton then
+		card.getKeyButton.Activated:Connect(function()
+			if setclipboard then
+				setclipboard(tostring(options.Link))
+			end
+
+			card.showMessage("Link Copied", colors.Dim)
+		end)
+	end
+
+	repeat
+		task.wait()
+	until acceptedKey ~= nil or not isAlive()
+
+	local failure = nil
+	if not isAlive() then
+		failure = "Closed"
+
+		if sharedEnvironment.__AvG ~= token then
+			failure = "Replaced"
+		end
+	end
+
+	card.close()
+
+	if sharedEnvironment.__AvG == token then
+		token.sg = nil
+	end
+
+	if failure then
+		error("Gate Failed: " .. failure, 0)
+	end
+
+	return acceptedKey
+end
+
+function Library:Keyed()
+	if not keyedState then
+		return false
+	end
+
+	if os.clock() < keyedState.checkAfter then
+		return keyedState.isValid
+	end
+
+	local readSucceeded, contents = pcall(readfile, keyedState.path)
+	local isValid = false
+
+	if readSucceeded and type(contents) == "string" then
+		local firstLine = contents:match("^[^\n]*") or ""
+		local trimmedLine = firstLine:match("^%s*(.-)%s*$") or ""
+		isValid = trimmedLine:match(keyPattern) ~= nil
+	end
+
+	keyedState.isValid = isValid
+	keyedState.checkAfter = os.clock() + 30
+
+	return keyedState.isValid
+end
+
+local function normalizeKeyCode(value)
+	if value == nil then
+		return nil
+	end
+
+	if typeof(value) == "EnumItem" and value.EnumType == Enum.KeyCode then
+		return value
+	end
+
+	return false
+end
+
+function Library:Window(options)
+	options = options or {}
+
+	if not isValidConfigName(options.Config) then
+		error("Window Failed: Bad Config", 0)
+	end
+
+	if sharedEnvironment.__AvW then
+		pcall(sharedEnvironment.__AvW.Destroy, sharedEnvironment.__AvW)
+	end
+
+	local toggleKey = options.Key
+	if toggleKey == nil then
+		toggleKey = Enum.KeyCode.LeftControl
+	end
+
+	local window: any = {
+		Tabs = {},
+		Current = nil,
+		connections = {},
+		toggleKey = toggleKey,
+		isSearching = false,
+		lastSearchText = "",
+		isWaitingForKey = false,
+		closeFlyout = nil,
+		fittedScale = 1,
+		refreshFades = nil,
+		width = windowWidth,
+		height = windowHeight,
+	}
+
+	local screenGui = createScreenGui()
+	window.Gui = screenGui
+
+	local mainFrame = createInstance("Frame", {
+		Name = "Main",
+		Size = UDim2.fromOffset(windowWidth, windowHeight),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundColor3 = colors.Background,
+		BorderSizePixel = 0,
+		Parent = screenGui,
+	}, {createCorner(12), createStroke(0.85)})
+
+	window.Main = mainFrame
+
+	local windowScale = createInstance("UIScale", {Parent = mainFrame})
+
+	local titleBar = createInstance("Frame", {
+		Size = UDim2.new(1, 0, 0, titleBarHeight),
+		BackgroundTransparency = 1,
+		Parent = mainFrame,
+	})
+
+	createLabel({
+		Text = tostring(options.Title or "Avenoric"),
+		Font = boldFont,
+		Position = UDim2.fromOffset(16, 0),
+		Size = UDim2.new(1, -116, 1, 0),
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Parent = titleBar,
+	})
+
+	local function createCaptionButton(offsetX, glyph)
+		local button = createButton({
+			Size = UDim2.fromOffset(40, 28),
+			Position = UDim2.new(1, offsetX, 0, 6),
+			BackgroundColor3 = colors.Hover,
+			Parent = titleBar,
+		}, {createCorner(6)})
+
+		local icon = createIcon({
+			Text = glyph,
+			TextSize = 14,
+			TextColor3 = colors.Dim,
+			Size = UDim2.fromScale(1, 1),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Parent = button,
+		})
+
+		button.MouseEnter:Connect(function()
+			if UserInputService.MouseEnabled then
+				tween(button, {BackgroundTransparency = 0})
+			end
+		end)
+
+		button.MouseLeave:Connect(function()
+			tween(button, {BackgroundTransparency = 1})
+		end)
+
+		return button, icon
+	end
+
+	local closeButton, closeIcon = createCaptionButton(-46, "x")
+	local minimizeButton = createCaptionButton(-88, "minus")
+
+	local toastStack = createInstance("Frame", {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -12, 1, -12),
+		Size = UDim2.fromOffset(300, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		ZIndex = 100,
+		Parent = screenGui,
+	}, {createListLayout(8)})
+
+	function window:Notify(notification)
+		notification = notification or {}
+
+		if notification.Title == nil and notification.Text == nil then
+			error("Notify Failed: No Text", 0)
+		end
+
+		local duration = notification.Time
+		if duration == nil then
+			duration = 4
+		end
+
+		if type(duration) ~= "number" or duration ~= duration or duration <= 0 then
+			error("Notify Failed: Bad Time", 0)
+		end
+
+		local barColor = colors.Accent
+		if notification.Error then
+			barColor = colors.Error
+		end
+
+		local toast = createInstance("Frame", {
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundColor3 = colors.Card,
+			BorderSizePixel = 0,
+			ZIndex = 100,
+			Parent = toastStack,
+		}, {createCorner(8), createStroke(0.9), createPadding(18, 14, 10, 10)})
+
+		createInstance("Frame", {
+			Position = UDim2.fromOffset(-12, 2),
+			Size = UDim2.new(0, 3, 1, -4),
+			BackgroundColor3 = barColor,
+			BorderSizePixel = 0,
+			ZIndex = 101,
+			Parent = toast,
+		}, {createCorner(2)})
+
+		local content = createInstance("Frame", {
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+			ZIndex = 101,
+			Parent = toast,
+		}, {createListLayout(2)})
+
+		createLabel({
+			Text = tostring(notification.Title or "Avenoric"),
+			Font = boldFont,
+			Size = UDim2.new(1, 0, 0, 18),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			ZIndex = 102,
+			LayoutOrder = 1,
+			Parent = content,
+		})
+
+		if notification.Text ~= nil then
+			createLabel({
+				Text = tostring(notification.Text),
+				TextSize = 13,
+				TextColor3 = colors.Dim,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				TextWrapped = true,
+				ZIndex = 102,
+				LayoutOrder = 2,
+				Parent = content,
+			})
+		end
+
+		task.delay(duration, function()
+			if toast.Parent then
+				toast:Destroy()
+			end
+		end)
+
+		return toast
+	end
+
+	local function runCallback(callback, ...)
+		if not callback then
+			return
+		end
+
+		local succeeded, failure = xpcall(callback, function(message)
+			return debug.traceback(tostring(message), 2)
+		end, ...)
+		if succeeded then
+			return
+		end
+
+		local report = tostring(failure)
+		warn("Callback Failed: " .. report)
+
+		if Library.Log then
+			pcall(Library.Log, "[Hub] Callback Failed: " .. report)
+		end
+
+		window:Notify({Title = "Callback Failed", Text = string.match(report, "^[^\n]*") or report, Error = true})
+	end
+
+	local configPath = nil
+	if options.Config then
+		configPath = `Avenoric/Configs/{options.Config}.json`
+	end
+
+	local configData = {}
+	local isConfigDirty = false
+	local isSaveScheduled = false
+	local isDestroyed = false
+
+	if configPath and isfile and isfile(configPath) then
+		local decoded, data = pcall(function()
+			return HttpService:JSONDecode(readfile(configPath))
+		end)
+
+		if decoded and type(data) == "table" then
+			configData = data
+		else
+			pcall(function()
+				writefile(configPath .. ".bad", readfile(configPath))
+				delfile(configPath)
+			end)
+
+			window:Notify({Title = "Config Load Failed", Text = "Invalid Json", Error = true})
+		end
+	end
+
+	local function saveConfig()
+		if not configPath or not isConfigDirty then
+			return
+		end
+
+		isConfigDirty = false
+
+		pcall(function()
+			ensureParentFolders(configPath)
+			writefile(configPath, HttpService:JSONEncode(configData))
+		end)
+	end
+
+	local function storeFlagValue(element, value)
+		if not element.Flag then
+			return
+		end
+
+		Library.Flags[element.Flag] = value
+
+		if not configPath then
+			return
+		end
+
+		if element.saveValue then
+			configData[element.Flag] = element.saveValue(value)
+		else
+			configData[element.Flag] = value
+		end
+
+		isConfigDirty = true
+
+		if isSaveScheduled or isDestroyed then
+			return
+		end
+
+		isSaveScheduled = true
+
+		task.delay(0.5, function()
+			isSaveScheduled = false
+			saveConfig()
+		end)
+	end
+
+	local function loadSavedValue(element)
+		if not element.Flag then
+			return
+		end
+
+		Library.Flags[element.Flag] = element:Get()
+
+		local savedValue = configData[element.Flag]
+		if savedValue == nil then
+			return
+		end
+
+		pcall(function()
+			if element.loadValue then
+				savedValue = element.loadValue(savedValue)
+			end
+
+			element:Set(savedValue)
+		end)
+	end
+
+	local navigation = createInstance("Frame", {
+		Position = UDim2.fromOffset(12, titleBarHeight + 4),
+		Size = UDim2.new(0, navigationWidth, 1, -(titleBarHeight + 16)),
+		BackgroundTransparency = 1,
+		Parent = mainFrame,
+	})
+
+	local searchFrame = createInstance("Frame", {
+		Size = UDim2.new(1, 0, 0, 32),
+		BackgroundColor3 = colors.Card,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		Parent = navigation,
+	}, {createCorner(6), createStroke(0.9)})
+
+	local searchStroke = searchFrame:FindFirstChildOfClass("UIStroke")
+
+	createIcon({
+		Text = "magnifying-glass",
+		TextSize = 14,
+		TextColor3 = colors.Dim,
+		Position = UDim2.fromOffset(9, 0),
+		Size = UDim2.fromOffset(16, 32),
+		Parent = searchFrame,
+	})
+
+	local searchBox = createInstance("TextBox", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(30, 0),
+		Size = UDim2.new(1, -36, 1, 0),
+		Font = textFont,
+		TextSize = 13,
+		TextColor3 = colors.Text,
+		PlaceholderText = "Search",
+		PlaceholderColor3 = colors.Dim,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ClearTextOnFocus = false,
+		Text = "",
+		Parent = searchFrame,
+	})
+
+	searchBox.Focused:Connect(function()
+		tween(searchStroke, {Color = colors.Accent, Transparency = 0})
+	end)
+
+	searchBox.FocusLost:Connect(function()
+		tween(searchStroke, {Color = colors.Text, Transparency = 0.9})
+	end)
+
+	local tabList = createInstance("ScrollingFrame", {
+		Position = UDim2.fromOffset(0, 40),
+		Size = UDim2.new(1, 0, 1, -40),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 0,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Parent = navigation,
+	}, {createListLayout(4)})
+
+	local pageContainer = createInstance("Frame", {
+		Position = UDim2.fromOffset(navigationWidth + 20, titleBarHeight + 4),
+		Size = UDim2.new(1, -(navigationWidth + 32), 1, -(titleBarHeight + 16)),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Parent = mainFrame,
+	})
+
+	local function createPage()
+		local page = createInstance("ScrollingFrame", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 0,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			CanvasSize = UDim2.new(),
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			Visible = false,
+			Parent = pageContainer,
+		}, {createListLayout(4), createPadding(2, 2, 2, 4)})
+
+		for _, property in {"CanvasPosition", "AbsoluteCanvasSize", "AbsoluteWindowSize"} do
+			page:GetPropertyChangedSignal(property):Connect(function()
+				window.refreshFades()
+			end)
+		end
+
+		return page
+	end
+
+	local function createVirtualList(scrollingFrame, rowHeight, rowGap, createListRow, bottomPadding)
+		local items = {}
+		local rows = {}
+
+		local layout = scrollingFrame:FindFirstChildOfClass("UIListLayout")
+		if layout then
+			layout:Destroy()
+		end
+
+		scrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.None
+
+		local function redraw()
+			if not scrollingFrame.Parent then
+				return
+			end
+
+			local scale = math.max(windowScale.Scale, 0.001)
+			local scaledRowHeight = scale * rowHeight
+			local firstIndex = math.clamp(math.floor(scrollingFrame.CanvasPosition.Y / scaledRowHeight), 1, math.max(1, #items))
+			local rowsThatFit = math.ceil(scrollingFrame.AbsoluteWindowSize.Y / scaledRowHeight) + 3
+			local visibleCount = math.max(0, math.min(#items - firstIndex + 1, rowsThatFit))
+
+			for slot = 1, visibleCount do
+				local row = rows[slot]
+
+				if not row then
+					row = createListRow()
+					rows[slot] = row
+				end
+
+				local itemIndex = firstIndex + slot - 1
+				row.button.Position = UDim2.fromOffset(0, (itemIndex - 1) * rowHeight)
+				row.button.LayoutOrder = itemIndex
+				row.button.Visible = true
+				row.bind(items[itemIndex])
+			end
+
+			for slot = visibleCount + 1, #rows do
+				rows[slot].button.Visible = false
+				rows[slot].bind(nil)
+			end
+		end
+
+		scrollingFrame:GetPropertyChangedSignal("CanvasPosition"):Connect(redraw)
+		scrollingFrame:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(redraw)
+
+		local scaleConnection = windowScale:GetPropertyChangedSignal("Scale"):Connect(redraw)
+
+		scrollingFrame.Destroying:Connect(function()
+			scaleConnection:Disconnect()
+			table.clear(rows)
+			items = {}
+		end)
+
+		local function setItems(list)
+			items = list
+			scrollingFrame.CanvasSize = UDim2.fromOffset(0, math.max(0, #items * rowHeight - rowGap) + (bottomPadding or 0))
+			redraw()
+		end
+
+		return setItems, redraw
+	end
+
+	local searchPage = createPage()
+
+	local function createFade(isTop)
+		local position = UDim2.new(0, 0, 1, -20)
+		local gradient = NumberSequence.new(1, 0)
+
+		if isTop then
+			position = UDim2.new()
+			gradient = NumberSequence.new(0, 1)
+		end
+
+		local fade = createInstance("Frame", {
+			Size = UDim2.new(1, 0, 0, 20),
+			Position = position,
+			BackgroundColor3 = colors.Background,
+			BorderSizePixel = 0,
+			ZIndex = 5,
+			Visible = false,
+			Parent = pageContainer,
+		})
+
+		createInstance("UIGradient", {Rotation = 90, Transparency = gradient, Parent = fade})
+
+		return fade
+	end
+
+	local topFade = createFade(true)
+	local bottomFade = createFade(false)
+
+	local function refreshFades()
+		local page = nil
+
+		if window.isSearching then
+			page = searchPage
+		elseif window.Current then
+			page = window.Current.Page
+		end
+
+		if not page then
+			topFade.Visible = false
+			bottomFade.Visible = false
+			return
+		end
+
+		local hiddenBelow = page.AbsoluteCanvasSize.Y - page.AbsoluteWindowSize.Y - page.CanvasPosition.Y
+		topFade.Visible = page.CanvasPosition.Y > 1
+		bottomFade.Visible = hiddenBelow > 1
+	end
+
+	window.refreshFades = refreshFades
+
+	local flyoutOverlay = createButton({
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 50,
+		Visible = false,
+		Parent = mainFrame,
+	})
+
+	flyoutOverlay.Activated:Connect(function()
+		if window.closeFlyout then
+			window.closeFlyout()
+		end
+	end)
+
+	local floatingButton = createButton({
+		Size = UDim2.fromOffset(44, 44),
+		BackgroundColor3 = Color3.fromRGB(18, 18, 21),
+		BackgroundTransparency = 0.08,
+		Parent = screenGui,
+	}, {createCorner(22)})
+
+	if type(options.ToggleImage) == "string" and options.ToggleImage ~= "" then
+		createInstance("ImageLabel", {
+			BackgroundTransparency = 1,
+			Image = options.ToggleImage,
+			ScaleType = Enum.ScaleType.Fit,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(40, 40),
+			Active = false,
+			Parent = floatingButton,
+		})
+	else
+		createIcon({
+			Text = "studio",
+			FontFace = boldIconFont,
+			TextSize = 24,
+			TextColor3 = Color3.fromRGB(247, 247, 248),
+			Position = UDim2.fromOffset(10, 10),
+			Size = UDim2.fromOffset(24, 24),
+			Active = false,
+			Parent = floatingButton,
+		})
+	end
+
+	local function clampWindowPosition()
+		local screenSize = screenGui.AbsoluteSize
+		local topInset = GuiService:GetGuiInset().Y
+		local halfWidth = window.width * windowScale.Scale / 2
+		local halfHeight = window.height * windowScale.Scale / 2
+		local x = math.clamp(mainFrame.Position.X.Offset, halfWidth, screenSize.X - halfWidth)
+		local y = math.clamp(mainFrame.Position.Y.Offset, topInset + halfHeight, screenSize.Y - halfHeight)
+
+		mainFrame.Position = UDim2.fromOffset(x, y)
+	end
+
+	local function applyWindowSize(width, height)
+		local screenSize = screenGui.AbsoluteSize
+		local topInset = GuiService:GetGuiInset().Y
+		local requestedWidth = math.round(tonumber(width) or window.width)
+		local requestedHeight = math.round(tonumber(height) or window.height)
+
+		window.width = math.clamp(requestedWidth, 420, math.max(420, screenSize.X - 24))
+		window.height = math.clamp(requestedHeight, 260, math.max(260, screenSize.Y - topInset - 24))
+		mainFrame.Size = UDim2.fromOffset(window.width, window.height)
+
+		local widthScale = (screenSize.X - 24) / window.width
+		local heightScale = (screenSize.Y - topInset - 24) / window.height
+		window.fittedScale = math.clamp(math.min(widthScale, heightScale), 0.5, 1)
+		windowScale.Scale = window.fittedScale
+
+		clampWindowPosition()
+	end
+
+	local function refitWindow()
+		window.fittedScale = fitToScreen(screenGui, mainFrame, windowScale, window.width, window.height)
+		floatingButton.Position = UDim2.fromOffset(16, GuiService:GetGuiInset().Y + 8)
+	end
+
+	function window:Resize(width, height)
+		applyWindowSize(width, height)
+	end
+
+	refitWindow()
+
+	local activeDrag = nil
+
+	local function createResizeHandle(placement, resizesWidth, resizesHeight)
+		local handle = createButton({
+			AnchorPoint = placement.AnchorPoint,
+			Position = placement.Position,
+			Size = placement.Size,
+			ZIndex = 3,
+			Parent = mainFrame,
+		})
+
+		table.insert(window.connections, handle.InputBegan:Connect(function(input)
+			if input.UserInputType ~= mouseButtonInput and input.UserInputType ~= touchInput then
+				return
+			end
+
+			local startWidth = window.width
+			local startHeight = window.height
+			local startInputPosition = input.Position
+			local startScale = windowScale.Scale
+			local left = mainFrame.Position.X.Offset - window.width * startScale / 2
+			local top = mainFrame.Position.Y.Offset - window.height * startScale / 2
+
+			activeDrag = {
+				input = input,
+				move = function(position)
+					local width = window.width
+					local height = window.height
+
+					if resizesWidth then
+						width = startWidth + (position.X - startInputPosition.X) / startScale
+					end
+
+					if resizesHeight then
+						height = startHeight + (position.Y - startInputPosition.Y) / startScale
+					end
+
+					applyWindowSize(width, height)
+
+					local centerX = left + window.width * windowScale.Scale / 2
+					local centerY = top + window.height * windowScale.Scale / 2
+					mainFrame.Position = UDim2.fromOffset(centerX, centerY)
+
+					clampWindowPosition()
+				end,
+			}
+		end))
+	end
+
+	createResizeHandle({
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.fromOffset(16, 16),
+	}, true, true)
+
+	createResizeHandle({
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, -16, 0, 10),
+	}, false, true)
+
+	createResizeHandle({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, titleBarHeight),
+		Size = UDim2.new(0, 10, 1, -(titleBarHeight + 16)),
+	}, true, false)
+
+	table.insert(window.connections, screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refitWindow))
+
+	function window:Show()
+		mainFrame.Visible = true
+		windowScale.Scale = window.fittedScale
+	end
+
+	function window:Hide()
+		mainFrame.Visible = false
+	end
+
+	local function toggleVisibility()
+		if mainFrame.Visible then
+			window:Hide()
+		else
+			window:Show()
+		end
+	end
+
+	floatingButton.Activated:Connect(toggleVisibility)
+
+	minimizeButton.Activated:Connect(function()
+		window:Hide()
+	end)
+
+	local isCloseArmed = false
+	local closeArmCount = 0
+
+	closeButton.Activated:Connect(function()
+		if isCloseArmed then
+			window:Destroy()
+			return
+		end
+
+		isCloseArmed = true
+		closeArmCount += 1
+
+		local armNumber = closeArmCount
+
+		tween(closeButton, {BackgroundColor3 = colors.Error, BackgroundTransparency = 0})
+		closeIcon.TextColor3 = Color3.new(1, 1, 1)
+
+		task.delay(3, function()
+			if closeArmCount ~= armNumber or not isCloseArmed then
+				return
+			end
+
+			isCloseArmed = false
+			tween(closeButton, {BackgroundColor3 = colors.Hover, BackgroundTransparency = 1})
+			closeIcon.TextColor3 = colors.Dim
+		end)
+	end)
+
+	table.insert(window.connections, titleBar.InputBegan:Connect(function(input)
+		if input.UserInputType ~= mouseButtonInput and input.UserInputType ~= touchInput then
+			return
+		end
+
+		local startPosition = mainFrame.Position
+		local startInputPosition = input.Position
+
+		activeDrag = {
+			input = input,
+			move = function(position)
+				local screenSize = screenGui.AbsoluteSize
+				local topInset = GuiService:GetGuiInset().Y
+				local halfWidth = mainFrame.AbsoluteSize.X / 2
+				local halfHeight = mainFrame.AbsoluteSize.Y / 2
+				local x = startPosition.X.Offset + position.X - startInputPosition.X
+				local y = startPosition.Y.Offset + position.Y - startInputPosition.Y
+
+				mainFrame.Position = UDim2.fromOffset(
+					math.clamp(x, halfWidth, screenSize.X - halfWidth),
+					math.clamp(y, topInset + halfHeight, screenSize.Y - halfHeight)
+				)
+			end,
+		}
+	end))
+
+	table.insert(window.connections, UserInputService.InputChanged:Connect(function(input)
+		if not activeDrag then
+			return
+		end
+
+		if input.UserInputType ~= mouseMoveInput and input ~= activeDrag.input then
+			return
+		end
+
+		activeDrag.move(input.Position)
+	end))
+
+	table.insert(window.connections, UserInputService.InputEnded:Connect(function(input)
+		if not activeDrag then
+			return
+		end
+
+		if input ~= activeDrag.input and input.UserInputType ~= mouseButtonInput then
+			return
+		end
+
+		if activeDrag.release then
+			activeDrag.release()
+		end
+
+		activeDrag = nil
+	end))
+
+	table.insert(window.connections, UserInputService.InputBegan:Connect(function(input)
+		if input.UserInputType ~= keyboardInput or window.isWaitingForKey then
+			return
+		end
+
+		if not window.toggleKey or input.KeyCode ~= window.toggleKey then
+			return
+		end
+
+		if UserInputService:GetFocusedTextBox() then
+			return
+		end
+
+		toggleVisibility()
+	end))
+
+	local function jumpToRow(element)
+		local page = element.Tab.Page
+		local rowOffset = (element.Row.AbsolutePosition.Y - page.AbsolutePosition.Y) / windowScale.Scale
+
+		page.CanvasPosition = Vector2.new(0, math.max(0, rowOffset + page.CanvasPosition.Y - 4))
+
+		local stroke = element.Row:FindFirstChildOfClass("UIStroke")
+		if not stroke then
+			return
+		end
+
+		tween(stroke, {Color = colors.Accent, Transparency = 0})
+
+		task.delay(0.8, function()
+			tween(stroke, {Color = colors.Text, Transparency = 0.92}, 0.4)
+		end)
+	end
+
+	local pendingSearch = nil
+
+	local function createSearchResultRow()
+		local button = createButton({
+			Size = UDim2.new(1, 0, 0, 44),
+			BackgroundColor3 = colors.Card,
+			Parent = searchPage,
+		}, {createCorner(6), createStroke(0.92), createPadding(12, 12)})
+
+		local nameLabel = createLabel({
+			Size = UDim2.new(0.6, 0, 1, 0),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Parent = button,
+		})
+
+		local locationLabel = createLabel({
+			TextSize = 12,
+			TextColor3 = colors.Dim,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 0),
+			Size = UDim2.new(0.4, 0, 1, 0),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Parent = button,
+		})
+
+		local resultRow = {button = button, element = nil}
+
+		function resultRow.bind(element)
+			resultRow.element = element
+
+			if not element then
+				return
+			end
+
+			nameLabel.Text = element.Name
+
+			if element.Sec then
+				locationLabel.Text = `{element.Tab.Name} · {element.Sec}`
+			else
+				locationLabel.Text = element.Tab.Name
+			end
+		end
+
+		bindHoverColors(button, function()
+			return colors.Card
+		end)
+
+		button.Activated:Connect(function()
+			local element = resultRow.element
+			if not element then
+				return
+			end
+
+			window:Search("")
+			element.Tab:Select()
+			task.defer(jumpToRow, element)
+		end)
+
+		return resultRow
+	end
+
+	local setSearchResults = createVirtualList(searchPage, 48, 4, createSearchResultRow, 6)
+
+	function window:Search(text)
+		if isDestroyed then
+			return nil
+		end
+
+		if pendingSearch then
+			task.cancel(pendingSearch)
+			pendingSearch = nil
+		end
+
+		text = tostring(text or "")
+		window.lastSearchText = text
+
+		if searchBox.Text ~= text then
+			searchBox.Text = text
+		end
+
+		if text == "" then
+			setSearchResults({})
+
+			if not window.isSearching then
+				return nil
+			end
+
+			window.isSearching = false
+			searchPage.Visible = false
+
+			if window.Current then
+				window.Current.Page.Visible = true
+			end
+
+			refreshFades()
+			return nil
+		end
+
+		local matches = {}
+		local query = text:lower()
+
+		for _, tab in window.Tabs do
+			for _, element in tab.Rows do
+				if element.Kind ~= "Section" and element.Kind ~= "Label" then
+					if element.cachedName ~= element.Name then
+						element.cachedName = element.Name
+						element.lowerName = element.Name:lower()
+					end
+
+					if element.lowerName:find(query, 1, true) then
+						table.insert(matches, element)
+					end
+				end
+			end
+		end
+
+		setSearchResults(matches)
+
+		if not window.isSearching then
+			window.isSearching = true
+			searchPage.Visible = true
+
+			if window.Current then
+				window.Current.Page.Visible = false
+			end
+		end
+
+		refreshFades()
+		return #matches
+	end
+
+	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+		if searchBox.Text == window.lastSearchText then
+			return
+		end
+
+		if pendingSearch then
+			task.cancel(pendingSearch)
+		end
+
+		pendingSearch = task.delay(0.1, function()
+			pendingSearch = nil
+
+			if not isDestroyed and searchBox.Text ~= window.lastSearchText then
+				window:Search(searchBox.Text)
+			end
+		end)
+	end)
+
+	function window:Tab(tabOptions)
+		tabOptions = tabOptions or {}
+
+		local tab: any = {
+			Rows = {},
+			Name = tostring(tabOptions.Name or "Tab"),
+			W = window,
+			rowCount = 0,
+			currentSection = nil,
+		}
+
+		local tabButton = createButton({
+			Size = UDim2.new(1, 0, 0, 36),
+			BackgroundColor3 = colors.Card,
+			LayoutOrder = #window.Tabs + 1,
+			Parent = tabList,
+		}, {createCorner(6)})
+
+		local selectionBar = createInstance("Frame", {
+			Size = UDim2.fromOffset(3, 16),
+			Position = UDim2.fromOffset(0, 10),
+			BackgroundColor3 = colors.Accent,
+			BorderSizePixel = 0,
+			Visible = false,
+			Parent = tabButton,
+		}, {createCorner(2)})
+
+		local tabIcon = nil
+		if tabOptions.Icon then
+			tabIcon = createIcon({
+				Text = tostring(tabOptions.Icon),
+				TextColor3 = colors.Dim,
+				Position = UDim2.fromOffset(10, 0),
+				Size = UDim2.fromOffset(20, 36),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Parent = tabButton,
+			})
+		end
+
+		local labelLeft = 12
+		local labelInset = 20
+		if tabIcon then
+			labelLeft = 38
+			labelInset = 46
+		end
+
+		local tabLabel = createLabel({
+			Text = tab.Name,
+			TextColor3 = colors.Dim,
+			Position = UDim2.fromOffset(labelLeft, 0),
+			Size = UDim2.new(1, -labelInset, 1, 0),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Parent = tabButton,
+		})
+
+		local page = createPage()
+		tab.Page = page
+		tab.Btn = tabButton
+
+		local function paint(isSelected)
+			tween(tabButton, {BackgroundTransparency = if isSelected then 0 else 1})
+			selectionBar.Visible = isSelected
+			tabLabel.TextColor3 = if isSelected then colors.Text else colors.Dim
+
+			if tabIcon then
+				tabIcon.TextColor3 = if isSelected then colors.Text else colors.Dim
+				tabIcon.FontFace = if isSelected then boldIconFont else regularIconFont
+			end
+		end
+
+		tab.paint = paint
+
+		tabButton.MouseEnter:Connect(function()
+			if UserInputService.MouseEnabled then
+				tween(tabButton, {BackgroundColor3 = colors.Hover, BackgroundTransparency = 0})
+			end
+		end)
+
+		tabButton.MouseLeave:Connect(function()
+			local transparency = if window.Current == tab then 0 else 1
+			tween(tabButton, {BackgroundColor3 = colors.Card, BackgroundTransparency = transparency})
+		end)
+
+		function tab:Select()
+			if window.isSearching then
+				window:Search("")
+			end
+
+			if window.Current == tab then
+				return
+			end
+
+			if window.Current then
+				window.Current.Page.Visible = false
+				window.Current.paint(false)
+			end
+
+			window.Current = tab
+			page.Visible = true
+			paint(true)
+			refreshFades()
+		end
+
+		tabButton.Activated:Connect(function()
+			tab:Select()
+		end)
+
+		table.insert(window.Tabs, tab)
+
+		if not window.Current then
+			tab:Select()
+		else
+			paint(false)
+		end
+
+		local function addRow(element)
+			tab.rowCount += 1
+			element.Row.LayoutOrder = tab.rowCount
+			table.insert(tab.Rows, element)
+
+			return element
+		end
+
+		local function createRow(kind, rowOptions)
+			if type(rowOptions.Name) ~= "string" then
+				error(`{kind} Failed: Bad Name`, 0)
+			end
+
+			if rowOptions.Flag ~= nil and type(rowOptions.Flag) ~= "string" then
+				error(`{kind} Failed: Bad Flag`, 0)
+			end
+
+			local rowFrame = createButton({
+				Size = UDim2.new(1, 0, 0, 44),
+				BackgroundColor3 = colors.Card,
+				Parent = page,
+			}, {createCorner(6), createStroke(0.92), createPadding(12, 12)})
+
+			bindHoverColors(rowFrame, function()
+				return colors.Card
+			end)
+
+			local nameLabel = createLabel({
+				Text = rowOptions.Name,
+				Size = UDim2.new(0.5, 0, 1, 0),
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				Parent = rowFrame,
+			})
+
+			local element: any = {
+				Row = rowFrame,
+				Kind = kind,
+				Name = rowOptions.Name,
+				Flag = rowOptions.Flag,
+				Tab = tab,
+				Sec = tab.currentSection,
+				Label = nameLabel,
+			}
+
+			function element:Get()
+				return element.value
+			end
+
+			return addRow(element), rowFrame, nameLabel
+		end
+
+		local function bindText(element, label)
+			function element:Set(text)
+				label.Text = tostring(text)
+			end
+
+			function element:Get()
+				return label.Text
+			end
+
+			return element
+		end
+
+		function tab:Section(sectionOptions)
+			sectionOptions = sectionOptions or {}
+
+			local label = createLabel({
+				Text = tostring(sectionOptions.Name or ""),
+				Font = boldFont,
+				TextSize = 13,
+				Size = UDim2.new(1, 0, 0, 30),
+				TextYAlignment = Enum.TextYAlignment.Bottom,
+				Parent = page,
+			}, {createPadding(4, 0, 0, 4)})
+
+			tab.currentSection = label.Text
+
+			local element = addRow({Row = label, Kind = "Section", Name = label.Text, Tab = tab})
+			return bindText(element, label)
+		end
+
+		function tab:Label(labelOptions)
+			labelOptions = labelOptions or {}
+
+			local frame = createInstance("Frame", {
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundColor3 = colors.Card,
+				BorderSizePixel = 0,
+				Parent = page,
+			}, {createCorner(6), createStroke(0.92), createPadding(12, 12, 10, 10)})
+
+			local label = createLabel({
+				Text = tostring(labelOptions.Text or ""),
+				TextSize = 13,
+				TextColor3 = colors.Dim,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				TextWrapped = true,
+				Parent = frame,
+			})
+
+			local element = addRow({Row = frame, Kind = "Label", Name = label.Text, Tab = tab, Sec = tab.currentSection})
+			return bindText(element, label)
+		end
+
+		function tab:Button(buttonOptions)
+			buttonOptions = buttonOptions or {}
+
+			local element, rowFrame, nameLabel = createRow("Button", buttonOptions)
+
+			createIcon({
+				Text = "chevron-small-right",
+				TextSize = 14,
+				TextColor3 = colors.Dim,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, 0, 0, 0),
+				Size = UDim2.fromOffset(16, 44),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Parent = rowFrame,
+			})
+
+			rowFrame.Activated:Connect(function()
+				runCallback(buttonOptions.Callback)
+			end)
+
+			return bindText(element, nameLabel)
+		end
+
+		function tab:Toggle(toggleOptions)
+			toggleOptions = toggleOptions or {}
+
+			local element, rowFrame = createRow("Toggle", toggleOptions)
+
+			local switchFrame = createInstance("Frame", {
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, 0, 0.5, 0),
+				Size = UDim2.fromOffset(40, 20),
+				BackgroundColor3 = colors.Accent,
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Parent = rowFrame,
+			}, {createCorner(10), createStroke(0.2, colors.Dim)})
+
+			local switchStroke = switchFrame:FindFirstChildOfClass("UIStroke")
+
+			local knob = createInstance("Frame", {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 4, 0.5, 0),
+				Size = UDim2.fromOffset(12, 12),
+				BackgroundColor3 = colors.Dim,
+				BorderSizePixel = 0,
+				Parent = switchFrame,
+			}, {createCorner(6)})
+
+			local stateLabel = createLabel({
+				Text = "Off",
+				TextSize = 13,
+				TextColor3 = colors.Dim,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -48, 0, 0),
+				Size = UDim2.fromOffset(40, 44),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Parent = rowFrame,
+			})
+
+			element.value = toggleOptions.Default == true
+			element.loadValue = function(savedValue)
+				return savedValue == true
+			end
+
+			local function draw(shouldAnimate)
+				local isOn = element.value
+
+				applyProperties(switchFrame, {BackgroundTransparency = if isOn then 0 else 1}, shouldAnimate)
+				applyProperties(switchStroke, {Transparency = if isOn then 1 else 0.2}, shouldAnimate)
+				applyProperties(knob, {
+					Position = UDim2.new(0, if isOn then 24 else 4, 0.5, 0),
+					BackgroundColor3 = if isOn then colors.Background else colors.Dim,
+				}, shouldAnimate)
+
+				stateLabel.Text = if isOn then "On" else "Off"
+			end
+
+			draw(false)
+
+			function element:Set(value)
+				value = value == true
+
+				if value == element.value then
+					return
+				end
+
+				element.value = value
+				draw(true)
+				storeFlagValue(element, value)
+				runCallback(toggleOptions.Callback, value)
+			end
+
+			rowFrame.Activated:Connect(function()
+				element:Set(not element.value)
+			end)
+
+			loadSavedValue(element)
+			return element
+		end
+
+		function tab:Slider(sliderOptions)
+			sliderOptions = sliderOptions or {}
+
+			local minimum = tonumber(sliderOptions.Min)
+			local maximum = tonumber(sliderOptions.Max)
+
+			local step = 1
+			if sliderOptions.Step ~= nil then
+				step = tonumber(sliderOptions.Step)
+			end
+
+			if not (minimum and maximum and maximum > minimum) then
+				error("Slider Failed: Bad Range", 0)
+			end
+
+			if not (step and step > 0) then
+				error("Slider Failed: Bad Step", 0)
+			end
+
+			local element, rowFrame = createRow("Slider", sliderOptions)
+
+			local valueFrame = createInstance("Frame", {
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, 0, 0.5, 0),
+				Size = UDim2.fromOffset(44, 24),
+				BackgroundColor3 = colors.Background,
+				BorderSizePixel = 0,
+				ClipsDescendants = true,
+				Parent = rowFrame,
+			}, {createCorner(4), createStroke(0.9)})
+
+			local valueStroke = valueFrame:FindFirstChildOfClass("UIStroke")
+
+			local valueBox = createInstance("TextBox", {
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+				Font = textFont,
+				TextSize = 13,
+				TextColor3 = colors.Text,
+				ClearTextOnFocus = false,
+				Text = "",
+				Parent = valueFrame,
+			})
+
+			local hitArea = createButton({
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -52, 0.5, 0),
+				Size = UDim2.fromOffset(120, 28),
+				Parent = rowFrame,
+			})
+
+			local track = createInstance("Frame", {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 0, 0.5, 0),
+				Size = UDim2.new(1, 0, 0, 4),
+				BackgroundColor3 = colors.Hover,
+				BorderSizePixel = 0,
+				Parent = hitArea,
+			}, {createCorner(2)})
+
+			local fill = createInstance("Frame", {
+				Size = UDim2.new(0, 0, 1, 0),
+				BackgroundColor3 = colors.Accent,
+				BorderSizePixel = 0,
+				Parent = track,
+			}, {createCorner(2)})
+
+			local knob = createInstance("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0, 0, 0.5, 0),
+				Size = UDim2.fromOffset(14, 14),
+				BackgroundColor3 = colors.Accent,
+				BorderSizePixel = 0,
+				Parent = hitArea,
+			}, {createCorner(7), createInstance("UIStroke", {Color = colors.Background, Thickness = 2})})
+
+			local function snapValue(value)
+				local snapped = minimum + math.round((value - minimum) / step) * step
+				return math.clamp(snapped, minimum, maximum)
+			end
+
+			local startValue = minimum
+			local defaultValue = sliderOptions.Default
+			if type(defaultValue) == "number" and defaultValue == defaultValue then
+				startValue = defaultValue
+			end
+
+			element.value = snapValue(startValue)
+			element.loadValue = tonumber
+
 			local function draw()
-				kl.Text, kl.TextColor3 = wt and "..." or (e.v and e.v.Name or "None"), (wt or e.v) and c.tx or c.dm
+				local alpha = (element.value - minimum) / (maximum - minimum)
+
+				fill.Size = UDim2.new(alpha, 0, 1, 0)
+				knob.Position = UDim2.new(alpha, 0, 0.5, 0)
+				valueBox.Text = ("%g"):format(element.value)
 			end
+
 			draw()
-			function e:Set(v)
-				local k = kc(v)
-				if k == false then error("Keybind Set Failed: Bad Key", 0) end
-				if k == e.v then return end
-				e.v = k
+
+			function element:Set(value)
+				if type(value) ~= "number" or value ~= value then
+					error("Slider Set Failed: Not A Number", 0)
+				end
+
+				value = snapValue(value)
+
+				if value == element.value then
+					return
+				end
+
+				element.value = value
 				draw()
-				put(e, k)
+				storeFlagValue(element, value)
+				runCallback(sliderOptions.Callback, value)
 			end
-			hov(cb, function() return c.bg end)
-			cb.Activated:Connect(function()
-				wt = not wt
-				W.kw = wt
+
+			local function setFromScreenX(screenX)
+				local alpha = math.clamp((screenX - hitArea.AbsolutePosition.X) / hitArea.AbsoluteSize.X, 0, 1)
+				element:Set(minimum + alpha * (maximum - minimum))
+			end
+
+			hitArea.InputBegan:Connect(function(input)
+				if input.UserInputType ~= mouseButtonInput and input.UserInputType ~= touchInput then
+					return
+				end
+
+				page.ScrollingEnabled = false
+
+				activeDrag = {
+					input = input,
+					move = function(position)
+						setFromScreenX(position.X)
+					end,
+					release = function()
+						page.ScrollingEnabled = true
+					end,
+				}
+
+				setFromScreenX(input.Position.X)
+			end)
+
+			valueBox.Focused:Connect(function()
+				tween(valueStroke, {Color = colors.Accent, Transparency = 0})
+			end)
+
+			valueBox.FocusLost:Connect(function()
+				tween(valueStroke, {Color = colors.Text, Transparency = 0.9})
+
+				local typedValue = tonumber(valueBox.Text)
+				if typedValue and typedValue == typedValue then
+					element:Set(typedValue)
+				end
+
 				draw()
 			end)
-			table.insert(W.cn, uis.InputBegan:Connect(function(i, gp)
-				if i.UserInputType ~= kb then return end
-				if wt then
-					wt, W.kw = false, false
-					if i.KeyCode == Enum.KeyCode.Backspace then e:Set(nil) elseif i.KeyCode ~= Enum.KeyCode.None then e:Set(i.KeyCode) end
+
+			loadSavedValue(element)
+			return element
+		end
+
+		function tab:Dropdown(dropdownOptions)
+			dropdownOptions = dropdownOptions or {}
+
+			if type(dropdownOptions.Options) ~= "table" then
+				error("Dropdown Failed: Bad Options", 0)
+			end
+
+			local element, rowFrame = createRow("Dropdown", dropdownOptions)
+			local isMulti = dropdownOptions.Multi == true
+
+			element.Options = {}
+
+			local function setOptions(list)
+				local seenOptions = {}
+				element.Options = {}
+
+				for _, option in list do
+					if type(option) == "string" and not seenOptions[option] then
+						seenOptions[option] = true
+						table.insert(element.Options, option)
+					end
+				end
+			end
+
+			setOptions(dropdownOptions.Options)
+
+			local dropdownBox = createButton({
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, 0, 0.5, 0),
+				Size = UDim2.fromOffset(150, 28),
+				BackgroundColor3 = colors.Background,
+				Parent = rowFrame,
+			}, {createCorner(4), createStroke(0.9)})
+
+			local valueLabel = createLabel({
+				Text = "",
+				TextSize = 13,
+				Position = UDim2.fromOffset(10, 0),
+				Size = UDim2.new(1, -34, 1, 0),
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				Parent = dropdownBox,
+			})
+
+			createIcon({
+				Text = "chevron-small-down",
+				TextSize = 14,
+				TextColor3 = colors.Dim,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -6, 0, 0),
+				Size = UDim2.fromOffset(16, 28),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Parent = dropdownBox,
+			})
+
+			local function normalizeValue(value)
+				if isMulti then
+					if type(value) ~= "table" then
+						error("Dropdown Set Failed: Not A Table", 0)
+					end
+
+					local wantedOptions = {}
+					local orderedSelection = {}
+
+					for _, option in value do
+						wantedOptions[option] = true
+					end
+
+					for _, option in element.Options do
+						if wantedOptions[option] then
+							table.insert(orderedSelection, option)
+						end
+					end
+
+					return orderedSelection
+				end
+
+				if value == nil then
+					return nil
+				end
+
+				if table.find(element.Options, value) then
+					return value
+				end
+
+				error("Dropdown Set Failed: Unknown Option", 0)
+			end
+
+			local function isSameValue(left, right)
+				if not isMulti then
+					return left == right
+				end
+
+				if #left ~= #right then
+					return false
+				end
+
+				for index, option in left do
+					if right[index] ~= option then
+						return false
+					end
+				end
+
+				return true
+			end
+
+			if isMulti then
+				if type(dropdownOptions.Default) == "table" then
+					element.value = normalizeValue(dropdownOptions.Default)
+				else
+					element.value = {}
+				end
+
+				element.loadValue = function(savedValue)
+					return if type(savedValue) == "table" then savedValue else {}
+				end
+			else
+				if table.find(element.Options, dropdownOptions.Default) then
+					element.value = dropdownOptions.Default
+				else
+					element.value = nil
+				end
+
+				element.saveValue = function(value)
+					return if value == nil then false else value
+				end
+
+				element.loadValue = function(savedValue)
+					return if savedValue == false then nil else savedValue
+				end
+			end
+
+			local function isSelected(option)
+				if isMulti then
+					return table.find(element.value, option) ~= nil
+				end
+
+				return element.value == option
+			end
+
+			local flyout = nil
+			local setVisibleOptions = nil
+			local refreshVisibleOptions = nil
+			local emptyLabel = nil
+
+			local function draw()
+				local hasValue = if isMulti then #element.value > 0 else element.value ~= nil
+
+				if hasValue then
+					valueLabel.Text = if isMulti then table.concat(element.value, ", ") else element.value
+					valueLabel.TextColor3 = colors.Text
+				else
+					valueLabel.Text = "None"
+					valueLabel.TextColor3 = colors.Dim
+				end
+
+				if refreshVisibleOptions then
+					refreshVisibleOptions()
+				end
+			end
+
+			draw()
+
+			function element:Get()
+				if isMulti then
+					return table.clone(element.value)
+				end
+
+				return element.value
+			end
+
+			local function applyValue(value)
+				element.value = value
+				draw()
+				storeFlagValue(element, element:Get())
+				runCallback(dropdownOptions.Callback, element:Get())
+			end
+
+			function element:Set(value)
+				value = normalizeValue(value)
+
+				if isSameValue(value, element.value) then
+					return
+				end
+
+				applyValue(value)
+			end
+
+			local function flyoutHeight()
+				return math.max(math.min(#element.Options, 5), 1) * 32 + 8
+			end
+
+			function element:Refresh(list)
+				if type(list) ~= "table" then
+					error("Dropdown Refresh Failed: Bad Options", 0)
+				end
+
+				setOptions(list)
+
+				local value = nil
+				if isMulti then
+					value = normalizeValue(element.value)
+				elseif table.find(element.Options, element.value) then
+					value = element.value
+				end
+
+				if setVisibleOptions then
+					flyout.Size = UDim2.fromOffset(flyout.Size.X.Offset, flyoutHeight())
+					emptyLabel.Visible = #element.Options == 0
+					setVisibleOptions(element.Options)
+				end
+
+				if not isSameValue(value, element.value) then
+					applyValue(value)
+				end
+
+				draw()
+			end
+
+			local function closeFlyout()
+				if not flyout then
+					return
+				end
+
+				flyout:Destroy()
+				flyout = nil
+				setVisibleOptions = nil
+				refreshVisibleOptions = nil
+				emptyLabel = nil
+				flyoutOverlay.Visible = false
+				window.closeFlyout = nil
+			end
+
+			local function createOptionRow(optionList)
+				local optionButton = createButton({
+					Size = UDim2.new(1, 0, 0, 32),
+					BackgroundColor3 = colors.Hover,
+					Parent = optionList,
+				}, {createCorner(4)})
+
+				local optionLabel = createLabel({
+					TextSize = 13,
+					Position = UDim2.fromOffset(10, 0),
+					Size = UDim2.new(1, -36, 1, 0),
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					Parent = optionButton,
+				})
+
+				local checkIcon = createIcon({
+					Text = "check",
+					TextSize = 14,
+					TextColor3 = colors.Accent,
+					AnchorPoint = Vector2.new(1, 0),
+					Position = UDim2.new(1, -8, 0, 0),
+					Size = UDim2.fromOffset(16, 32),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					Parent = optionButton,
+				})
+
+				local optionRow: any = {button = optionButton, activeTween = nil, option = nil}
+
+				local function tweenBackground(transparency)
+					if optionRow.activeTween then
+						optionRow.activeTween:Cancel()
+					end
+
+					optionRow.activeTween = TweenService:Create(optionButton, defaultTweenInfo, {BackgroundTransparency = transparency})
+					optionRow.activeTween:Play()
+				end
+
+				function optionRow.bind(option)
+					if optionRow.activeTween then
+						optionRow.activeTween:Cancel()
+						optionRow.activeTween = nil
+					end
+
+					optionRow.option = option
+
+					if not option then
+						return
+					end
+
+					optionLabel.Text = option
+					checkIcon.Visible = isSelected(option)
+					optionButton.BackgroundTransparency = if isSelected(option) then 0 else 1
+				end
+
+				optionButton.MouseEnter:Connect(function()
+					if UserInputService.MouseEnabled then
+						tweenBackground(0)
+					end
+				end)
+
+				optionButton.MouseLeave:Connect(function()
+					tweenBackground(if isSelected(optionRow.option) then 0 else 1)
+				end)
+
+				optionButton.Activated:Connect(function()
+					local option = optionRow.option
+					if not option then
+						return
+					end
+
+					if not isMulti then
+						element:Set(option)
+						closeFlyout()
+						return
+					end
+
+					local selection = element:Get()
+					local selectedIndex = table.find(element.value, option)
+
+					if selectedIndex then
+						table.remove(selection, selectedIndex)
+					else
+						table.insert(selection, option)
+					end
+
+					element:Set(selection)
+					tweenBackground(if isSelected(optionRow.option) then 0 else 1)
+				end)
+
+				return optionRow
+			end
+
+			local function openFlyout()
+				if flyout then
+					closeFlyout()
+					return
+				end
+
+				if window.closeFlyout then
+					window.closeFlyout()
+				end
+
+				window.closeFlyout = closeFlyout
+				flyoutOverlay.Visible = true
+
+				local scale = windowScale.Scale
+				local boxPosition = (dropdownBox.AbsolutePosition - mainFrame.AbsolutePosition) / windowScale.Scale
+
+				flyout = createInstance("Frame", {
+					Position = UDim2.fromOffset(boxPosition.X, boxPosition.Y + 32),
+					Size = UDim2.fromOffset(dropdownBox.AbsoluteSize.X / scale, flyoutHeight()),
+					BackgroundColor3 = colors.Card,
+					BorderSizePixel = 0,
+					Parent = flyoutOverlay,
+				}, {createCorner(6), createStroke(0.85), createPadding(4, 4, 4, 4)})
+
+				local optionList = createInstance("ScrollingFrame", {
+					Size = UDim2.fromScale(1, 1),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					ScrollBarThickness = 0,
+					CanvasSize = UDim2.new(),
+					ScrollingDirection = Enum.ScrollingDirection.Y,
+					Parent = flyout,
+				})
+
+				emptyLabel = createLabel({
+					Text = "No Options",
+					TextSize = 13,
+					TextColor3 = colors.Dim,
+					Position = UDim2.fromOffset(10, 0),
+					Size = UDim2.new(1, -10, 0, 32),
+					Visible = #element.Options == 0,
+					Parent = optionList,
+				})
+
+				setVisibleOptions, refreshVisibleOptions = createVirtualList(optionList, 32, 0, function()
+					return createOptionRow(optionList)
+				end)
+
+				setVisibleOptions(element.Options)
+			end
+
+			dropdownBox.Activated:Connect(openFlyout)
+
+			bindHoverColors(dropdownBox, function()
+				return colors.Background
+			end)
+
+			loadSavedValue(element)
+			return element
+		end
+
+		function tab:TextBox(textBoxOptions)
+			textBoxOptions = textBoxOptions or {}
+
+			local element, rowFrame = createRow("TextBox", textBoxOptions)
+
+			local boxFrame = createInstance("Frame", {
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, 0, 0.5, 0),
+				Size = UDim2.fromOffset(150, 28),
+				BackgroundColor3 = colors.Background,
+				BorderSizePixel = 0,
+				ClipsDescendants = true,
+				Parent = rowFrame,
+			}, {createCorner(4), createStroke(0.9)})
+
+			local boxStroke = boxFrame:FindFirstChildOfClass("UIStroke")
+
+			local defaultText = ""
+			if type(textBoxOptions.Default) == "string" then
+				defaultText = textBoxOptions.Default
+			end
+
+			local textBox = createInstance("TextBox", {
+				BackgroundTransparency = 1,
+				Position = UDim2.fromOffset(8, 0),
+				Size = UDim2.new(1, -16, 1, 0),
+				Font = textFont,
+				TextSize = 13,
+				TextColor3 = colors.Text,
+				PlaceholderText = tostring(textBoxOptions.Placeholder or ""),
+				PlaceholderColor3 = colors.Dim,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ClearTextOnFocus = false,
+				Text = defaultText,
+				Parent = boxFrame,
+			})
+
+			element.value = textBox.Text
+			element.loadValue = tostring
+
+			function element:Set(value)
+				value = tostring(value)
+				textBox.Text = value
+
+				if value == element.value then
+					return
+				end
+
+				element.value = value
+				storeFlagValue(element, value)
+				runCallback(textBoxOptions.Callback, value)
+			end
+
+			textBox.Focused:Connect(function()
+				tween(boxStroke, {Color = colors.Accent, Transparency = 0})
+			end)
+
+			textBox.FocusLost:Connect(function()
+				tween(boxStroke, {Color = colors.Text, Transparency = 0.9})
+				element:Set(textBox.Text)
+			end)
+
+			loadSavedValue(element)
+			return element
+		end
+
+		function tab:Keybind(keybindOptions)
+			keybindOptions = keybindOptions or {}
+
+			local defaultKey = normalizeKeyCode(keybindOptions.Default)
+			if defaultKey == false then
+				error("Keybind Failed: Bad Key", 0)
+			end
+
+			local element, rowFrame = createRow("Keybind", keybindOptions)
+
+			local keyCap = createButton({
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, 0, 0.5, 0),
+				Size = UDim2.fromOffset(0, 24),
+				AutomaticSize = Enum.AutomaticSize.X,
+				BackgroundColor3 = colors.Background,
+				Parent = rowFrame,
+			}, {createCorner(4), createStroke(0.9), createPadding(10, 10)})
+
+			local keyLabel = createLabel({
+				Text = "",
+				TextSize = 12,
+				Size = UDim2.new(0, 0, 1, 0),
+				AutomaticSize = Enum.AutomaticSize.X,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Parent = keyCap,
+			})
+
+			local isWaiting = false
+
+			element.value = defaultKey
+			element.saveValue = function(value)
+				return value and value.Name or false
+			end
+			element.loadValue = function(savedValue)
+				return type(savedValue) == "string" and Enum.KeyCode[savedValue] or nil
+			end
+
+			local function draw()
+				if isWaiting then
+					keyLabel.Text = "..."
+				elseif element.value then
+					keyLabel.Text = element.value.Name
+				else
+					keyLabel.Text = "None"
+				end
+
+				keyLabel.TextColor3 = if isWaiting or element.value then colors.Text else colors.Dim
+			end
+
+			draw()
+
+			function element:Set(value)
+				local keyCode = normalizeKeyCode(value)
+				if keyCode == false then
+					error("Keybind Set Failed: Bad Key", 0)
+				end
+
+				if keyCode == element.value then
+					return
+				end
+
+				element.value = keyCode
+				draw()
+				storeFlagValue(element, keyCode)
+			end
+
+			bindHoverColors(keyCap, function()
+				return colors.Background
+			end)
+
+			keyCap.Activated:Connect(function()
+				isWaiting = not isWaiting
+				window.isWaitingForKey = isWaiting
+				draw()
+			end)
+
+			table.insert(window.connections, UserInputService.InputBegan:Connect(function(input, gameProcessed)
+				if input.UserInputType ~= keyboardInput then
+					return
+				end
+
+				if isWaiting then
+					isWaiting = false
+					window.isWaitingForKey = false
+
+					if input.KeyCode == Enum.KeyCode.Backspace then
+						element:Set(nil)
+					elseif input.KeyCode ~= Enum.KeyCode.None then
+						element:Set(input.KeyCode)
+					end
+
 					draw()
 					return
 				end
-				if gp or not e.v or i.KeyCode ~= e.v or uis:GetFocusedTextBox() then return end
-				run(r.Callback)
+
+				if gameProcessed or not element.value or input.KeyCode ~= element.value then
+					return
+				end
+
+				if UserInputService:GetFocusedTextBox() then
+					return
+				end
+
+				runCallback(keybindOptions.Callback)
 			end))
-			done(e)
-			return e
+
+			loadSavedValue(element)
+			return element
 		end
 
-		return T
+		return tab
 	end
 
-	function W:Destroy()
-		dead = true
-		for _, x in W.cn do x:Disconnect() end
-		W.cn = {}
-		save()
-		sg:Destroy()
-		if ge.__AvW == W then ge.__AvW = nil end
+	function window:Destroy()
+		isDestroyed = true
+
+		if pendingSearch then
+			task.cancel(pendingSearch)
+			pendingSearch = nil
+		end
+
+		for _, connection in window.connections do
+			connection:Disconnect()
+		end
+
+		window.connections = {}
+
+		saveConfig()
+		screenGui:Destroy()
+
+		if sharedEnvironment.__AvW == window then
+			sharedEnvironment.__AvW = nil
+		end
 	end
 
-	ge.__AvW = W
-	return W
+	sharedEnvironment.__AvW = window
+	return window
 end
 
-return L
+return Library
 end)()
 
-local function bo()
-	if ge.__BseP then return nil, "Already On" end
-	ge.__BseP = true
-	local li, tr = game:GetService("Lighting"), workspace.Terrain
-	local function ko(d, k)
-		k = k or "Enabled"
-		d[k] = false
-		d:GetPropertyChangedSignal(k):Connect(function() if d[k] then d[k] = false end end)
-	end
-	local function lf() if li.GlobalShadows then li.GlobalShadows = false end end
-	lf()
-	li:GetPropertyChangedSignal("GlobalShadows"):Connect(lf)
-	local function kx(d) if d:IsA("PostEffect") then ko(d) end end
-	for _, d in li:GetDescendants() do pcall(kx, d) end
-	li.DescendantAdded:Connect(function(d) pcall(kx, d) end)
-	local cu = tr:FindFirstChildOfClass("Clouds")
-	if cu then pcall(ko, cu) end
-	pcall(function() tr.WaterWaveSize, tr.WaterWaveSpeed, tr.WaterReflectance = 0, 0, 0 end)
-	local function px(d)
-		if d:IsA("ParticleEmitter") then
-			d.Lifetime = NumberRange.new(0)
-			ko(d)
-		elseif d:IsA("Beam") or d:IsA("Trail") or d:IsA("Smoke") or d:IsA("Fire") or d:IsA("Sparkles") or d:IsA("Light") or d:IsA("Highlight") then
-			ko(d)
-		elseif d:IsA("Decal") or d:IsA("Texture") then
-			d.Transparency = 1
-		elseif d:IsA("SurfaceAppearance") then
-			task.defer(pcall, d.Destroy, d)
-		elseif d:IsA("VideoFrame") then
-			ko(d, "Playing")
-			ko(d, "Visible")
-		elseif d:IsA("BasePart") and d.Material ~= Enum.Material.Water then
-			d.Material, d.Reflectance, d.CastShadow = Enum.Material.SmoothPlastic, 0, false
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
+local TeleportService = game:GetService("TeleportService")
+local GuiService = game:GetService("GuiService")
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+
+repeat
+	task.wait()
+until Players.LocalPlayer
+
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+local gameName = "Break And Steal An Egg"
+local configFolder = "Avenoric/Configs/BreakAndStealAnEgg"
+local configName = `BreakAndStealAnEgg/{localPlayer.Name}`
+local logPath = `{configFolder}/{localPlayer.Name}_Log.txt`
+local logoPath = "Avenoric/Assets/NgaoLogo.png"
+local supportWebhookUrl = "https://discord.com/api/webhooks/1561788889776263258/DblWnAZmPXTmF_Sl13lQ_LY7nY6nqP0wR_NsXPzC83E_VrLXp3WoKBBMcQCGvYKzojUz?wait=true"
+local logoData = "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"
+
+local sharedEnvironment = getgenv()
+
+local function ensureFolders(paths)
+	for _, path in paths do
+		if not isfolder(path) then
+			makefolder(path)
 		end
 	end
-	workspace.DescendantAdded:Connect(function(d) pcall(px, d) end)
+end
+
+local logQueue = sharedEnvironment.__BseLog
+if type(logQueue) ~= "table" then
+	logQueue = {lines = {}, isFlushScheduled = false}
+	sharedEnvironment.__BseLog = logQueue
+end
+
+local function appendLogFile(text)
+	ensureFolders({"Avenoric", "Avenoric/Configs", configFolder})
+
+	if appendfile and isfile(logPath) then
+		appendfile(logPath, text)
+		return
+	end
+
+	local existing = ""
+	if isfile(logPath) then
+		existing = readfile(logPath)
+	end
+
+	writefile(logPath, existing .. text)
+end
+
+local function flushLog()
+	logQueue.isFlushScheduled = false
+
+	if #logQueue.lines == 0 then
+		return
+	end
+
+	local text = table.concat(logQueue.lines, "\n") .. "\n"
+	if pcall(appendLogFile, text) then
+		table.clear(logQueue.lines)
+	end
+end
+
+local function writeLog(text, flushNow)
+	local message = string.gsub(tostring(text), "%s*\n%s*", " <- ")
+	table.insert(logQueue.lines, `{os.date("%Y-%m-%d %H:%M:%S")} | {message}`)
+
+	if flushNow then
+		flushLog()
+		return
+	end
+
+	if logQueue.isFlushScheduled then
+		return
+	end
+
+	logQueue.isFlushScheduled = true
+	task.delay(2, flushLog)
+end
+
+local function reportError(text)
+	warn(text)
+	writeLog(`[Error] {text}`)
+end
+
+local function findOwnedPlot()
+	local plots = workspace:FindFirstChild("Plots")
+	if not plots then
+		return nil
+	end
+
+	for _, plot in plots:GetChildren() do
+		if plot:GetAttribute("OwnerUserId") == localPlayer.UserId then
+			return plot
+		end
+	end
+
+	return nil
+end
+
+local function isGameReady()
+	if type(localPlayer:GetAttribute("Cash")) ~= "number" then
+		return false
+	end
+
+	if not playerGui:FindFirstChild("MainGUI") then
+		return false
+	end
+
+	local character = localPlayer.Character
+	if not (character and character:FindFirstChild("HumanoidRootPart")) then
+		return false
+	end
+
+	return findOwnedPlot() ~= nil
+end
+
+while not isGameReady() do
+	task.wait(0.5)
+end
+
+local function disconnectValue(value)
+	if typeof(value) == "RBXScriptConnection" then
+		pcall(value.Disconnect, value)
+		return true
+	end
+
+	return false
+end
+
+local function stopPreviousLoad(previous)
+	for key, value in pairs(previous) do
+		if type(value) == "boolean" then
+			previous[key] = false
+		end
+	end
+
+	for _, job in pairs(previous.jobs or {}) do
+		if type(job) == "table" and type(job.status) == "string" then
+			job.status = "Stopped"
+		end
+	end
+
+	if type(previous.renderBindings) == "table" then
+		for _, bindingName in pairs(previous.renderBindings) do
+			pcall(RunService.UnbindFromRenderStep, RunService, bindingName)
+		end
+
+		table.clear(previous.renderBindings)
+	end
+
+	for _, connection in pairs(previous.connections or {}) do
+		disconnectValue(connection)
+	end
+
+	for _, value in pairs(previous) do
+		disconnectValue(value)
+	end
+end
+
+local previousLoadJobs = nil
+
+if type(sharedEnvironment.__BseAf) == "table" then
+	if type(sharedEnvironment.__BseAf.jobs) == "table" then
+		previousLoadJobs = sharedEnvironment.__BseAf.jobs
+	end
+
+	local stopped, stopFailure = pcall(stopPreviousLoad, sharedEnvironment.__BseAf)
+	if not stopped then
+		warn(`Stop Previous Load Failed: {stopFailure}`)
+	end
+end
+
+local state = {
+	isRunning = true,
+	connections = {},
+	jobs = {},
+	renderBindings = {},
+	hudButton = nil,
+	farmZone = 1,
+	farmRarities = {},
+	minPetKg = 0,
+	minPetIncome = 0,
+	breakJob = nil,
+	walkTarget = nil,
+	nextHitId = 2e6,
+	skippedEggs = {},
+	skippedPickups = {},
+	carriedPet = nil,
+	bankCount = 0,
+	isPetsFull = false,
+	activity = "Idle",
+	sellRarities = {},
+	sellJob = nil,
+	buyPickaxe = false,
+	buyTreadmill = false,
+	buyPen = false,
+	buyTrail = false,
+	shopJob = nil,
+	shopPausedUntil = {},
+	shopMaxLogged = {},
+	serverJob = nil,
+	rejoinJob = nil,
+	lastTeleportAt = nil,
+	halloweenJob = nil,
+	eventZones = {BloodMoon = 1, CandyHeist = {}, DisguisedEggs = {}, TrickOrTreat = {}},
+	eventOwner = nil,
+	isBreakPaused = false,
+	candyDrops = {},
+	cornDrops = {},
+	lastDoorOutcome = nil,
+}
+
+sharedEnvironment.__BseAf = state
+
+local function trackConnection(connection)
+	table.insert(state.connections, connection)
+	return connection
+end
+
+local window = nil
+
+local function requireShared(moduleName)
+	local sharedFolder = ReplicatedStorage:FindFirstChild("Shared")
+	local module = sharedFolder and sharedFolder:FindFirstChild(moduleName)
+	if not module then
+		return nil
+	end
+
+	local loaded, result = pcall(require, module)
+
+	return loaded and result or nil
+end
+
+local function readZoneNames()
+	local zoneDisplayInfo = requireShared("ZoneDisplayInfo")
+	local names = {}
+
+	if type(zoneDisplayInfo) ~= "table" then
+		return names
+	end
+
+	local zoneIndex = 1
+	while true do
+		local zone = zoneDisplayInfo[`Zone{zoneIndex}`]
+		if type(zone) ~= "table" or type(zone.Name) ~= "string" then
+			break
+		end
+
+		names[zoneIndex] = zone.Name
+		zoneIndex += 1
+	end
+
+	return names
+end
+
+local function readRarityNames()
+	local eggRarity = requireShared("EggRarity")
+	if type(eggRarity) ~= "table" or type(eggRarity.Ladder) ~= "function" then
+		return {}
+	end
+
+	local read, ladder = pcall(eggRarity.Ladder)
+	if not read or type(ladder) ~= "table" then
+		return {}
+	end
+
+	local names = {}
+	for _, rarity in ladder do
+		if type(rarity) == "string" then
+			table.insert(names, rarity)
+		end
+	end
+
+	return names
+end
+
+local amountSuffixes = {
+	{name = "Dc", value = 1e33},
+	{name = "No", value = 1e30},
+	{name = "Oc", value = 1e27},
+	{name = "Sp", value = 1e24},
+	{name = "Sx", value = 1e21},
+	{name = "Qi", value = 1e18},
+	{name = "Qa", value = 1e15},
+	{name = "T", value = 1e12},
+	{name = "B", value = 1e9},
+	{name = "M", value = 1e6},
+	{name = "K", value = 1e3},
+}
+
+local amountSuffixByName = {}
+for _, suffix in amountSuffixes do
+	amountSuffixByName[string.lower(suffix.name)] = suffix.value
+end
+
+local function formatAmount(amount)
+	for _, suffix in amountSuffixes do
+		if amount >= suffix.value then
+			return string.format("%.2f%s", amount / suffix.value, suffix.name)
+		end
+	end
+
+	return string.format("%.0f", amount)
+end
+
+local function parseAmount(text)
+	local trimmed = string.match(tostring(text), "^%s*(.-)%s*$") or ""
+	if trimmed == "" or string.lower(trimmed) == "all" then
+		return 0
+	end
+
+	local digits, suffix = string.match(string.gsub(trimmed, ",", ""), "^(%d*%.?%d+)%s*(%a*)$")
+	local amount = digits and tonumber(digits)
+	if not amount then
+		return nil
+	end
+
+	if suffix == "" then
+		return amount
+	end
+
+	local multiplier = amountSuffixByName[string.lower(suffix)]
+	if not multiplier then
+		return nil
+	end
+
+	return amount * multiplier
+end
+
+local zoneNames = readZoneNames()
+local rarityNames = readRarityNames()
+
+local eggTargeting = requireShared("EggTargeting")
+local eggConfig = requireShared("EggConfig")
+local pickaxeConfig = requireShared("PickaxeConfig")
+local robuxShopConfig = requireShared("RobuxShopConfig")
+local zoneFloor = requireShared("ZoneFloor")
+local eggRewards = requireShared("EggRewards")
+local petInventoryConfig = requireShared("PetInventoryConfig")
+local backpackSellConfig = requireShared("BackpackSellConfig")
+local trailsConfig = requireShared("TrailsConfig")
+local treadmillUpgradeConfig = requireShared("TreadmillUpgradeConfig")
+local treadmillUnlockConfig = requireShared("TreadmillUnlockConfig")
+local plotUpgradeConfig = requireShared("PlotUpgradeConfig")
+local halloweenConfig = requireShared("HalloweenEventConfig")
+
+local eggHitRemote = ReplicatedStorage:FindFirstChild("EggHitRequest")
+local treadmillRemote = ReplicatedStorage:FindFirstChild("TreadmillSessionRemote")
+local catchFlingRemote = ReplicatedStorage:FindFirstChild("CatchFlingRemote")
+local animalBankedRemote = ReplicatedStorage:FindFirstChild("AnimalBankedRemote")
+local backpackSellRemote = ReplicatedStorage:FindFirstChild("BackpackSellRemote")
+local pickaxeShopRemote = ReplicatedStorage:FindFirstChild("PickaxeShopRequest")
+local trailShopRemote = ReplicatedStorage:FindFirstChild("TrailShopRequest")
+local upgradeTreadmillRemote = ReplicatedStorage:FindFirstChild("UpgradeTreadmillRequest")
+local unlockTreadmillRemote = ReplicatedStorage:FindFirstChild("UnlockTreadmillRequest")
+local upgradePlotRemote = ReplicatedStorage:FindFirstChild("UpgradePlotRequest")
+local candyHeistRemote = ReplicatedStorage:FindFirstChild("HalloweenCandyHeist")
+local candyDropsRemote = ReplicatedStorage:FindFirstChild("HalloweenCandyDrops")
+local doorsRemote = ReplicatedStorage:FindFirstChild("HalloweenDoors")
+
+if animalBankedRemote then
+	trackConnection(animalBankedRemote.OnClientEvent:Connect(function()
+		state.bankCount += 1
+	end))
+end
+
+if catchFlingRemote then
+	trackConnection(catchFlingRemote.OnClientEvent:Connect(function(action)
+		if action == "fling" and state.breakJob ~= nil and state.activity ~= "Following Guard" then
+			writeLog(`[Pet] Caught While {state.activity} | Carrying {tostring(localPlayer:GetAttribute("Carrying"))}`)
+		end
+	end))
+end
+
+local function rememberCandyDrop(drop)
+	if type(drop) ~= "table" or type(drop.Id) ~= "string" or typeof(drop.Position) ~= "Vector3" then
+		return
+	end
+
+	state.candyDrops[drop.Id] = {
+		id = drop.Id,
+		position = drop.Position,
+		origin = typeof(drop.Origin) == "Vector3" and drop.Origin or drop.Position,
+		claimUserId = tonumber(drop.ClaimUserId),
+		expiresAt = tonumber(drop.ExpiresAt) or math.huge,
+		spawnedAt = os.clock(),
+		skipUntil = 0,
+	}
+end
+
+local function onCandyHeistEvent(action, data)
+	if type(data) ~= "table" then
+		return
+	end
+
+	if action == "Start" or action == "Snapshot" or action == "End" then
+		table.clear(state.candyDrops)
+	end
+
+	if (action == "Start" or action == "Snapshot" or action == "Spawn") and type(data.Drops) == "table" then
+		for _, drop in data.Drops do
+			rememberCandyDrop(drop)
+		end
+	elseif action == "Collect" and type(data.Id) == "string" then
+		if (tonumber(data.Remaining) or 0) <= 0 then
+			state.candyDrops[data.Id] = nil
+		end
+	elseif action == "Remove" and type(data.Ids) == "table" then
+		for _, id in data.Ids do
+			state.candyDrops[id] = nil
+		end
+	elseif action == "Spill" and data.UserId == localPlayer.UserId and state.eventOwner then
+		writeLog(`[Event] Spilled {tostring(data.Amount)} Candy | Bag {tostring(data.Bag)} | {state.activity}`)
+	end
+end
+
+if candyHeistRemote then
+	trackConnection(candyHeistRemote.OnClientEvent:Connect(onCandyHeistEvent))
+end
+
+local function onCandyDropsEvent(action, data)
+	if action == "Spawn" and type(data) == "table" then
+		for _, drop in data do
+			if type(drop) == "table" and type(drop.Id) == "string" and typeof(drop.Position) == "Vector3" then
+				state.cornDrops[drop.Id] = {
+					id = drop.Id,
+					position = drop.Position,
+					origin = typeof(drop.Origin) == "Vector3" and drop.Origin or drop.Position,
+					expiresAt = tonumber(drop.ExpiresAt) or math.huge,
+					spawnedAt = os.clock(),
+					skipUntil = 0,
+					isPotion = drop.PotionOutcome ~= nil,
+				}
+			end
+		end
+	elseif (action == "Collect" or action == "Remove") and type(data) == "table" then
+		for _, id in data do
+			state.cornDrops[id] = nil
+		end
+	elseif action == "CollectPotion" and type(data) == "table" and type(data.Id) == "string" then
+		state.cornDrops[data.Id] = nil
+	end
+end
+
+if candyDropsRemote then
+	trackConnection(candyDropsRemote.OnClientEvent:Connect(onCandyDropsEvent))
+end
+
+if doorsRemote then
+	trackConnection(doorsRemote.OnClientEvent:Connect(function(data)
+		if type(data) == "table" and type(data.Outcome) == "string" then
+			state.lastDoorOutcome = {outcome = data.Outcome, at = os.clock()}
+		end
+	end))
+end
+
+local walkBindingName = `NgaoBseWalk{HttpService:GenerateGUID(false)}`
+local maxHopDistance = 40
+
+local function getCharacterParts()
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not (humanoid and root) or humanoid.Health <= 0 then
+		return nil, nil, nil
+	end
+
+	return character, humanoid, root
+end
+
+local function isJobRunning(job)
+	return state.isRunning and job.status == "Running"
+end
+
+local function startJob(name, body)
+	local job = {name = name, status = "Running"}
+	table.insert(state.jobs, job)
+
 	task.spawn(function()
-		for i, d in workspace:GetDescendants() do
-			pcall(px, d)
-			if i % 2000 == 0 then task.wait() end
+		local finished, failure = xpcall(body, function(message)
+			return debug.traceback(tostring(message), 2)
+		end, job)
+
+		if not finished then
+			reportError(`{name} Failed: {failure}`)
+		end
+
+		job.status = "Stopped"
+
+		local index = table.find(state.jobs, job)
+		if index then
+			table.remove(state.jobs, index)
 		end
 	end)
-	local pg2 = lp:FindFirstChildOfClass("PlayerGui")
-	if pg2 then
-		for _, d in pg2:GetDescendants() do if d:IsA("VideoFrame") then pcall(px, d) end end
-		pg2.DescendantAdded:Connect(function(d) if d:IsA("VideoFrame") then pcall(px, d) end end)
+
+	return job
+end
+
+local function hasUnfinishedJob(jobs, name, exceptJob)
+	for _, otherJob in jobs or {} do
+		if otherJob ~= exceptJob and otherJob.name == name then
+			return true
+		end
 	end
-	local ok, ss = pcall(function()
-		local S = require(lp:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Modules"):WaitForChild("SettingsState"))
-		for _, k in {"ScreenFFX", "ViewOthersPets", "ViewMyPets", "ViewMyEggs"} do S.Set(k, false) end
+
+	return false
+end
+
+local function waitForEarlierRuns(job)
+	local deadline = os.clock() + 10
+
+	while isJobRunning(job) and os.clock() < deadline do
+		local isBusy = hasUnfinishedJob(state.jobs, job.name, job) or hasUnfinishedJob(previousLoadJobs, job.name, nil)
+		if not isBusy then
+			return true
+		end
+
+		task.wait(0.05)
+	end
+
+	return false
+end
+
+local function waitUntil(job, timeout, condition)
+	local deadline = os.clock() + timeout
+
+	while isJobRunning(job) and os.clock() < deadline do
+		if condition() then
+			return true
+		end
+
+		task.wait(0.05)
+	end
+
+	return condition()
+end
+
+local function moveTowardWalkTarget()
+	local target = state.walkTarget
+	local _, humanoid, root = getCharacterParts()
+	if not (target and humanoid and root) then
+		return
+	end
+
+	local offset = Vector3.new(target.X - root.Position.X, 0, target.Z - root.Position.Z)
+	if offset.Magnitude < 1 then
+		humanoid:Move(Vector3.zero, false)
+		return
+	end
+
+	humanoid:Move(offset.Unit, false)
+end
+
+local function startWalking(target)
+	state.walkTarget = target
+
+	if table.find(state.renderBindings, walkBindingName) then
+		return
+	end
+
+	RunService:BindToRenderStep(walkBindingName, Enum.RenderPriority.Character.Value + 1, moveTowardWalkTarget)
+	table.insert(state.renderBindings, walkBindingName)
+end
+
+local function stopWalking()
+	state.walkTarget = nil
+
+	local index = table.find(state.renderBindings, walkBindingName)
+	if index then
+		table.remove(state.renderBindings, index)
+		RunService:UnbindFromRenderStep(walkBindingName)
+	end
+
+	local _, humanoid = getCharacterParts()
+	if humanoid then
+		humanoid:Move(Vector3.zero, false)
+	end
+end
+
+local function teleportRoot(root, position, facing)
+	root.AssemblyLinearVelocity = Vector3.zero
+
+	if facing then
+		root.CFrame = CFrame.lookAt(position, Vector3.new(facing.X, position.Y, facing.Z))
+	else
+		root.CFrame = CFrame.new(position)
+	end
+end
+
+local function walkUntil(job, target, isArrived)
+	if isArrived() then
+		return true
+	end
+
+	local _, humanoid, root = getCharacterParts()
+	if not (humanoid and root) then
+		return false
+	end
+
+	local flatDistance = Vector3.new(target.X - root.Position.X, 0, target.Z - root.Position.Z).Magnitude
+	local deadline = os.clock() + flatDistance / math.max(humanoid.WalkSpeed, 16) + 3
+	local lastPosition = root.Position
+	local lastProgressAt = os.clock()
+
+	startWalking(target)
+
+	while isJobRunning(job) and os.clock() < deadline do
+		if isArrived() then
+			break
+		end
+
+		local _, currentHumanoid, currentRoot = getCharacterParts()
+		if not currentRoot then
+			break
+		end
+
+		if (currentRoot.Position - lastPosition).Magnitude > 0.5 then
+			lastPosition = currentRoot.Position
+			lastProgressAt = os.clock()
+		elseif os.clock() - lastProgressAt > 0.4 then
+			currentHumanoid.Jump = true
+			lastProgressAt = os.clock()
+		end
+
+		task.wait(0.1)
+	end
+
+	stopWalking()
+
+	return isArrived()
+end
+
+local function getZoneHitbox(zoneKey)
+	local build = workspace:FindFirstChild("Build")
+	local zoneHitboxes = build and build:FindFirstChild("ZoneHitboxes")
+	local hitbox = zoneHitboxes and zoneHitboxes:FindFirstChild(tostring(zoneKey))
+	if hitbox and hitbox:IsA("BasePart") then
+		return hitbox
+	end
+
+	return nil
+end
+
+local function isInsideBox(box, position)
+	local localPoint = box.CFrame:PointToObjectSpace(position)
+	local halfSize = box.Size / 2
+
+	return math.abs(localPoint.X) <= halfSize.X and math.abs(localPoint.Z) <= halfSize.Z
+end
+
+local function isInsideZone(position, zoneIndex)
+	local hitbox = getZoneHitbox(zoneIndex)
+
+	return hitbox ~= nil and isInsideBox(hitbox, position)
+end
+
+local function findZoneAt(position)
+	local zoneIndex = 1
+
+	while true do
+		local hitbox = getZoneHitbox(zoneIndex)
+		if not hitbox then
+			return nil
+		end
+
+		if isInsideBox(hitbox, position) then
+			return zoneIndex
+		end
+
+		zoneIndex += 1
+	end
+end
+
+local function walkToNeighborZone(job, zoneIndex)
+	local zoneHitbox = getZoneHitbox(zoneIndex)
+	local _, _, root = getCharacterParts()
+	if not (zoneHitbox and root) then
+		return false
+	end
+
+	local rootInBox = zoneHitbox.CFrame:PointToObjectSpace(root.Position)
+	local nearEnd = if rootInBox.X >= 0 then 1 else -1
+	local entryDepth = math.max(zoneHitbox.Size.X / 2 - 20, 0)
+	local entryPoint = zoneHitbox.CFrame:PointToWorldSpace(Vector3.new(nearEnd * entryDepth, 0, 0))
+	local corridorZ = entryPoint.Z
+
+	local function isInTargetZone()
+		local _, _, currentRoot = getCharacterParts()
+		return currentRoot ~= nil and isInsideZone(currentRoot.Position, zoneIndex)
+	end
+
+	if math.abs(root.Position.Z - corridorZ) > 12 then
+		walkUntil(job, Vector3.new(root.Position.X, root.Position.Y, corridorZ), function()
+			local _, _, currentRoot = getCharacterParts()
+			return currentRoot ~= nil and math.abs(currentRoot.Position.Z - corridorZ) <= 4
+		end)
+	end
+
+	return walkUntil(job, entryPoint, isInTargetZone)
+end
+
+local function findGroundY(zoneIndex, x, z)
+	local build = workspace:FindFirstChild("Build")
+	local zoneBuilds = build and build:FindFirstChild("ZoneBuilds")
+	local zoneBuild = zoneBuilds and zoneBuilds:FindFirstChild(`Zone{zoneIndex}`)
+
+	local floors = nil
+	if zoneBuild and zoneFloor then
+		local read, result = pcall(zoneFloor.Of, zoneBuild)
+		if read and type(result) == "table" and #result > 0 then
+			floors = result
+		end
+	end
+
+	local params = RaycastParams.new()
+	if floors then
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = floors
+	else
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = {localPlayer.Character}
+	end
+
+	local result = workspace:Raycast(Vector3.new(x, 200, z), Vector3.new(0, -400, 0), params)
+
+	return result and result.Position.Y or nil
+end
+
+local function findTreadmillHitbox()
+	local plot = findOwnedPlot()
+	if not plot then
+		return nil
+	end
+
+	for _, child in plot:GetChildren() do
+		local hitbox = string.find(child.Name, "Treadmill") and child:FindFirstChild("Hitbox")
+		if hitbox and hitbox:IsA("BasePart") then
+			return hitbox
+		end
+	end
+
+	return nil
+end
+
+local function respawnAtBase(job)
+	local character, humanoid = getCharacterParts()
+	if not humanoid or not isJobRunning(job) then
+		return false
+	end
+
+	humanoid.Health = 0
+
+	return waitUntil(job, 15, function()
+		local newCharacter = getCharacterParts()
+		return newCharacter ~= nil and newCharacter ~= character
 	end)
-	local pg3 = lp:FindFirstChildOfClass("PlayerGui")
-	for _, n in {"AnimalCashPopups", "EggDamagePopups"} do
-		local g = pg3 and pg3:FindFirstChild(n)
-		if g and g:IsA("ScreenGui") then pcall(ko, g) end
+end
+
+local function rideTreadmill(job)
+	if not isJobRunning(job) then
+		return false, "Stopped"
 	end
-	local ui = game:GetService("UserInputService")
-	ui.WindowFocusReleased:Connect(function() pcall(ru.Set3dRenderingEnabled, ru, false) end)
-	ui.WindowFocused:Connect(function() pcall(ru.Set3dRenderingEnabled, ru, true) end)
-	local function ax(d)
-		if d:IsA("Accoutrement") or d:IsA("Clothing") or d:IsA("ShirtGraphic") or d:IsA("CharacterMesh") then task.defer(pcall, d.Destroy, d) end
+
+	local hitbox = findTreadmillHitbox()
+	local _, _, root = getCharacterParts()
+	if not (hitbox and root and treadmillRemote) then
+		return false, "No Treadmill"
 	end
-	local function cx(c)
-		for _, d in c:GetDescendants() do pcall(ax, d) end
-		c.DescendantAdded:Connect(function(d) pcall(ax, d) end)
+
+	local startPosition = root.Position
+	local hasSession = root.Anchored
+	local hasEnded = false
+	local sessionConnection = treadmillRemote.OnClientEvent:Connect(function(value)
+		if typeof(value) == "number" then
+			hasSession = true
+			hasEnded = false
+		else
+			hasEnded = true
+		end
+	end)
+
+	local function leaveSession()
+		treadmillRemote:FireServer()
+
+		local deadline = os.clock() + 3
+		while not (hasEnded and not root.Anchored) and os.clock() < deadline do
+			task.wait(0.05)
+		end
+
+		return hasEnded and not root.Anchored
 	end
-	local function pa(p)
-		if p == lp then return end
-		if p.Character then cx(p.Character) end
-		p.CharacterAdded:Connect(cx)
+
+	local function finish(succeeded, reason)
+		sessionConnection:Disconnect()
+		return succeeded, reason
 	end
-	for _, p in ps:GetPlayers() do pa(p) end
-	ps.PlayerAdded:Connect(pa)
-	if not ok then return nil, `Game Settings Failed: {ss}` end
+
+	if not hasSession then
+		teleportRoot(root, hitbox.Position)
+		waitUntil(job, 5, function()
+			return hasSession
+		end)
+	end
+
+	if not isJobRunning(job) then
+		if not hasSession then
+			teleportRoot(root, startPosition)
+			task.wait(0.4)
+		end
+
+		if hasSession or root.Anchored then
+			leaveSession()
+		end
+
+		return finish(false, "Stopped")
+	end
+
+	if not hasSession then
+		return finish(false, "No Treadmill Session")
+	end
+
+	task.wait(0.15)
+
+	local leftTreadmill = leaveSession()
+	if not isJobRunning(job) then
+		return finish(false, "Stopped")
+	end
+
+	if not leftTreadmill then
+		return finish(false, "Still On Treadmill")
+	end
+
+	return finish(true)
+end
+
+local function travelToZone(job, zoneIndex)
+	local zoneHitbox = getZoneHitbox(zoneIndex)
+	if not zoneHitbox then
+		return false, "No Zone Hitbox"
+	end
+
+	local _, _, root = getCharacterParts()
+	if not root then
+		return false, "No Character"
+	end
+
+	local currentZone = findZoneAt(root.Position)
+	if currentZone and math.abs(currentZone - zoneIndex) == 1 then
+		if walkToNeighborZone(job, zoneIndex) then
+			return true, "Walk"
+		end
+
+		if not isJobRunning(job) then
+			return false, "Stopped"
+		end
+
+		writeLog(`[Break] Walk To {zoneNames[zoneIndex] or zoneIndex} Failed | Using Treadmill`)
+
+		_, _, root = getCharacterParts()
+		if not root then
+			return false, "No Character"
+		end
+	end
+
+	local safeZone = getZoneHitbox("SafeZone")
+	local isAtBase = safeZone ~= nil and isInsideBox(safeZone, root.Position)
+	if not isAtBase and not respawnAtBase(job) then
+		return false, "Respawn Failed"
+	end
+
+	local rode, reason = rideTreadmill(job)
+	if not rode then
+		return false, reason
+	end
+
+	_, _, root = getCharacterParts()
+	if not root then
+		return false, "No Character"
+	end
+
+	if not isJobRunning(job) then
+		return false, "Stopped"
+	end
+
+	local center = zoneHitbox.Position
+	local groundY = findGroundY(zoneIndex, center.X, center.Z) or (center.Y - zoneHitbox.Size.Y / 2)
+	teleportRoot(root, Vector3.new(center.X, groundY + 3.5, center.Z))
+	task.wait(0.5)
+
+	if not isInsideZone(root.Position, zoneIndex) then
+		return false, "Pulled Back"
+	end
+
+	return true, "Treadmill"
+end
+
+local function getHitRange()
+	local hitRange = eggConfig and eggConfig.HitRange
+	if type(hitRange) == "number" then
+		return hitRange
+	end
+
+	return 8
+end
+
+local function getHitInterval()
+	local swingCooldown = pickaxeConfig and pickaxeConfig.SwingCooldown
+	local cooldownFactor = eggConfig and eggConfig.HitCooldownFactor
+	if type(swingCooldown) ~= "number" or type(cooldownFactor) ~= "number" then
+		return 0.5
+	end
+
+	local swingMultiplier = 1
+	if robuxShopConfig and type(robuxShopConfig.SwingMultiplierFor) == "function" then
+		local read, value = pcall(robuxShopConfig.SwingMultiplierFor, localPlayer)
+		if read and type(value) == "number" and value > 0 then
+			swingMultiplier = value
+		end
+	end
+
+	return swingCooldown * cooldownFactor / swingMultiplier
+end
+
+local function pickEgg(zoneIndex, rootPosition, isAllowed)
+	local now = os.clock()
+
+	for egg, skipUntil in state.skippedEggs do
+		if skipUntil <= now or egg.Parent == nil then
+			state.skippedEggs[egg] = nil
+		end
+	end
+
+	local bestEgg, bestLuck, bestDistance = nil, -math.huge, math.huge
+
+	for _, egg in CollectionService:GetTagged(eggTargeting.Tag) do
+		if not egg:IsA("BasePart") or egg:GetAttribute("ZoneIndex") ~= zoneIndex then
+			continue
+		end
+
+		if state.skippedEggs[egg] or not eggTargeting.IsLive(egg) then
+			continue
+		end
+
+		if isAllowed and not isAllowed(egg) then
+			continue
+		end
+
+		local luck = tonumber(egg:GetAttribute("HatchLuck")) or 0
+		local distance = (egg.Position - rootPosition).Magnitude
+		if luck > bestLuck or (luck == bestLuck and distance < bestDistance) then
+			bestEgg, bestLuck, bestDistance = egg, luck, distance
+		end
+	end
+
+	return bestEgg
+end
+
+local function getStandPoint(egg, rootPosition)
+	local flatOffset = Vector3.new(rootPosition.X - egg.Position.X, 0, rootPosition.Z - egg.Position.Z)
+	local direction = Vector3.xAxis
+	if flatOffset.Magnitude > 0.1 then
+		direction = flatOffset.Unit
+	end
+
+	local radius = math.max(egg.Size.X, egg.Size.Z) / 2
+
+	return egg.Position + direction * (radius + 3)
+end
+
+local function isInHitRange(egg)
+	local _, _, root = getCharacterParts()
+
+	return root ~= nil and eggTargeting.SurfaceDistance(egg, root.Position) <= getHitRange() - 2
+end
+
+local function approachEgg(job, egg)
+	if isInHitRange(egg) then
+		return true
+	end
+
+	local _, _, root = getCharacterParts()
+	if not root then
+		return false
+	end
+
+	walkUntil(job, getStandPoint(egg, root.Position), function()
+		return isInHitRange(egg) or not eggTargeting.IsLive(egg)
+	end)
+
+	if isInHitRange(egg) then
+		return true
+	end
+
+	_, _, root = getCharacterParts()
+	if not (root and isJobRunning(job) and eggTargeting.IsLive(egg)) then
+		return false
+	end
+
+	local standPoint = getStandPoint(egg, root.Position)
+	if (standPoint - root.Position).Magnitude > maxHopDistance then
+		return false
+	end
+
+	teleportRoot(root, Vector3.new(standPoint.X, root.Position.Y, standPoint.Z), egg.Position)
+	task.wait(0.25)
+
+	return isInHitRange(egg)
+end
+
+local function equipPickaxe(character, humanoid)
+	local toolName = pickaxeConfig and pickaxeConfig.ToolName or "Pickaxe"
+	if character:FindFirstChild(toolName) then
+		return true
+	end
+
+	local tool = localPlayer.Backpack:FindFirstChild(toolName)
+	if not tool then
+		return false
+	end
+
+	humanoid:EquipTool(tool)
+
 	return true
 end
 
-local function hx(lo2)
-	local hs, ts = game:GetService("HttpService"), game:GetService("TeleportService")
-	local function go2(f)
-		local fe
-		st.hp = os.clock()
-		local cn = ts.TeleportInitFailed:Connect(function(p, _, m) if p == lp then fe = tostring(m) end end)
-		local o3, e3 = pcall(f)
-		if not o3 then fe = tostring(e3) end
-		local t = os.clock()
-		while not fe and os.clock() - t < 10 do task.wait(0.25) end
-		cn:Disconnect()
-		if fe then lg(`[Hop] Failed: {fe}`) end
-		return fe == nil
+local function releaseConnection(connection)
+	connection:Disconnect()
+
+	local index = table.find(state.connections, connection)
+	if index then
+		table.remove(state.connections, index)
 	end
-	while ge.__BseAf == st do
-		local ok, r = pcall(function() return game:HttpGet(("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(game.PlaceId), true) end)
-		local o2, d = false, nil
-		if ok then o2, d = pcall(hs.JSONDecode, hs, r) end
-		local l = {}
-		for _, v in o2 and type(d) == "table" and type(d.data) == "table" and d.data or {} do
-			if v.id ~= game.JobId and type(v.playing) == "number" and type(v.maxPlayers) == "number" and v.playing < v.maxPlayers then l[#l + 1] = v end
+end
+
+local function isCarrying()
+	return localPlayer:GetAttribute("Carrying") ~= nil
+end
+
+local function isRagdolled()
+	local character = localPlayer.Character
+	return character ~= nil and character:GetAttribute("Ragdolled") == true
+end
+
+local function findGroundPoint(x, z, fallbackY)
+	local zoneIndex = findZoneAt(Vector3.new(x, 0, z))
+	local groundY = zoneIndex and findGroundY(zoneIndex, x, z)
+
+	return Vector3.new(x, (groundY or fallbackY) + 3, z)
+end
+
+local function flatDistance(first, second)
+	return Vector3.new(first.X - second.X, 0, first.Z - second.Z).Magnitude
+end
+
+local function getPickupCenter(pickup)
+	local center = pickup:GetBoundingBox()
+	return center.Position
+end
+
+local function getPickupIncome(pickup)
+	if not (eggRewards and type(eggRewards.PlacedCashPerSecond) == "function") then
+		return nil
+	end
+
+	local read, income = pcall(
+		eggRewards.PlacedCashPerSecond,
+		pickup:GetAttribute("AnimalName"),
+		pickup:GetAttribute("SizeMult"),
+		pickup:GetAttribute("Mutation"),
+		pickup:GetAttribute("WeightKg"),
+		pickup:GetAttribute("Variant")
+	)
+
+	if read and type(income) == "number" then
+		return income
+	end
+
+	return nil
+end
+
+local function getPickupTimeLeft(pickup)
+	local despawnAt = pickup:GetAttribute("DespawnAtServerTime")
+	if type(despawnAt) ~= "number" then
+		return 0
+	end
+
+	return despawnAt - workspace:GetServerTimeNow()
+end
+
+local function isReservedForOther(instance)
+	local reservedFor = instance:GetAttribute("ReservedUserId")
+	return reservedFor ~= nil and reservedFor ~= localPlayer.UserId
+end
+
+local function isWantedPickup(pickup)
+	if pickup:GetAttribute("Despawning") or isReservedForOther(pickup) then
+		return false
+	end
+
+	if next(state.farmRarities) ~= nil and not state.farmRarities[pickup:GetAttribute("Rarity")] then
+		return false
+	end
+
+	local weight = tonumber(pickup:GetAttribute("WeightKg")) or 0
+	if weight < state.minPetKg then
+		return false
+	end
+
+	if state.minPetIncome > 0 then
+		local income = getPickupIncome(pickup)
+		if not income or income < state.minPetIncome then
+			return false
 		end
-		if lo2 then
-			table.sort(l, function(x, y) return x.playing < y.playing end)
-		else
-			for i = #l, 2, -1 do
-				local j = math.random(1, i)
-				l[i], l[j] = l[j], l[i]
+	end
+
+	return true
+end
+
+local function isGuardBusy(zoneId)
+	for _, guard in CollectionService:GetTagged("ZoneGuard") do
+		local chaseState = guard:GetAttribute("ChaseState")
+		if guard:GetAttribute("ZoneId") == zoneId and (chaseState == "WindUp" or chaseState == "Chasing") then
+			return true
+		end
+	end
+
+	return false
+end
+
+local function findCatchingGuard(zoneId, position)
+	local bestGuard, bestScore = nil, math.huge
+
+	for _, guard in CollectionService:GetTagged("ZoneGuard") do
+		local score = (guard:GetPivot().Position - position).Magnitude
+		if guard:GetAttribute("ZoneId") ~= zoneId then
+			score += 1e6
+		end
+
+		if score < bestScore then
+			bestGuard, bestScore = guard, score
+		end
+	end
+
+	return bestGuard
+end
+
+local function readPromptWeight(prompt)
+	local token = string.match(prompt.ObjectText, "%[([%d%.,]+%a?)[Kk]g%]")
+
+	return token and parseAmount(token)
+end
+
+local function collectStealPrompts()
+	local prompts = {}
+
+	for _, anchor in workspace:GetChildren() do
+		if anchor.Name == "PromptAnchor" and anchor:IsA("BasePart") then
+			local prompt = anchor:FindFirstChild("StealPrompt")
+			if prompt and prompt:IsA("ProximityPrompt") then
+				table.insert(prompts, prompt)
 			end
 		end
-		for _, v in l do
-			if ge.__BseAf ~= st then return false, "Hop Failed: Stopped" end
-			lg(`[Hop] Teleport To {tostring(v.id):sub(1, 8)} | {v.playing} / {v.maxPlayers}`, true)
-			if go2(function() ts:TeleportToPlaceInstance(game.PlaceId, v.id, lp) end) then return true end
+	end
+
+	return prompts
+end
+
+local function matchStealPrompt(pickup, prompts)
+	local center = getPickupCenter(pickup)
+	local weight = tonumber(pickup:GetAttribute("WeightKg")) or 0
+	local bestPrompt, bestScore = nil, math.huge
+
+	for _, prompt in prompts do
+		local distance = (prompt.Parent.Position - center).Magnitude
+		if distance > 15 then
+			continue
+		end
+
+		local score = distance
+		local shownWeight = readPromptWeight(prompt)
+		if not (shownWeight and math.abs(shownWeight - weight) <= math.max(0.6, weight * 0.01)) then
+			score += 50
+		end
+
+		if score < bestScore then
+			bestPrompt, bestScore = prompt, score
+		end
+	end
+
+	return bestPrompt
+end
+
+local function findStealPrompt(pickup)
+	return matchStealPrompt(pickup, collectStealPrompts())
+end
+
+local function countPets()
+	local count = 0
+
+	local function countIn(container)
+		if not container then
+			return
+		end
+
+		for _, tool in container:GetChildren() do
+			if CollectionService:HasTag(tool, "AnimalTool") then
+				count += 1
+			end
+		end
+	end
+
+	countIn(localPlayer:FindFirstChild("Backpack"))
+	countIn(localPlayer.Character)
+
+	return count
+end
+
+local function updatePetsFull()
+	local maxPets = petInventoryConfig and petInventoryConfig.MaxPets
+	if type(maxPets) ~= "number" then
+		return false
+	end
+
+	local isFull = countPets() >= maxPets
+
+	if isFull and not state.isPetsFull then
+		writeLog(`[Pet] Pets Full | {maxPets} | Taking Paused`)
+
+		if window then
+			window:Notify({Title = "Farm", Text = `Take Pet Paused: Pets Full ({maxPets})`, Error = true})
+		end
+	elseif state.isPetsFull and not isFull then
+		writeLog("[Pet] Pets Have Room | Taking Resumed")
+	end
+
+	state.isPetsFull = isFull
+
+	return isFull
+end
+
+local function findBestPickup(zoneIndex, ignoreTravelTime)
+	if type(fireproximityprompt) ~= "function" or updatePetsFull() then
+		return nil
+	end
+
+	local _, humanoid, root = getCharacterParts()
+	if not root then
+		return nil
+	end
+
+	local zoneId = `Zone{zoneIndex}`
+	if isGuardBusy(zoneId) then
+		return nil
+	end
+
+	local now = os.clock()
+	for pickup, skipUntil in state.skippedPickups do
+		if skipUntil <= now or pickup.Parent == nil then
+			state.skippedPickups[pickup] = nil
+		end
+	end
+
+	local bestPickup, bestIncome = nil, -math.huge
+	local prompts = collectStealPrompts()
+
+	for _, pickup in CollectionService:GetTagged("AnimalPickup") do
+		if pickup.Parent == nil or pickup:GetAttribute("ZoneId") ~= zoneId then
+			continue
+		end
+
+		if state.skippedPickups[pickup] or not isWantedPickup(pickup) then
+			continue
+		end
+
+		local prompt = matchStealPrompt(pickup, prompts)
+		if prompt and not prompt.Enabled then
+			continue
+		end
+
+		local requiredTimeLeft = 3
+		if not ignoreTravelTime then
+			local distance = flatDistance(getPickupCenter(pickup), root.Position)
+			requiredTimeLeft = distance / math.max(humanoid.WalkSpeed, 16) + 2.5
+		end
+
+		if getPickupTimeLeft(pickup) > requiredTimeLeft then
+			local income = getPickupIncome(pickup) or 0
+			if income > bestIncome then
+				bestPickup, bestIncome = pickup, income
+			end
+		end
+	end
+
+	return bestPickup
+end
+
+local function describePickup(pickup)
+	local name = pickup:GetAttribute("AnimalName") or pickup.Name
+	local weightText = string.format("%.1f", tonumber(pickup:GetAttribute("WeightKg")) or 0)
+
+	return `{name} | {pickup:GetAttribute("Rarity")} | {weightText} Kg | ${formatAmount(getPickupIncome(pickup) or 0)}/s`
+end
+
+local function waitForBank(job, bankCountBefore, timeout)
+	waitUntil(job, timeout, function()
+		return state.bankCount > bankCountBefore or not isCarrying()
+	end)
+
+	if state.bankCount == bankCountBefore and not isCarrying() then
+		waitUntil(job, 1, function()
+			return state.bankCount > bankCountBefore
+		end)
+	end
+
+	return state.bankCount > bankCountBefore
+end
+
+local function rememberCarriedPet(pickup)
+	state.carriedPet = {
+		name = pickup:GetAttribute("AnimalName") or pickup.Name,
+		weight = tonumber(pickup:GetAttribute("WeightKg")) or 0,
+		zoneId = pickup:GetAttribute("ZoneId"),
+	}
+end
+
+local function firePromptUntilCarrying(job, pickup, timeLimit, retryGap)
+	local deadline = os.clock() + timeLimit
+	local disabledSince = nil
+
+	while isJobRunning(job) and pickup.Parent and not isCarrying() and os.clock() < deadline do
+		local prompt = findStealPrompt(pickup)
+
+		if prompt and prompt.Enabled then
+			disabledSince = nil
+			fireproximityprompt(prompt)
+			waitUntil(job, retryGap, isCarrying)
+		else
+			if prompt then
+				disabledSince = disabledSince or os.clock()
+				if os.clock() - disabledSince > 0.6 then
+					return false, "Prompt Disabled"
+				end
+			end
+
+			task.wait(0.1)
+		end
+	end
+
+	if isCarrying() then
+		return true
+	end
+
+	return false, "No Carry"
+end
+
+local function approachPickup(job, pickup)
+	local function isNear()
+		local _, _, root = getCharacterParts()
+		return root ~= nil and pickup.Parent ~= nil and flatDistance(getPickupCenter(pickup), root.Position) <= 5
+	end
+
+	if isNear() then
+		return true
+	end
+
+	walkUntil(job, getPickupCenter(pickup), function()
+		return isNear() or pickup.Parent == nil
+	end)
+
+	if isNear() then
+		return true
+	end
+
+	local _, _, root = getCharacterParts()
+	if not (root and isJobRunning(job) and pickup.Parent) then
+		return false
+	end
+
+	local center = getPickupCenter(pickup)
+	if flatDistance(center, root.Position) > maxHopDistance then
+		return false
+	end
+
+	teleportRoot(root, findGroundPoint(center.X + 3, center.Z, root.Position.Y - 3), center)
+	task.wait(0.25)
+
+	return isNear()
+end
+
+local function startHold(target)
+	local hold = {target = target}
+
+	hold.connection = trackConnection(RunService.Heartbeat:Connect(function()
+		local _, _, root = getCharacterParts()
+		if root and (root.Position - hold.target).Magnitude > 3 then
+			teleportRoot(root, hold.target)
+		end
+	end))
+
+	return hold
+end
+
+local function followGuardUntilCaught(job, guard)
+	local startedAt = os.clock()
+	local guardStateAtStart = tostring(guard:GetAttribute("ChaseState"))
+	local isCaught = false
+	state.activity = "Following Guard"
+
+	local flingConnection = trackConnection(catchFlingRemote.OnClientEvent:Connect(function(action)
+		if action == "fling" then
+			isCaught = true
+		end
+	end))
+
+	local followConnection = trackConnection(RunService.Heartbeat:Connect(function()
+		local _, _, root = getCharacterParts()
+		if isCaught or not root or guard.Parent == nil then
+			return
+		end
+
+		local guardPosition = guard:GetPivot().Position
+		teleportRoot(root, findGroundPoint(guardPosition.X, guardPosition.Z, guardPosition.Y))
+	end))
+
+	waitUntil(job, 4, function()
+		return isCaught or not isCarrying()
+	end)
+
+	releaseConnection(followConnection)
+	releaseConnection(flingConnection)
+
+	local isDone = isCaught or not isCarrying()
+	if isDone then
+		writeLog(`[Pet] Caught After {string.format("%.1f", os.clock() - startedAt)} s | Guard Was {guardStateAtStart}`)
+	end
+
+	return isDone
+end
+
+local function findDroppedPet(carriedPet)
+	local _, _, root = getCharacterParts()
+	local bestPickup, bestDistance = nil, math.huge
+
+	for _, pickup in CollectionService:GetTagged("AnimalPickup") do
+		local name = pickup:GetAttribute("AnimalName") or pickup.Name
+		local weight = tonumber(pickup:GetAttribute("WeightKg")) or 0
+		if pickup.Parent == nil or name ~= carriedPet.name then
+			continue
+		end
+
+		if carriedPet.weight and math.abs(weight - carriedPet.weight) < 0.05 then
+			return pickup
+		end
+
+		if not carriedPet.weight and root then
+			local distance = (getPickupCenter(pickup) - root.Position).Magnitude
+			if distance < bestDistance then
+				bestPickup, bestDistance = pickup, distance
+			end
+		end
+	end
+
+	return bestPickup
+end
+
+local function retakeDroppedPet(job, carriedPet)
+	local deadline = os.clock() + 2.6
+
+	while isJobRunning(job) and not isCarrying() and os.clock() < deadline do
+		local pickup = findDroppedPet(carriedPet)
+		local _, _, root = getCharacterParts()
+
+		if pickup and root then
+			local center = getPickupCenter(pickup)
+			teleportRoot(root, findGroundPoint(center.X, center.Z, center.Y))
+			task.wait()
+			firePromptUntilCarrying(job, pickup, 0.35, 0.35)
+		else
+			task.wait(0.05)
+		end
+	end
+
+	return isCarrying()
+end
+
+local function hitEggsWhileRagdolled(job, hold, zoneIndex)
+	local egg = nil
+	local inRangeSince = nil
+	local hits = 0
+	local deadline = os.clock() + 6
+
+	while isJobRunning(job) and isRagdolled() and state.farmZone == zoneIndex and os.clock() < deadline do
+		if not (egg and eggTargeting.IsLive(egg)) then
+			egg = pickEgg(zoneIndex, hold.target)
+			inRangeSince = nil
+
+			if not egg then
+				task.wait(0.1)
+				continue
+			end
+
+			local standPoint = getStandPoint(egg, hold.target)
+			hold.target = findGroundPoint(standPoint.X, standPoint.Z, egg.Position.Y)
+		end
+
+		local character, humanoid = getCharacterParts()
+		if character and isInHitRange(egg) then
+			inRangeSince = inRangeSince or os.clock()
+
+			if os.clock() - inRangeSince >= 0.25 and equipPickaxe(character, humanoid) then
+				state.nextHitId += 1
+				eggHitRemote:FireServer(egg, state.nextHitId)
+				hits += 1
+			end
+		end
+
+		task.wait(getHitInterval())
+	end
+
+	return hits
+end
+
+local function bankByGuardCatch(job, zoneIndex)
+	local plot = findOwnedPlot()
+	local _, _, root = getCharacterParts()
+
+	if not state.carriedPet and isCarrying() and root then
+		local currentZone = findZoneAt(root.Position)
+		state.carriedPet = {
+			name = tostring(localPlayer:GetAttribute("Carrying")),
+			weight = nil,
+			zoneId = currentZone and `Zone{currentZone}`,
+		}
+	end
+
+	local carriedPet = state.carriedPet
+	if not (carriedPet and plot and root and catchFlingRemote) then
+		return false, "Not Ready"
+	end
+
+	local guard = findCatchingGuard(carriedPet.zoneId, root.Position)
+	if not guard then
+		return false, "No Guard"
+	end
+
+	if not followGuardUntilCaught(job, guard) then
+		return false, "Not Caught"
+	end
+
+	local plotTarget = plot:GetPivot().Position + Vector3.new(0, 3, 0)
+	local bankCountBefore = state.bankCount
+	local isBanked = false
+	local hold = nil
+	local retakes = 0
+
+	while retakes < 3 and isJobRunning(job) do
+		state.activity = "Retaking Pet"
+		if not retakeDroppedPet(job, carriedPet) then
+			break
+		end
+
+		retakes += 1
+		state.activity = "Holding At Plot"
+		hold = startHold(plotTarget)
+		isBanked = waitForBank(job, bankCountBefore, 4)
+
+		if isBanked or isCarrying() then
+			break
+		end
+
+		releaseConnection(hold.connection)
+		hold = nil
+	end
+
+	if retakes > 1 then
+		writeLog(`[Pet] Retook {carriedPet.name} {retakes} Times`)
+	end
+
+	if not hold then
+		if retakes == 0 then
+			return false, "Retake Failed"
+		end
+
+		return false, "Dropped Again"
+	end
+
+	if isBanked then
+		state.carriedPet = nil
+	end
+
+	local nextPickup = nil
+
+	if isBanked and isJobRunning(job) and isRagdolled() and state.farmZone == zoneIndex then
+		nextPickup = findBestPickup(zoneIndex, true)
+
+		if nextPickup then
+			state.activity = "Waiting Next Pet"
+			local center = getPickupCenter(nextPickup)
+			hold.target = findGroundPoint(center.X + 3, center.Z, center.Y)
+			waitUntil(job, 6, function()
+				return not isRagdolled()
+			end)
+		else
+			state.activity = "Ragdoll Hits"
+			local zoneHitbox = getZoneHitbox(zoneIndex)
+			if zoneHitbox then
+				local center = zoneHitbox.Position
+				hold.target = findGroundPoint(center.X, center.Z, center.Y - zoneHitbox.Size.Y / 2)
+			end
+
+			local ragdollHits = hitEggsWhileRagdolled(job, hold, zoneIndex)
+			if ragdollHits > 0 then
+				writeLog(`[Pet] Ragdoll Hits | {ragdollHits}`)
+			end
+		end
+	end
+
+	releaseConnection(hold.connection)
+
+	local canGrabNext = nextPickup ~= nil
+		and nextPickup.Parent ~= nil
+		and isJobRunning(job)
+		and not isGuardBusy(nextPickup:GetAttribute("ZoneId"))
+
+	if canGrabNext and firePromptUntilCarrying(job, nextPickup, 1, 0.15) then
+		rememberCarriedPet(nextPickup)
+		writeLog(`[Pet] Take {describePickup(nextPickup)} | After Ragdoll`)
+	end
+
+	if isBanked then
+		return true, "Banked"
+	end
+
+	return false, "Not Banked"
+end
+
+local function walkHome(job)
+	local plot = findOwnedPlot()
+	local plotHitbox = plot and plot:FindFirstChild("Hitbox")
+	local _, _, root = getCharacterParts()
+	if not (plotHitbox and root) then
+		return false
+	end
+
+	state.activity = "Walking Home"
+	local bankCountBefore = state.bankCount
+
+	local function isDone()
+		return state.bankCount > bankCountBefore or not isCarrying()
+	end
+
+	if math.abs(root.Position.Z - plotHitbox.Position.Z) > 12 then
+		walkUntil(job, Vector3.new(root.Position.X, root.Position.Y, plotHitbox.Position.Z), function()
+			local _, _, currentRoot = getCharacterParts()
+			return isDone() or (currentRoot ~= nil and math.abs(currentRoot.Position.Z - plotHitbox.Position.Z) <= 4)
+		end)
+	end
+
+	walkUntil(job, plotHitbox.Position, isDone)
+
+	return waitForBank(job, bankCountBefore, 3)
+end
+
+local function bringPetHome(job, zoneIndex)
+	local carriedName = state.carriedPet and state.carriedPet.name or tostring(localPlayer:GetAttribute("Carrying"))
+	local startedAt = os.clock()
+
+	local isBanked, reason = bankByGuardCatch(job, zoneIndex)
+	if not isJobRunning(job) then
+		return
+	end
+
+	if isBanked then
+		writeLog(`[Pet] Banked {carriedName} | Guard | {string.format("%.1f", os.clock() - startedAt)} s`)
+		return
+	end
+
+	if not isCarrying() then
+		state.carriedPet = nil
+		writeLog(`[Pet] Lost {carriedName} | {reason}`)
+		return
+	end
+
+	writeLog(`[Pet] Guard Bank {carriedName} Failed: {reason} | Walking Home`)
+
+	if walkHome(job) then
+		state.carriedPet = nil
+		writeLog(`[Pet] Banked {carriedName} | Walk | {string.format("%.1f", os.clock() - startedAt)} s`)
+	elseif isJobRunning(job) then
+		writeLog(`[Pet] Bank {carriedName} Failed: Walk Home`)
+	end
+end
+
+local function takePet(job, pickup)
+	local description = describePickup(pickup)
+	state.activity = "Taking Pet"
+
+	if not approachPickup(job, pickup) then
+		if isJobRunning(job) then
+			state.skippedPickups[pickup] = os.clock() + 10
+			writeLog(`[Pet] Take {description} Failed: Unreachable`)
+		end
+
+		return false
+	end
+
+	local isTaken, failure = firePromptUntilCarrying(job, pickup, 3, 0.6)
+	if not isTaken then
+		if isJobRunning(job) then
+			if failure == "Prompt Disabled" then
+				state.skippedPickups[pickup] = os.clock() + 5
+			else
+				state.skippedPickups[pickup] = os.clock() + 60
+			end
+
+			local prompt = pickup.Parent and findStealPrompt(pickup)
+			local promptDetail = "No Prompt"
+			if prompt then
+				local shownText = string.gsub(prompt.ObjectText, "<[^>]+>", "")
+				local promptDistance = (prompt.Parent.Position - getPickupCenter(pickup)).Magnitude
+				promptDetail = `{shownText} | {string.format("%.1f", promptDistance)} Studs | Enabled {prompt.Enabled} | Reserved {tostring(prompt:GetAttribute("ReservedUserId"))}`
+			end
+
+			writeLog(`[Pet] Take {description} Failed: {failure} | {promptDetail} | Pickup Reserved {tostring(pickup:GetAttribute("ReservedUserId"))}`)
+		end
+
+		return false
+	end
+
+	rememberCarriedPet(pickup)
+	writeLog(`[Pet] Take {description}`)
+
+	return true
+end
+
+local function breakEgg(job, egg, zoneIndex)
+	local hits = 0
+	local lastHealth = egg:GetAttribute("Health")
+	local lastDamageAt = os.clock()
+
+	while isJobRunning(job) and state.farmZone == zoneIndex and eggTargeting.IsLive(egg) and not state.eventOwner do
+		if findBestPickup(zoneIndex, false) then
+			return "Pet Ready", hits
+		end
+
+		if not approachEgg(job, egg) then
+			return "Unreachable", hits
+		end
+
+		local character, humanoid = getCharacterParts()
+		if not (character and equipPickaxe(character, humanoid)) then
+			return "No Pickaxe", hits
+		end
+
+		state.nextHitId += 1
+		eggHitRemote:FireServer(egg, state.nextHitId)
+		hits += 1
+
+		task.wait(getHitInterval())
+
+		local health = egg:GetAttribute("Health")
+		if health ~= lastHealth then
+			lastHealth = health
+			lastDamageAt = os.clock()
+		elseif os.clock() - lastDamageAt > 6 then
+			return "No Damage", hits
+		end
+	end
+
+	if not isJobRunning(job) then
+		return "Stopped", hits
+	end
+
+	if state.farmZone ~= zoneIndex then
+		return "Area Changed", hits
+	end
+
+	if state.eventOwner then
+		return "Event", hits
+	end
+
+	return "Done", hits
+end
+
+local function runAutoBreak(job)
+	if not waitForEarlierRuns(job) then
+		if not isJobRunning(job) then
+			return
+		end
+
+		writeLog("[Break] Previous Run Still Busy | Starting Anyway")
+	end
+
+	writeLog(`[Break] Start | {zoneNames[state.farmZone] or state.farmZone}`)
+
+	while isJobRunning(job) do
+		local zoneIndex = state.farmZone
+		local zoneName = zoneNames[zoneIndex] or tostring(zoneIndex)
+		local _, _, root = getCharacterParts()
+
+		if not root then
+			task.wait(0.5)
+			continue
+		end
+
+		if isCarrying() then
+			bringPetHome(job, zoneIndex)
+
+			if isJobRunning(job) and isCarrying() then
+				task.wait(1)
+			end
+
+			continue
+		end
+
+		if state.eventOwner then
+			state.isBreakPaused = true
+			state.activity = "Paused For Event"
+			task.wait(0.5)
+			continue
+		end
+
+		state.isBreakPaused = false
+
+		if not isInsideZone(root.Position, zoneIndex) then
+			state.activity = "Traveling"
+			local travelStartedAt = os.clock()
+			local arrived, detail = travelToZone(job, zoneIndex)
+
+			if arrived then
+				writeLog(`[Break] Travel {zoneName} | {detail} | {string.format("%.1f", os.clock() - travelStartedAt)} s`)
+			elseif isJobRunning(job) then
+				writeLog(`[Break] Travel {zoneName} Failed: {detail}`)
+				task.wait(3)
+			end
+
+			continue
+		end
+
+		local pickup = findBestPickup(zoneIndex, false)
+		if pickup then
+			if takePet(job, pickup) then
+				bringPetHome(job, zoneIndex)
+			end
+
+			continue
+		end
+
+		local egg = pickEgg(zoneIndex, root.Position)
+		if not egg then
+			state.activity = "Waiting For Eggs"
+			task.wait(0.5)
+			continue
+		end
+
+		local eggType = egg:GetAttribute("EggType")
+		local startedAt = os.clock()
+		state.activity = "Breaking Egg"
+		local result, hits = breakEgg(job, egg, zoneIndex)
+		if not isJobRunning(job) then
+			break
+		end
+
+		if result == "Unreachable" or result == "No Damage" then
+			state.skippedEggs[egg] = os.clock() + 15
+		elseif result == "No Pickaxe" then
 			task.wait(1)
 		end
-		if not lo2 and ge.__BseAf == st and go2(function() ts:Teleport(game.PlaceId, lp) end) then return true end
+
+		writeLog(`[Break] {eggType} | {result} | {hits} Hits | {string.format("%.1f", os.clock() - startedAt)} s`)
+	end
+
+	stopWalking()
+	state.activity = "Idle"
+	writeLog("[Break] Stop")
+end
+
+local halloween = {
+	handlers = {},
+	labels = {BloodMoon = "Blood Moon", CandyHeist = "Candy Carnage"},
+	scheduleAttribute = "HalloweenScheduleState",
+	bloodMoonAttribute = "BloodMoonActive",
+	bagAttribute = "CandyHeistBag",
+	bagCapacity = 500,
+	collectRadius = 10,
+	pileTag = "BreakableCandyPile",
+	pileCandyByZone = {},
+	pileMultipliers = {},
+	bossTag = "BloodMoonPumpkinKing",
+	bossRange = 42,
+	bossAngle = 80,
+	bossRoamSpeed = 12,
+	lastEscapeTeleportAt = 0,
+	potionCollectRadius = 30,
+	phantomRunAttribute = "DisguisedEggRun",
+	phantomEndAttribute = "DisguisedEggEndsAt",
+	phantomCandyByZone = {},
+	doorTag = "BreakableHalloweenDoor",
+	treatOutcomes = {Candy = true, Damage = true, Cash = true, WalkSpeed = true},
+}
+
+halloween.labels.DisguisedEggs = "Phantom Eggs"
+halloween.labels.TrickOrTreat = "House of Horrors"
+
+if type(halloweenConfig) == "table" then
+	local schedule = halloweenConfig.Schedule
+	local heist = halloweenConfig.CandyHeist
+	local bloodMoon = halloweenConfig.BloodMoon
+	local boss = type(bloodMoon) == "table" and bloodMoon.Pumpkin
+	local candyDrops = halloweenConfig.CandyDrops
+	local disguisedEggs = halloweenConfig.DisguisedEggs
+	local rewards = halloweenConfig.Rewards
+	local trickOrTreat = halloweenConfig.TrickOrTreat
+
+	if type(schedule) == "table" and type(schedule.Labels) == "table" then
+		halloween.scheduleAttribute = schedule.StateAttribute or halloween.scheduleAttribute
+
+		for key, label in schedule.Labels do
+			if type(label) == "string" then
+				halloween.labels[key] = label
+			end
+		end
+	end
+
+	if type(candyDrops) == "table" then
+		halloween.potionCollectRadius = tonumber(candyDrops.PotionCollectRadius) or halloween.potionCollectRadius
+	end
+
+	if type(disguisedEggs) == "table" then
+		halloween.phantomRunAttribute = disguisedEggs.RunAttribute or halloween.phantomRunAttribute
+		halloween.phantomEndAttribute = disguisedEggs.EndAttribute or halloween.phantomEndAttribute
+	end
+
+	if type(rewards) == "table" and type(rewards.DisguisedEggs) == "table" and type(rewards.DisguisedEggs.CandyCornByZone) == "table" then
+		halloween.phantomCandyByZone = rewards.DisguisedEggs.CandyCornByZone
+	end
+
+	if type(trickOrTreat) == "table" then
+		halloween.doorTag = trickOrTreat.Tag or halloween.doorTag
+
+		if type(trickOrTreat.Outcomes) == "table" then
+			halloween.treatOutcomes = {}
+			for name, outcome in trickOrTreat.Outcomes do
+				if type(outcome) == "table" and outcome.Treat == true then
+					halloween.treatOutcomes[name] = true
+				end
+			end
+		end
+	end
+
+	if type(heist) == "table" then
+		halloween.bagAttribute = heist.BagAttribute or halloween.bagAttribute
+		halloween.bagCapacity = tonumber(heist.Capacity) or halloween.bagCapacity
+		halloween.collectRadius = tonumber(heist.CollectRadius) or halloween.collectRadius
+		halloween.pileTag = heist.PileTag or halloween.pileTag
+
+		if type(heist.PileCandyByZone) == "table" then
+			halloween.pileCandyByZone = heist.PileCandyByZone
+		end
+
+		for _, variant in type(heist.PileVariants) == "table" and heist.PileVariants or {} do
+			if type(variant) == "table" and type(variant.Label) == "string" then
+				halloween.pileMultipliers[variant.Label] = tonumber(variant.CandyMultiplier) or 1
+			end
+		end
+	end
+
+	if type(bloodMoon) == "table" then
+		halloween.bloodMoonAttribute = bloodMoon.ActiveAttribute or halloween.bloodMoonAttribute
+	end
+
+	if type(boss) == "table" then
+		halloween.bossTag = boss.Tag or halloween.bossTag
+		halloween.bossRange = tonumber(boss.Range) or halloween.bossRange
+		halloween.bossAngle = tonumber(boss.Angle) or halloween.bossAngle
+		halloween.bossRoamSpeed = tonumber(boss.RoamSpeed) or halloween.bossRoamSpeed
+	end
+end
+
+function halloween.readActiveEvent()
+	local raw = workspace:GetAttribute(halloween.scheduleAttribute)
+	if type(raw) ~= "string" then
+		return nil
+	end
+
+	local decoded, schedule = pcall(HttpService.JSONDecode, HttpService, raw)
+	if not decoded or type(schedule) ~= "table" or type(schedule.Active) ~= "table" then
+		return nil
+	end
+
+	local now = workspace:GetServerTimeNow()
+	for _, event in schedule.Active do
+		local endsAt = type(event) == "table" and tonumber(event.EndsAt)
+		if endsAt and endsAt > now and halloween.handlers[event.Key] then
+			return {key = event.Key, endsAt = endsAt}
+		end
+	end
+
+	return nil
+end
+
+function halloween.getTimeLeft(event)
+	return event.endsAt - workspace:GetServerTimeNow()
+end
+
+function halloween.isEventLive(event)
+	if halloween.getTimeLeft(event) <= 0 then
+		return false
+	end
+
+	return event.key ~= "BloodMoon" or workspace:GetAttribute(halloween.bloodMoonAttribute) ~= false
+end
+
+function halloween.hasArea(eventKey)
+	local area = state.eventZones[eventKey]
+	if type(area) == "table" then
+		return next(area) ~= nil
+	end
+
+	return area ~= nil
+end
+
+function halloween.readBag()
+	return tonumber(localPlayer:GetAttribute(halloween.bagAttribute)) or 0
+end
+
+function halloween.readCandy()
+	return tonumber(localPlayer:GetAttribute("CandyCorn")) or 0
+end
+
+function halloween.listBosses()
+	local bosses = {}
+
+	for _, model in CollectionService:GetTagged(halloween.bossTag) do
+		local root = model:IsA("Model") and model.PrimaryPart
+		if root and model:IsDescendantOf(workspace) then
+			table.insert(bosses, {
+				name = model.Name,
+				root = root,
+				mode = model:GetAttribute("PumpkinState"),
+				targetUserId = model:GetAttribute("TargetUserId"),
+			})
+		end
+	end
+
+	return bosses
+end
+
+function halloween.isInBossSight(boss, position, extraRange)
+	local bossPosition = boss.root.Position
+	local offset = Vector3.new(position.X - bossPosition.X, 0, position.Z - bossPosition.Z)
+	if math.abs(position.Y - bossPosition.Y) > 16 or offset.Magnitude > halloween.bossRange + extraRange then
+		return false
+	end
+
+	if offset.Magnitude < 25 then
+		return true
+	end
+
+	local look = boss.root.CFrame.LookVector
+	local flatLook = Vector3.new(look.X, 0, look.Z)
+	if flatLook.Magnitude < 0.01 then
+		return true
+	end
+
+	local halfAngle = math.rad((halloween.bossAngle + 60) / 2)
+
+	return flatLook.Unit:Dot(offset.Unit) >= math.cos(halfAngle)
+end
+
+function halloween.findWatchingBoss(position, bosses, extraRange)
+	for _, boss in bosses do
+		if halloween.isInBossSight(boss, position, extraRange) then
+			return boss
+		end
+	end
+
+	return nil
+end
+
+function halloween.findChasingBoss(bosses)
+	for _, boss in bosses do
+		local isHunting = boss.mode == "Alerted" or boss.mode == "Pursuing" or boss.mode == "Charging"
+		if isHunting and boss.targetUserId == localPlayer.UserId then
+			return boss
+		end
+	end
+
+	return nil
+end
+
+function halloween.findBossThreat()
+	local _, _, root = getCharacterParts()
+	local bosses = halloween.listBosses()
+
+	local chasingBoss = halloween.findChasingBoss(bosses)
+	if chasingBoss then
+		return "Chased", chasingBoss
+	end
+
+	local watchingBoss = root and halloween.findWatchingBoss(root.Position, bosses, 20)
+	if watchingBoss then
+		return "Boss Near", watchingBoss
+	end
+
+	return nil, nil
+end
+
+function halloween.isMyDrop(drop)
+	return drop.claimUserId == nil or drop.claimUserId == 0 or drop.claimUserId == localPlayer.UserId
+end
+
+function halloween.getReachDistance(drop)
+	if drop.isPotion then
+		return halloween.potionCollectRadius - 3
+	end
+
+	return halloween.collectRadius - 3
+end
+
+function halloween.isBagFull(drops)
+	return drops == state.candyDrops and halloween.readBag() >= halloween.bagCapacity
+end
+
+function halloween.findNearestDrop(drops, centre, maxDistance, bosses)
+	local now = workspace:GetServerTimeNow()
+	local clock = os.clock()
+	local bestDrop, bestDistance = nil, maxDistance
+
+	for id, drop in drops do
+		if drop.expiresAt <= now then
+			drops[id] = nil
+			continue
+		end
+
+		if drop.skipUntil > clock or not halloween.isMyDrop(drop) then
+			continue
+		end
+
+		local distance = flatDistance(drop.position, centre)
+		if distance < bestDistance and not halloween.findWatchingBoss(drop.position, bosses, 0) then
+			bestDrop, bestDistance = drop, distance
+		end
+	end
+
+	return bestDrop
+end
+
+function halloween.collectDrops(job, event, drops, centre, maxDistance)
+	while isJobRunning(job) and halloween.isEventLive(event) and not halloween.isBagFull(drops) do
+		local _, _, root = getCharacterParts()
+		if not root or isRagdolled() then
+			return
+		end
+
+		if halloween.findBossThreat() then
+			return
+		end
+
+		local drop = halloween.findNearestDrop(drops, centre or root.Position, maxDistance, halloween.listBosses())
+		if not drop then
+			return
+		end
+
+		state.activity = "Collecting Candy"
+		local reachDistance = halloween.getReachDistance(drop)
+
+		local function isReached()
+			local _, _, currentRoot = getCharacterParts()
+			if currentRoot == nil or drops[drop.id] == nil or halloween.findBossThreat() then
+				return true
+			end
+
+			return flatDistance(drop.position, currentRoot.Position) <= reachDistance
+		end
+
+		walkUntil(job, drop.position, isReached)
+		waitUntil(job, 1, function()
+			return drops[drop.id] == nil or halloween.findBossThreat() ~= nil
+		end)
+
+		drop.skipUntil = os.clock() + 3
+	end
+end
+
+function halloween.hasNewDropAt(drops, position, since)
+	for _, drop in drops do
+		if drop.spawnedAt >= since and halloween.isMyDrop(drop) and flatDistance(drop.origin, position) <= 12 then
+			return true
+		end
+	end
+
+	return false
+end
+
+function halloween.waitAndCollect(job, event, drops, position, brokenAt, timeout, isNothingComing)
+	state.activity = "Waiting For Candy"
+
+	local hasDrops = waitUntil(job, timeout, function()
+		if halloween.hasNewDropAt(drops, position, brokenAt) or not halloween.isEventLive(event) then
+			return true
+		end
+
+		return halloween.findBossThreat() ~= nil or (isNothingComing ~= nil and isNothingComing())
+	end)
+
+	if hasDrops and halloween.hasNewDropAt(drops, position, brokenAt) and not halloween.findBossThreat() then
+		waitUntil(job, 0.7, function()
+			return halloween.findBossThreat() ~= nil
+		end)
+		halloween.collectDrops(job, event, drops, position, 30)
+	end
+
+	return hasDrops
+end
+
+function halloween.breakTarget(job, target, event, findStopReason, isAlive, approach)
+	local hits = 0
+	local lastHealth = target:GetAttribute("Health")
+	local lastDamageAt = os.clock()
+	isAlive = isAlive or eggTargeting.IsLive
+	approach = approach or approachEgg
+
+	while isJobRunning(job) and isAlive(target) do
+		if not halloween.isEventLive(event) then
+			return "Event Ended", hits
+		end
+
+		local stopReason = findStopReason()
+		if stopReason then
+			return stopReason, hits
+		end
+
+		if not approach(job, target) then
+			return "Unreachable", hits
+		end
+
+		local character, humanoid = getCharacterParts()
+		if not (character and equipPickaxe(character, humanoid)) then
+			return "No Pickaxe", hits
+		end
+
+		state.nextHitId += 1
+		eggHitRemote:FireServer(target, state.nextHitId)
+		hits += 1
+
+		local nextHitAt = os.clock() + getHitInterval()
+		while os.clock() < nextHitAt do
+			task.wait(math.min(0.1, nextHitAt - os.clock()))
+
+			local reason = findStopReason()
+			if reason then
+				return reason, hits
+			end
+		end
+
+		local health = target:GetAttribute("Health")
+		if health ~= lastHealth then
+			lastHealth = health
+			lastDamageAt = os.clock()
+		elseif os.clock() - lastDamageAt > 6 then
+			return "No Damage", hits
+		end
+	end
+
+	if not isJobRunning(job) then
+		return "Stopped", hits
+	end
+
+	return "Done", hits
+end
+
+function halloween.findEscapePoint(root, boss, zoneIndex, bosses)
+	local away = Vector3.new(root.Position.X - boss.root.Position.X, 0, root.Position.Z - boss.root.Position.Z)
+	if away.Magnitude < 0.1 then
+		away = Vector3.xAxis
+	end
+
+	local baseAngle = math.atan2(away.Unit.Z, away.Unit.X)
+
+	for _, turn in {0, 45, -45, 90, -90, 135, -135} do
+		local angle = baseAngle + math.rad(turn)
+		local point = root.Position + Vector3.new(math.cos(angle), 0, math.sin(angle)) * maxHopDistance
+		if isInsideZone(point, zoneIndex) and not halloween.findWatchingBoss(point, bosses, 20) then
+			local groundY = findGroundY(zoneIndex, point.X, point.Z)
+			return Vector3.new(point.X, groundY and groundY + 3.5 or root.Position.Y, point.Z)
+		end
+	end
+
+	return nil
+end
+
+function halloween.escapeBoss(job, boss, zoneIndex)
+	local _, _, root = getCharacterParts()
+	if not root then
+		return
+	end
+
+	state.activity = "Escaping Boss"
+
+	local point = halloween.findEscapePoint(root, boss, zoneIndex, halloween.listBosses())
+	if not point then
+		writeLog(`[Event] Escape {boss.name} Failed: No Safe Point`)
+		task.wait(0.3)
+		return
+	end
+
+	if os.clock() - halloween.lastEscapeTeleportAt < 1.5 then
+		walkUntil(job, point, function()
+			local _, _, currentRoot = getCharacterParts()
+			return currentRoot == nil or flatDistance(currentRoot.Position, point) <= 4 or halloween.findBossThreat() == nil
+		end)
+		return
+	end
+
+	halloween.lastEscapeTeleportAt = os.clock()
+	teleportRoot(root, point)
+	writeLog(`[Event] Escape {boss.name} | {boss.mode} | {string.format("%.0f", flatDistance(point, boss.root.Position))} Studs Away`)
+	task.wait(0.4)
+end
+
+function halloween.estimateTripHome()
+	local plot = findOwnedPlot()
+	local plotHitbox = plot and plot:FindFirstChild("Hitbox")
+	local _, humanoid, root = getCharacterParts()
+	if not (plotHitbox and humanoid and root) then
+		return math.huge
+	end
+
+	return flatDistance(root.Position, plotHitbox.Position) / math.max(humanoid.WalkSpeed, 16) + 3
+end
+
+function halloween.bankBag(job, event)
+	local plot = findOwnedPlot()
+	local plotHitbox = plot and plot:FindFirstChild("Hitbox")
+	local _, _, root = getCharacterParts()
+	if not (plotHitbox and root) then
+		return false
+	end
+
+	state.activity = "Banking Candy"
+
+	local bag = halloween.readBag()
+	local startedAt = os.clock()
+
+	local function isBanked()
+		return halloween.readBag() < bag or not halloween.isEventLive(event)
+	end
+
+	if math.abs(root.Position.Z - plotHitbox.Position.Z) > 12 then
+		walkUntil(job, Vector3.new(root.Position.X, root.Position.Y, plotHitbox.Position.Z), function()
+			local _, _, currentRoot = getCharacterParts()
+			return isBanked() or (currentRoot ~= nil and math.abs(currentRoot.Position.Z - plotHitbox.Position.Z) <= 4)
+		end)
+	end
+
+	walkUntil(job, plotHitbox.Position, isBanked)
+	local banked = waitUntil(job, 3, isBanked)
+
+	writeLog(`[Event] Bank {bag} Candy | {banked and "Done" or "Failed"} | {string.format("%.1f", os.clock() - startedAt)} s`)
+
+	return banked
+end
+
+function halloween.runBloodMoon(job, event)
+	local zoneIndex = state.eventZones.BloodMoon
+	local candyBefore = halloween.readCandy()
+	local eggsBroken = 0
+
+	writeLog(`[Event] Blood Moon Start | {zoneNames[zoneIndex] or zoneIndex} | {string.format("%.0f", halloween.getTimeLeft(event))} s Left`)
+
+	while isJobRunning(job) and halloween.isEventLive(event) do
+		zoneIndex = state.eventZones.BloodMoon
+		local _, _, root = getCharacterParts()
+
+		if not root or isRagdolled() then
+			state.activity = "Waiting For Character"
+			task.wait(0.3)
+			continue
+		end
+
+		if halloween.readBag() >= halloween.bagCapacity and halloween.getTimeLeft(event) > halloween.estimateTripHome() + 10 then
+			halloween.bankBag(job, event)
+			continue
+		end
+
+		if not isInsideZone(root.Position, zoneIndex) then
+			state.activity = "Traveling"
+			local travelStartedAt = os.clock()
+			local arrived, detail = travelToZone(job, zoneIndex)
+
+			if arrived then
+				writeLog(`[Event] Travel {zoneNames[zoneIndex] or zoneIndex} | {detail} | {string.format("%.1f", os.clock() - travelStartedAt)} s`)
+			elseif isJobRunning(job) then
+				writeLog(`[Event] Travel {zoneNames[zoneIndex] or zoneIndex} Failed: {detail}`)
+				task.wait(3)
+			end
+
+			continue
+		end
+
+		local threat, threatBoss = halloween.findBossThreat()
+		if threat == "Chased" or (threat and halloween.readBag() > 0) then
+			halloween.escapeBoss(job, threatBoss, zoneIndex)
+			continue
+		end
+
+		halloween.collectDrops(job, event, state.candyDrops, nil, 60)
+
+		_, _, root = getCharacterParts()
+		if not root then
+			continue
+		end
+
+		local bosses = halloween.listBosses()
+		local egg = pickEgg(zoneIndex, root.Position, function(candidate)
+			return halloween.findWatchingBoss(candidate.Position, bosses, halloween.bossRoamSpeed * 3) == nil
+		end)
+
+		if not egg then
+			state.activity = "Waiting For Safe Egg"
+			task.wait(0.3)
+			continue
+		end
+
+		local eggType = egg:GetAttribute("EggType")
+		local eggPosition = egg.Position
+		state.activity = "Breaking Egg"
+		local brokenAt = os.clock()
+		local result, hits = halloween.breakTarget(job, egg, event, function()
+			if state.eventZones.BloodMoon ~= zoneIndex then
+				return "Area Changed"
+			end
+
+			return (halloween.findBossThreat())
+		end)
+
+		if result == "Done" then
+			eggsBroken += 1
+			halloween.waitAndCollect(job, event, state.candyDrops, eggPosition, brokenAt, 6)
+		elseif result == "Boss Near" then
+			state.skippedEggs[egg] = os.clock() + 4
+		elseif result == "Unreachable" or result == "No Damage" then
+			state.skippedEggs[egg] = os.clock() + 15
+		elseif result == "No Pickaxe" then
+			task.wait(1)
+		end
+
+		writeLog(`[Event] {eggType} | {result} | {hits} Hits | Bag {halloween.readBag()}`)
+	end
+
+	stopWalking()
+
+	if not isJobRunning(job) then
+		writeLog(`[Event] Blood Moon Stopped | {eggsBroken} Eggs | Bag {halloween.readBag()}`)
+		return
+	end
+
+	waitUntil(job, 5, function()
+		return halloween.readBag() == 0
+	end)
+
+	writeLog(`[Event] Blood Moon End | {eggsBroken} Eggs | Candy +{halloween.readCandy() - candyBefore}`)
+end
+
+halloween.handlers.BloodMoon = halloween.runBloodMoon
+
+function halloween.getPileCandy(pile)
+	local baseCandy = halloween.pileCandyByZone[pile:GetAttribute("ZoneIndex")] or 1
+	local multiplier = halloween.pileMultipliers[pile:GetAttribute("PileLabel")] or 1
+
+	return baseCandy * multiplier
+end
+
+function halloween.pickPile(zoneIndex, rootPosition)
+	local now = os.clock()
+	local bestPile, bestCandy, bestDistance = nil, -math.huge, math.huge
+
+	for _, pile in CollectionService:GetTagged(halloween.pileTag) do
+		if not pile:IsA("BasePart") or pile:GetAttribute("ZoneIndex") ~= zoneIndex then
+			continue
+		end
+
+		local skipUntil = state.skippedEggs[pile]
+		if (skipUntil and skipUntil > now) or not eggTargeting.IsLive(pile) then
+			continue
+		end
+
+		local candy = halloween.getPileCandy(pile)
+		local distance = (pile.Position - rootPosition).Magnitude
+		if candy > bestCandy or (candy == bestCandy and distance < bestDistance) then
+			bestPile, bestCandy, bestDistance = pile, candy, distance
+		end
+	end
+
+	return bestPile
+end
+
+function halloween.chooseCarnageZone(currentZone)
+	local zones = state.eventZones.CandyHeist
+	if currentZone and zones[currentZone] and halloween.pickPile(currentZone, Vector3.zero) then
+		return currentZone
+	end
+
+	local highestSelected = nil
+	for zoneIndex = #zoneNames, 1, -1 do
+		if zones[zoneIndex] then
+			highestSelected = highestSelected or zoneIndex
+
+			if halloween.pickPile(zoneIndex, Vector3.zero) then
+				return zoneIndex
+			end
+		end
+	end
+
+	if currentZone and zones[currentZone] then
+		return currentZone
+	end
+
+	return highestSelected
+end
+
+function halloween.travelWithBag(job, zoneIndex)
+	local _, _, root = getCharacterParts()
+	if not root then
+		return false, "No Character"
+	end
+
+	local currentZone = findZoneAt(root.Position)
+	if halloween.readBag() > 0 and currentZone and currentZone ~= zoneIndex then
+		local nextZone = currentZone + (if zoneIndex > currentZone then 1 else -1)
+		if walkToNeighborZone(job, nextZone) then
+			return true, `Walk {zoneNames[nextZone] or nextZone}`
+		end
+
+		return false, "Walk Failed"
+	end
+
+	return travelToZone(job, zoneIndex)
+end
+
+function halloween.listAreaNames(zones)
+	local names = {}
+	for zoneIndex = 1, #zoneNames do
+		if zones[zoneIndex] then
+			table.insert(names, zoneNames[zoneIndex])
+		end
+	end
+
+	return table.concat(names, ", ")
+end
+
+function halloween.runCandyCarnage(job, event)
+	local candyBefore = halloween.readCandy()
+	local workZone = nil
+	local pilesBroken = 0
+
+	writeLog(`[Event] Candy Carnage Start | {halloween.listAreaNames(state.eventZones.CandyHeist)} | {string.format("%.0f", halloween.getTimeLeft(event))} s Left`)
+
+	while isJobRunning(job) and halloween.isEventLive(event) do
+		local _, _, root = getCharacterParts()
+
+		if not root or isRagdolled() then
+			state.activity = "Waiting For Character"
+			task.wait(0.3)
+			continue
+		end
+
+		if halloween.readBag() >= halloween.bagCapacity and halloween.getTimeLeft(event) > halloween.estimateTripHome() + 10 then
+			halloween.bankBag(job, event)
+			continue
+		end
+
+		workZone = halloween.chooseCarnageZone(workZone)
+		if not workZone then
+			state.activity = "No Area"
+			task.wait(1)
+			continue
+		end
+
+		if not isInsideZone(root.Position, workZone) then
+			state.activity = "Traveling"
+			local travelStartedAt = os.clock()
+			local arrived, detail = halloween.travelWithBag(job, workZone)
+
+			if arrived then
+				writeLog(`[Event] Travel {zoneNames[workZone] or workZone} | {detail} | {string.format("%.1f", os.clock() - travelStartedAt)} s`)
+			elseif isJobRunning(job) then
+				writeLog(`[Event] Travel {zoneNames[workZone] or workZone} Failed: {detail}`)
+				task.wait(3)
+			end
+
+			continue
+		end
+
+		halloween.collectDrops(job, event, state.candyDrops, nil, 60)
+
+		_, _, root = getCharacterParts()
+		if not root then
+			continue
+		end
+
+		local pile = halloween.pickPile(workZone, root.Position)
+		if not pile then
+			state.activity = "Waiting For Piles"
+			task.wait(0.3)
+			continue
+		end
+
+		local pileLabel = pile:GetAttribute("PileLabel")
+		local pilePosition = pile.Position
+		local zoneOfPile = workZone
+		state.activity = "Breaking Pile"
+		local brokenAt = os.clock()
+		local result, hits = halloween.breakTarget(job, pile, event, function()
+			if not state.eventZones.CandyHeist[zoneOfPile] then
+				return "Area Changed"
+			end
+
+			return nil
+		end)
+
+		if result == "Done" then
+			pilesBroken += 1
+			halloween.waitAndCollect(job, event, state.candyDrops, pilePosition, brokenAt, 3)
+		elseif result == "Unreachable" or result == "No Damage" then
+			state.skippedEggs[pile] = os.clock() + 15
+		elseif result == "No Pickaxe" then
+			task.wait(1)
+		end
+
+		writeLog(`[Event] {pileLabel} | {result} | {hits} Hits | Bag {halloween.readBag()}`)
+	end
+
+	stopWalking()
+
+	if not isJobRunning(job) then
+		writeLog(`[Event] Candy Carnage Stopped | {pilesBroken} Piles | Bag {halloween.readBag()}`)
+		return
+	end
+
+	waitUntil(job, 5, function()
+		return halloween.readBag() == 0
+	end)
+
+	writeLog(`[Event] Candy Carnage End | {pilesBroken} Piles | Candy +{halloween.readCandy() - candyBefore}`)
+end
+
+halloween.handlers.CandyHeist = halloween.runCandyCarnage
+
+function halloween.chooseZone(zones, currentZone, hasTarget)
+	if currentZone and zones[currentZone] and hasTarget(currentZone) then
+		return currentZone
+	end
+
+	local highestSelected = nil
+	for zoneIndex = #zoneNames, 1, -1 do
+		if zones[zoneIndex] then
+			highestSelected = highestSelected or zoneIndex
+
+			if hasTarget(zoneIndex) then
+				return zoneIndex
+			end
+		end
+	end
+
+	if currentZone and zones[currentZone] then
+		return currentZone
+	end
+
+	return highestSelected
+end
+
+function halloween.travelForEvent(job, zoneIndex)
+	state.activity = "Traveling"
+	local travelStartedAt = os.clock()
+	local arrived, detail = travelToZone(job, zoneIndex)
+
+	if arrived then
+		writeLog(`[Event] Travel {zoneNames[zoneIndex] or zoneIndex} | {detail} | {string.format("%.1f", os.clock() - travelStartedAt)} s`)
+	elseif isJobRunning(job) then
+		writeLog(`[Event] Travel {zoneNames[zoneIndex] or zoneIndex} Failed: {detail}`)
 		task.wait(3)
 	end
-	return false, "Hop Failed: Stopped"
 end
 
-local za = {"Forest Zone", "Desert Zone", "Snowy Zone", "Candy Zone", "Swamp Zone", "Ocean Zone", "Volcano Zone", "Blossom Zone", "Galaxy Zone", "Planet X Zone", "Haunted Graveyard"}
-hv.nm = za
-do
-	local fp = "Avenoric/Configs/BreakAndStealAnEgg/EventAreas.json"
-	local ok, e = pcall(function()
-		if not isfile(fp) then return end
-		local d = game:GetService("HttpService"):JSONDecode(readfile(fp))
-		if type(d) ~= "table" or d.v ~= game.PlaceVersion or d.p ~= game.PlaceId or type(d.a) ~= "table" then return end
-		for _, k in hv.od do
-			local a = {}
-			for _, z in type(d.a[k]) == "table" and d.a[k] or {} do
-				if type(z) == "number" and z % 1 == 0 and za[z] then a[z] = true end
+function halloween.finishCornEvent(job, label, summary, candyBefore)
+	stopWalking()
+
+	if not isJobRunning(job) then
+		writeLog(`[Event] {label} Stopped | {summary}`)
+		return
+	end
+
+	local sweepWindow = {key = "Sweep", endsAt = workspace:GetServerTimeNow() + 15}
+	halloween.collectDrops(job, sweepWindow, state.cornDrops, nil, 150)
+	stopWalking()
+
+	writeLog(`[Event] {label} End | {summary} | Candy +{halloween.readCandy() - candyBefore}`)
+end
+
+function halloween.isPhantomEgg(egg)
+	local endsAt = tonumber(egg:GetAttribute(halloween.phantomEndAttribute))
+	return egg:GetAttribute(halloween.phantomRunAttribute) ~= nil and endsAt ~= nil and endsAt > workspace:GetServerTimeNow()
+end
+
+function halloween.getEggTier(egg)
+	local zoneEggs = eggRewards and eggRewards.ZoneEggs
+	local zone = type(zoneEggs) == "table" and zoneEggs[`Zone{egg:GetAttribute("ZoneIndex")}`]
+	local tier = type(zone) == "table" and type(zone.Eggs) == "table" and table.find(zone.Eggs, egg:GetAttribute("EggType"))
+
+	return tier or 1
+end
+
+function halloween.getPhantomCandy(egg)
+	local candyByTier = halloween.phantomCandyByZone[egg:GetAttribute("ZoneIndex")]
+	if type(candyByTier) ~= "table" then
+		return 0
+	end
+
+	return candyByTier[halloween.getEggTier(egg)] or candyByTier[1] or 0
+end
+
+function halloween.pickPhantomEgg(zoneIndex, rootPosition)
+	local now = os.clock()
+	local bestEgg, bestCandy, bestDistance = nil, -math.huge, math.huge
+
+	for _, egg in CollectionService:GetTagged(eggTargeting.Tag) do
+		if not egg:IsA("BasePart") or egg:GetAttribute("ZoneIndex") ~= zoneIndex or not halloween.isPhantomEgg(egg) then
+			continue
+		end
+
+		local skipUntil = state.skippedEggs[egg]
+		if (skipUntil and skipUntil > now) or not eggTargeting.IsLive(egg) then
+			continue
+		end
+
+		local candy = halloween.getPhantomCandy(egg)
+		local distance = (egg.Position - rootPosition).Magnitude
+		if candy > bestCandy or (candy == bestCandy and distance < bestDistance) then
+			bestEgg, bestCandy, bestDistance = egg, candy, distance
+		end
+	end
+
+	return bestEgg
+end
+
+function halloween.runPhantomEggs(job, event)
+	local candyBefore = halloween.readCandy()
+	local workZone = nil
+	local eggsBroken = 0
+
+	writeLog(`[Event] Phantom Eggs Start | {halloween.listAreaNames(state.eventZones.DisguisedEggs)} | {string.format("%.0f", halloween.getTimeLeft(event))} s Left`)
+
+	local function hasPhantomEgg(zoneIndex)
+		return halloween.pickPhantomEgg(zoneIndex, Vector3.zero) ~= nil
+	end
+
+	while isJobRunning(job) and halloween.isEventLive(event) do
+		local _, _, root = getCharacterParts()
+
+		if not root or isRagdolled() then
+			state.activity = "Waiting For Character"
+			task.wait(0.3)
+			continue
+		end
+
+		workZone = halloween.chooseZone(state.eventZones.DisguisedEggs, workZone, hasPhantomEgg)
+		if not workZone then
+			state.activity = "No Area"
+			task.wait(1)
+			continue
+		end
+
+		if not isInsideZone(root.Position, workZone) then
+			halloween.travelForEvent(job, workZone)
+			continue
+		end
+
+		halloween.collectDrops(job, event, state.cornDrops, nil, 60)
+
+		_, _, root = getCharacterParts()
+		if not root then
+			continue
+		end
+
+		local egg = halloween.pickPhantomEgg(workZone, root.Position)
+		if not egg then
+			state.activity = "Waiting For Phantom Eggs"
+			task.wait(0.3)
+			continue
+		end
+
+		local eggType = egg:GetAttribute("EggType")
+		local eggPosition = egg.Position
+		local zoneOfEgg = workZone
+		state.activity = "Breaking Phantom Egg"
+		local brokenAt = os.clock()
+		local result, hits = halloween.breakTarget(job, egg, event, function()
+			if not state.eventZones.DisguisedEggs[zoneOfEgg] then
+				return "Area Changed"
 			end
-			hv.az[k] = a
-		end
-	end)
-	if not ok then wz("Event Areas Load Failed: " .. tostring(e)) end
-	function hv.wc()
-		local a = {}
-		for _, k in hv.od do
-			a[k] = {}
-			for z = 1, #za do if hv.az[k] and hv.az[k][z] then table.insert(a[k], z) end end
-		end
-		local q, er = pcall(function()
-			for _, p in {"Avenoric", "Avenoric/Configs", "Avenoric/Configs/BreakAndStealAnEgg"} do if not isfolder(p) then makefolder(p) end end
-			writefile(fp, game:GetService("HttpService"):JSONEncode({v = game.PlaceVersion, p = game.PlaceId, a = a}))
+
+			return nil
 		end)
-		if not q then wz("Event Areas Save Failed: " .. tostring(er)) end
+
+		if result == "Done" then
+			eggsBroken += 1
+			halloween.waitAndCollect(job, event, state.cornDrops, eggPosition, brokenAt, 6)
+		elseif result == "Unreachable" or result == "No Damage" then
+			state.skippedEggs[egg] = os.clock() + 15
+		elseif result == "No Pickaxe" then
+			task.wait(1)
+		end
+
+		writeLog(`[Event] Phantom {eggType} | {result} | {hits} Hits | Candy {halloween.readCandy()}`)
 	end
+
+	halloween.finishCornEvent(job, "Phantom Eggs", `{eggsBroken} Eggs`, candyBefore)
 end
-pcall(function()
-	local p, hj = `Avenoric/Configs/BreakAndStealAnEgg/{lp.Name}.json`, game:GetService("HttpService")
-	if not isfile(p) then return end
-	local j, ch = hj:JSONDecode(readfile(p)), false
-	if type(j.h3) == "string" and table.find(za, j.h3) then j.h3, ch = {j.h3}, true end
-	for i, k in hv.od do
-		local v = j["h" .. i] or j.ha or j.sa
-		if k == "CandyHeist" then
-			if type(v) == "string" then v = {v} end
-			if type(v) == "table" then
-				local a = {}
-				for _, nm in v do local z = table.find(za, nm) if z then a[z] = true end end
-				hv.ps[k] = a
-			end
-		else
-			hv.ps[k] = table.find(za, tostring(v or ""))
+
+halloween.handlers.DisguisedEggs = halloween.runPhantomEggs
+
+function halloween.isNearZone(position, zoneIndex, margin)
+	local hitbox = getZoneHitbox(zoneIndex)
+	if not hitbox then
+		return false
+	end
+
+	local localPoint = hitbox.CFrame:PointToObjectSpace(position)
+	local halfSize = hitbox.Size / 2
+
+	return math.abs(localPoint.X) <= halfSize.X + margin and math.abs(localPoint.Z) <= halfSize.Z + margin
+end
+
+function halloween.isDoorReady(door)
+	return door.Parent ~= nil and (tonumber(door:GetAttribute("Health")) or 0) > 0
+end
+
+function halloween.pickDoor(zoneIndex, rootPosition)
+	local now = os.clock()
+	local bestDoor, bestDistance = nil, math.huge
+
+	for _, door in CollectionService:GetTagged(halloween.doorTag) do
+		if not door:IsA("BasePart") or door:GetAttribute("ZoneIndex") ~= zoneIndex or not halloween.isDoorReady(door) then
+			continue
+		end
+
+		local skipUntil = state.skippedEggs[door]
+		if skipUntil and skipUntil > now then
+			continue
+		end
+
+		local distance = (door.Position - rootPosition).Magnitude
+		if distance < bestDistance then
+			bestDoor, bestDistance = door, distance
 		end
 	end
-	for _, k in {"sa", "tz"} do
-		local n = type(j[k]) == "string" and tonumber(string.match(j[k], "^Zone (%d+) %("))
-		if n and za[n] then j[k], ch = za[n], true end
-	end
-	if ch then writefile(p, hj:JSONEncode(j)) end
-end)
-local function kv() return L ~= nil and L:Keyed() end
-if ge.__AvW then pcall(ge.__AvW.Destroy, ge.__AvW) end
-L:Gate({Title = "Ngao - Gaming Hub", Server = "https://getkey.kaeldrinnovasse.workers.dev", Hub = "bse", Discord = "https://discord.gg/fTQF5TvfEJ", Config = "BreakAndStealAnEgg"})
-local W = L:Window({Title = "Ngao - Gaming Hub | Break And Steal An Egg", Config = `BreakAndStealAnEgg/{lp.Name}`})
-L.Lg = lg
-do
-	local wn0 = W.Notify
-	function W:Notify(n)
-		if type(n) == "table" then lg(`[{n.Title or "Avenoric"}] {n.Text or ""}`) end
-		return wn0(self, n)
-	end
-	local ui = game:GetService("UserInputService")
-	lg(`[Hub] Loaded | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)} | {#ps:GetPlayers()} Players | {identifyexecutor and select(2, pcall(identifyexecutor)) or "?"} | {ui.TouchEnabled and not ui.KeyboardEnabled and "Mobile" or "PC"}`)
+
+	return bestDoor
 end
-local pa = W:Tab({Name = "General", Icon = "hammer-code"})
-pa:Section({Name = "Farm"})
-pa:Dropdown({Name = "Select Area", Options = za, Default = za[1], Flag = "sa", Callback = function(v) st.za = table.find(za, v) or 1 end})
-pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Cosmic", "Secret", "Celestial", "Inferno", "Void", "Omega", "Spectral"}, Default = {}, Multi = true, Flag = "sr", Callback = function(v)
-	local t = {}
-	for _, x in v or {} do t[x] = true end
-	st.ra = t
-end})
-pa:TextBox({Name = "Min Income", Placeholder = "All / 1B / 5T", Default = "", Flag = "mi", Callback = function(v)
-	local s = string.upper((string.gsub(tostring(v), "[%s,]", "")))
-	if s == "" or s == "ALL" or s == "0" or s == "FALSE" then
-		st.mi = 0
+
+function halloween.approachDoor(job, door)
+	if isInHitRange(door) then
+		return true
+	end
+
+	local knockPosition = door:GetAttribute("KnockPosition")
+	if typeof(knockPosition) ~= "Vector3" then
+		return approachEgg(job, door)
+	end
+
+	local standPoint = knockPosition + Vector3.new(0, 3, 0)
+	walkUntil(job, standPoint, function()
+		return isInHitRange(door) or not halloween.isDoorReady(door)
+	end)
+
+	if isInHitRange(door) then
+		return true
+	end
+
+	local _, _, root = getCharacterParts()
+	if not (root and isJobRunning(job) and halloween.isDoorReady(door)) then
+		return false
+	end
+
+	if (standPoint - root.Position).Magnitude > maxHopDistance then
+		return false
+	end
+
+	teleportRoot(root, standPoint, door.Position)
+	task.wait(0.25)
+
+	return isInHitRange(door)
+end
+
+function halloween.runHouseOfHorrors(job, event)
+	local candyBefore = halloween.readCandy()
+	local workZone = nil
+	local doorsBroken = 0
+
+	writeLog(`[Event] House Of Horrors Start | {halloween.listAreaNames(state.eventZones.TrickOrTreat)} | {string.format("%.0f", halloween.getTimeLeft(event))} s Left`)
+
+	local function hasDoor(zoneIndex)
+		return halloween.pickDoor(zoneIndex, Vector3.zero) ~= nil
+	end
+
+	while isJobRunning(job) and halloween.isEventLive(event) do
+		local _, _, root = getCharacterParts()
+
+		if not root or isRagdolled() then
+			state.activity = "Waiting For Character"
+			task.wait(0.3)
+			continue
+		end
+
+		workZone = halloween.chooseZone(state.eventZones.TrickOrTreat, workZone, hasDoor)
+		if not workZone then
+			state.activity = "No Area"
+			task.wait(1)
+			continue
+		end
+
+		if not halloween.isNearZone(root.Position, workZone, 25) then
+			halloween.travelForEvent(job, workZone)
+			continue
+		end
+
+		halloween.collectDrops(job, event, state.cornDrops, nil, 60)
+
+		_, _, root = getCharacterParts()
+		if not root then
+			continue
+		end
+
+		local door = halloween.pickDoor(workZone, root.Position)
+		if not door then
+			state.activity = "Waiting For Doors"
+			task.wait(0.3)
+			continue
+		end
+
+		local doorPosition = door.Position
+		local zoneOfDoor = workZone
+		state.activity = "Breaking Door"
+		local brokenAt = os.clock()
+		local result, hits = halloween.breakTarget(job, door, event, function()
+			if not state.eventZones.TrickOrTreat[zoneOfDoor] then
+				return "Area Changed"
+			end
+
+			return nil
+		end, halloween.isDoorReady, halloween.approachDoor)
+
+		local outcome = "-"
+		if result == "Done" then
+			doorsBroken += 1
+			halloween.waitAndCollect(job, event, state.cornDrops, doorPosition, brokenAt, 4, function()
+				local last = state.lastDoorOutcome
+				return last ~= nil and last.at >= brokenAt and not halloween.treatOutcomes[last.outcome]
+			end)
+
+			local last = state.lastDoorOutcome
+			if last and last.at >= brokenAt then
+				outcome = last.outcome
+			end
+		elseif result == "Unreachable" or result == "No Damage" then
+			state.skippedEggs[door] = os.clock() + 15
+		elseif result == "No Pickaxe" then
+			task.wait(1)
+		end
+
+		writeLog(`[Event] Door {zoneNames[zoneOfDoor] or zoneOfDoor} | {result} | {outcome} | {hits} Hits | Candy {halloween.readCandy()}`)
+	end
+
+	halloween.finishCornEvent(job, "House Of Horrors", `{doorsBroken} Doors`, candyBefore)
+end
+
+halloween.handlers.TrickOrTreat = halloween.runHouseOfHorrors
+
+function halloween.waitForBreakPause(job)
+	local isFree = waitUntil(job, 30, function()
+		local breakJob = state.breakJob
+		return breakJob == nil or breakJob.status ~= "Running" or state.isBreakPaused
+	end)
+
+	if not isFree and isJobRunning(job) then
+		writeLog("[Event] Auto Break Still Busy | Starting Anyway")
+	end
+end
+
+function halloween.run(job)
+	if not waitForEarlierRuns(job) then
+		if not isJobRunning(job) then
+			return
+		end
+
+		writeLog("[Event] Previous Run Still Busy | Starting Anyway")
+	end
+
+	writeLog("[Event] Auto Halloween Start")
+
+	while isJobRunning(job) do
+		local event = halloween.readActiveEvent()
+		if not (event and halloween.hasArea(event.key)) then
+			task.wait(1)
+			continue
+		end
+
+		state.eventOwner = job
+		halloween.waitForBreakPause(job)
+
+		local finished, failure = xpcall(halloween.handlers[event.key], function(message)
+			return debug.traceback(tostring(message), 2)
+		end, job, event)
+
+		stopWalking()
+
+		if state.eventOwner == job then
+			state.eventOwner = nil
+		end
+
+		if not finished then
+			reportError(`{halloween.labels[event.key] or event.key} Failed: {failure}`)
+			task.wait(5)
+		end
+	end
+
+	if state.eventOwner == job then
+		state.eventOwner = nil
+	end
+
+	state.activity = "Idle"
+	writeLog("[Event] Auto Halloween Stop")
+end
+
+local function collectPetsToSell()
+	local backpack = localPlayer:FindFirstChild("Backpack")
+	local tools = {}
+	if not backpack or next(state.sellRarities) == nil then
+		return tools
+	end
+
+	for _, tool in backpack:GetChildren() do
+		if CollectionService:HasTag(tool, "AnimalTool") and state.sellRarities[tool:GetAttribute("Rarity")] then
+			table.insert(tools, tool)
+		end
+	end
+
+	return tools
+end
+
+local function describeRarityCounts(tools)
+	local counts = {}
+	for _, tool in tools do
+		local rarity = tostring(tool:GetAttribute("Rarity"))
+		counts[rarity] = (counts[rarity] or 0) + 1
+	end
+
+	local parts = {}
+	for _, rarity in rarityNames do
+		if counts[rarity] then
+			table.insert(parts, `{rarity} {counts[rarity]}`)
+		end
+	end
+
+	return table.concat(parts, ", ")
+end
+
+local function sellPets(tools)
+	local maxPerRequest = backpackSellConfig and backpackSellConfig.MaxPerRequest
+	if type(maxPerRequest) ~= "number" or maxPerRequest < 1 then
+		maxPerRequest = 1
+	end
+
+	for first = 1, #tools, maxPerRequest do
+		local last = math.min(first + maxPerRequest - 1, #tools)
+		local batch = table.move(tools, first, last, 1, {})
+
+		local invoked, failure = pcall(backpackSellRemote.InvokeServer, backpackSellRemote, batch)
+		if not invoked then
+			writeLog(`[Sell] Sell Failed: {failure}`)
+			return
+		end
+	end
+end
+
+local function runAutoSell(job)
+	if not waitForEarlierRuns(job) and not isJobRunning(job) then
 		return
 	end
-	local n, u = string.match(s, "^(%d*%.?%d+)(%a*)$")
-	local m = ({[""] = 1, K = 1e3, M = 1e6, B = 1e9, T = 1e12, QA = 1e15, QI = 1e18})[u or ""]
-	if not (n and m) then
-		W:Notify({Title = "Min Income", Text = "Min Income Failed: Bad Number", Error = true})
-		return
-	end
-	st.mi = tonumber(n) * m
-end})
-local fz = pa:Toggle({Name = "Auto Farm", Default = false, Flag = "af", Callback = function(v)
-	st.fa = v and kv()
-	if not st.fa then return end
-	if st.fj then st.fj.st = "Stopped" end
-	af()
-end})
-local pz = pa:Toggle({Name = "Pet Index", Default = false, Flag = "pi", Callback = function(v) st.pi = v == true end})
-st.nf = function()
-	st.pi = false
-	W:Notify({Title = "Pet Index", Text = `{za[st.za]} Complete`})
-	pz:Set(false)
-end
-pa:Toggle({Name = "Treadmill", Default = false, Flag = "ti", Callback = function(v) st.ti = v == true end})
-pa:Section({Name = "Sell"})
-pa:Dropdown({Name = "Select Rarity", Options = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Divine", "Cosmic", "Secret", "Celestial", "Inferno", "Void", "Omega", "Spectral"}, Default = {}, Multi = true, Flag = "sv", Callback = function(v)
-	local t = {}
-	for _, x in v or {} do t[x] = true end
-	st.sv = t
-end})
-pa:Dropdown({Name = "Sell Below Kg", Options = {"All", "50", "100", "250", "500", "1K", "2.5K", "5K", "10K", "25K", "50K"}, Default = "All", Flag = "sk", Callback = function(v)
-	local n, s = string.match(tostring(v), "^([%d%.]+)(%a?)$")
-	st.sk = n and tonumber(n) * (({K = 1e3})[s] or 1) or 0
-end})
-pa:Toggle({Name = "Auto Sell", Default = false, Flag = "as", Callback = function(v) st.as = v == true end})
-local function sv2(dl)
-	if not st.as or st.sb or next(st.sv) == nil then return end
-	st.sb = true
-	task.spawn(function()
-		task.wait(dl)
-		local ok, e = pcall(function()
-			rs:WaitForChild("PetsInventoryRemote"):FireServer("EquipBest", nil)
+
+	writeLog("[Sell] Start")
+
+	while isJobRunning(job) do
+		local tools = if isCarrying() then {} else collectPetsToSell()
+
+		if #tools > 0 then
+			local petsBefore = countPets()
+			local summary = describeRarityCounts(tools)
+
+			sellPets(tools)
 			task.wait(0.5)
-			local l = {}
-			for _, t in lp:WaitForChild("Backpack"):GetChildren() do
-				local w = tonumber(t:GetAttribute("WeightKg"))
-				if #l < 200 and cs:HasTag(t, "AnimalTool") and st.sv[t:GetAttribute("Rarity")] and (st.sk <= 0 or w and w < st.sk) then table.insert(l, t) end
-			end
-			if #l > 0 then
-				local r = rs:WaitForChild("BackpackSellRemote"):InvokeServer(l)
-				lg(`[Sell] {#l} Animals | {typeof(r) == "table" and "Ok" or tostring(r)}`)
-			end
-		end)
-		if not ok then wz(`Auto Sell Failed: {e}`) end
-		st.sb = false
-	end)
+
+			writeLog(`[Sell] Sold {petsBefore - countPets()} | {summary} | Pets {petsBefore} -> {countPets()}`)
+		end
+
+		task.wait(3)
+	end
+
+	writeLog("[Sell] Stop")
 end
-st.sc = rs:WaitForChild("AnimalBankedRemote").OnClientEvent:Connect(function() sv2(1) end)
-local pv2 = W:Tab({Name = "Event", Icon = "calendar-star"})
-pv2:Section({Name = "Halloween"})
-for i, k in hv.od do
-	if k == "TrickOrTreat" then continue end
-	local a = hv.li(k)
-	if k == "CandyHeist" then
-		local q, d = hv.ps[k] or {[st.za] = true}, {}
-		st.hm = {}
-		for z, nm in za do if q[z] and hv.az[k] and hv.az[k][z] then st.hm[z], d[#d + 1] = true, nm end end
-		hv.ui[k] = pv2:Dropdown({Name = hv.lb[k] .. " Area", Options = a, Default = d, Multi = true, Flag = "h" .. i, Callback = function(v)
-			local q, eq = {}, true
-			for _, nm in v or {} do local z = table.find(za, nm) if z then q[z] = true end end
-			for z in st.hm do if not q[z] then eq = false break end end
-			for z in q do if not st.hm[z] then eq = false break end end
-			st.hm = q
-			if not hv.rf then hv.ps[k] = table.clone(q) end
-			if not eq and st.ej and st.ej.k == k then st.ej.st = "Stopped" end
-		end})
+
+local function pressAntiAfkKey()
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+
+	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F15, false, game)
+	task.wait(0.05)
+	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F15, false, game)
+end
+
+local function runAntiAfk(job)
+	while isJobRunning(job) do
+		local pressed, failure = pcall(pressAntiAfkKey)
+		if not pressed then
+			writeLog(`[Hub] Anti AFK Failed: {failure}`)
+			return
+		end
+
+		waitUntil(job, 60, function()
+			return false
+		end)
+	end
+end
+
+local function readOwnedNumbers(text)
+	local owned = {}
+	if type(text) ~= "string" then
+		return owned
+	end
+
+	for piece in string.gmatch(text, "[^,]+") do
+		local number = tonumber(piece)
+		if number then
+			owned[number] = true
+		end
+	end
+
+	return owned
+end
+
+local function highestOwnedNumber(owned)
+	local highest = 0
+	for number in owned do
+		highest = math.max(highest, number)
+	end
+
+	return highest
+end
+
+local function readPickaxeOffer()
+	local owned = readOwnedNumbers(localPlayer:GetAttribute("OwnedPickaxes"))
+	local equippedTier = localPlayer:GetAttribute("PickaxeTier")
+	if type(equippedTier) == "number" then
+		owned[equippedTier] = true
+	end
+
+	local nextTier = math.max(highestOwnedNumber(owned), pickaxeConfig.DefaultTier) + 1
+	local tier = pickaxeConfig.Tiers[nextTier]
+	if not tier then
+		return nil, "Max Level"
+	end
+
+	return {
+		name = tier.Name,
+		price = tier.Price,
+		purchase = function()
+			pickaxeShopRemote:FireServer("Buy", nextTier)
+		end,
+		isBought = function()
+			return readOwnedNumbers(localPlayer:GetAttribute("OwnedPickaxes"))[nextTier] == true
+		end,
+	}
+end
+
+local function readTrailOffer()
+	local highestOwned = highestOwnedNumber(readOwnedNumbers(localPlayer:GetAttribute(trailsConfig.OwnedAttribute)))
+
+	local nextTrail = nil
+	for _, trail in trailsConfig.Trails do
+		if trail.Id > highestOwned and (nextTrail == nil or trail.Id < nextTrail.Id) then
+			nextTrail = trail
+		end
+	end
+
+	if not nextTrail then
+		return nil, "Max Level"
+	end
+
+	return {
+		name = nextTrail.Name,
+		price = nextTrail.Price,
+		purchase = function()
+			trailShopRemote:FireServer("Buy", nextTrail.Id)
+		end,
+		isBought = function()
+			return readOwnedNumbers(localPlayer:GetAttribute(trailsConfig.OwnedAttribute))[nextTrail.Id] == true
+		end,
+	}
+end
+
+local function readTreadmillOffer()
+	local plot = findOwnedPlot()
+	if not plot then
+		return nil, "No Plot"
+	end
+
+	if not treadmillUnlockConfig.IsPlotUnlocked(plot) then
+		return {
+			name = "Treadmill Unlock",
+			price = treadmillUnlockConfig.Cost,
+			purchase = function()
+				unlockTreadmillRemote:FireServer()
+			end,
+			isBought = function()
+				return treadmillUnlockConfig.IsPlotUnlocked(plot)
+			end,
+		}
+	end
+
+	local level = treadmillUpgradeConfig.ClampLevel(plot:GetAttribute("TreadmillLevel"))
+	local price = treadmillUpgradeConfig.UpgradeCost(level)
+	if level >= treadmillUpgradeConfig.MaxLevel or type(price) ~= "number" then
+		return nil, "Max Level"
+	end
+
+	return {
+		name = treadmillUpgradeConfig.DisplayNameFor(level + 1),
+		price = price,
+		purchase = function()
+			upgradeTreadmillRemote:FireServer()
+		end,
+		isBought = function()
+			return treadmillUpgradeConfig.ClampLevel(plot:GetAttribute("TreadmillLevel")) > level
+		end,
+	}
+end
+
+local function readPenOffer()
+	local plot = findOwnedPlot()
+	if not plot then
+		return nil, "No Plot"
+	end
+
+	local level = plotUpgradeConfig.ClampLevel(plot:GetAttribute("PlotLevel"))
+	local price = plotUpgradeConfig.UpgradeCost(level)
+	if type(price) ~= "number" then
+		return nil, "Max Level"
+	end
+
+	return {
+		name = `Pen Level {level + 1}`,
+		price = price,
+		purchase = function()
+			upgradePlotRemote:FireServer()
+		end,
+		isBought = function()
+			return plotUpgradeConfig.ClampLevel(plot:GetAttribute("PlotLevel")) > level
+		end,
+	}
+end
+
+local shopItems = {
+	{
+		label = "Pickaxe",
+		flag = "ap",
+		stateField = "buyPickaxe",
+		readOffer = readPickaxeOffer,
+		isAvailable = pickaxeConfig ~= nil and pickaxeShopRemote ~= nil,
+	},
+	{
+		label = "Treadmill",
+		flag = "at",
+		stateField = "buyTreadmill",
+		readOffer = readTreadmillOffer,
+		isAvailable = treadmillUpgradeConfig ~= nil
+			and treadmillUnlockConfig ~= nil
+			and upgradeTreadmillRemote ~= nil
+			and unlockTreadmillRemote ~= nil,
+	},
+	{
+		label = "Pen",
+		flag = "ae",
+		stateField = "buyPen",
+		readOffer = readPenOffer,
+		isAvailable = plotUpgradeConfig ~= nil and upgradePlotRemote ~= nil,
+	},
+	{
+		label = "Trail",
+		flag = "al",
+		stateField = "buyTrail",
+		readOffer = readTrailOffer,
+		isAvailable = trailsConfig ~= nil and trailShopRemote ~= nil,
+	},
+}
+
+local function isAnyShopItemOn()
+	for _, item in shopItems do
+		if state[item.stateField] then
+			return true
+		end
+	end
+
+	return false
+end
+
+local function tryBuyItem(job, item)
+	local offer, reason = item.readOffer()
+	if not offer then
+		if reason == "Max Level" and not state.shopMaxLogged[item.label] then
+			state.shopMaxLogged[item.label] = true
+			writeLog(`[Shop] {item.label} Max Level`)
+		end
+
+		return
+	end
+
+	local cash = localPlayer:GetAttribute("Cash")
+	if type(cash) ~= "number" or cash < offer.price then
+		return
+	end
+
+	local fired, failure = pcall(offer.purchase)
+	if not fired then
+		writeLog(`[Shop] Buy {offer.name} Failed: {failure}`)
+		state.shopPausedUntil[item.label] = os.clock() + 30
+		return
+	end
+
+	if waitUntil(job, 3, offer.isBought) then
+		writeLog(`[Shop] Bought {offer.name} | ${formatAmount(offer.price)}`)
+		return
+	end
+
+	if isJobRunning(job) then
+		writeLog(`[Shop] Buy {offer.name} Failed: No Change`)
+		state.shopPausedUntil[item.label] = os.clock() + 30
+	end
+end
+
+local function runAutoUpgrade(job)
+	if not waitForEarlierRuns(job) and not isJobRunning(job) then
+		return
+	end
+
+	writeLog("[Shop] Start")
+
+	local isWaitingForTutorial = false
+
+	while isJobRunning(job) do
+		local isInTutorial = localPlayer:GetAttribute("TutorialStage") ~= nil
+		if isInTutorial and not isWaitingForTutorial then
+			writeLog("[Shop] Waiting For Tutorial")
+		end
+
+		isWaitingForTutorial = isInTutorial
+
+		if not isInTutorial then
+			for _, item in shopItems do
+				local isPaused = os.clock() < (state.shopPausedUntil[item.label] or 0)
+				if isJobRunning(job) and state[item.stateField] and not isPaused then
+					tryBuyItem(job, item)
+				end
+			end
+		end
+
+		waitUntil(job, 3, function()
+			return false
+		end)
+	end
+
+	writeLog("[Shop] Stop")
+end
+
+local function updateShopJob()
+	if not isAnyShopItemOn() then
+		if state.shopJob then
+			state.shopJob.status = "Stopped"
+			state.shopJob = nil
+		end
+
+		return
+	end
+
+	if state.shopJob and isJobRunning(state.shopJob) then
+		return
+	end
+
+	state.shopJob = startJob("Auto Upgrade", runAutoUpgrade)
+end
+
+local function fetchPublicServers(sortOrder)
+	local url = `https://games.roblox.com/v1/games/{game.PlaceId}/servers/Public?sortOrder={sortOrder}&limit=100&excludeFullGames=true`
+	local data = HttpService:JSONDecode(game:HttpGet(url, true))
+	if type(data) == "table" and type(data.errors) == "table" then
+		error("List Refused", 0)
+	end
+
+	if type(data) ~= "table" or type(data.data) ~= "table" then
+		error("Bad Server List", 0)
+	end
+
+	return data.data
+end
+
+local function pickHopServers(servers, currentJobId, isLowestFirst)
+	local candidates = {}
+
+	for _, server in servers do
+		local playing = tonumber(server.playing)
+		local maxPlayers = tonumber(server.maxPlayers)
+		local isOpen = playing ~= nil and maxPlayers ~= nil and playing < maxPlayers
+
+		if type(server.id) == "string" and server.id ~= currentJobId and isOpen then
+			table.insert(candidates, {id = server.id, playing = playing, maxPlayers = maxPlayers})
+		end
+	end
+
+	if isLowestFirst then
+		table.sort(candidates, function(first, second)
+			return first.playing < second.playing
+		end)
 	else
-		local n = hv.ps[k] or st.za
-		st.ha[k] = n
-		local d = table.find(a, za[n]) and za[n] or nil
-		hv.ui[k] = pv2:Dropdown({Name = hv.lb[k] .. " Area", Options = a, Default = d, Flag = "h" .. i, Callback = function(v)
-			local z = table.find(za, v or "")
-			st.ha[k] = z
-			if not hv.rf then hv.ps[k] = z end
-			if st.ej and st.ej.k == k and st.ej.z ~= z then st.ej.st = "Stopped" end
-		end})
+		local random = Random.new()
+		for index = #candidates, 2, -1 do
+			local swapIndex = random:NextInteger(1, index)
+			candidates[index], candidates[swapIndex] = candidates[swapIndex], candidates[index]
+		end
 	end
+
+	return candidates
 end
-pv2:Toggle({Name = "Auto Halloween", Default = false, Flag = "ah", Callback = function(v)
-	st.eh = v == true
-	if not st.eh and st.ej then st.ej.st = "Stopped" end
-end})
-local pq = W:Tab({Name = "Shop", Icon = "shopping-basket"})
-pq:Section({Name = "Upgrade"})
-pq:Toggle({Name = "Auto Buy Pickaxe", Default = false, Flag = "ap", Callback = function(v) st.ua = v == true end})
-pq:Toggle({Name = "Auto Buy Treadmill", Default = false, Flag = "at", Callback = function(v) st.ub = v == true end})
-pq:Toggle({Name = "Auto Buy Trail", Default = false, Flag = "al", Callback = function(v) st.uc = v == true end})
-pq:Toggle({Name = "Auto Buy Pen", Default = false, Flag = "ae", Callback = function(v) st.ud = v == true end})
-local pt = W:Tab({Name = "Teleport", Icon = "person-teleport"})
-pt:Section({Name = "Zone"})
-local tq = 1
-pt:Dropdown({Name = "Select Zone", Options = za, Default = za[1], Flag = "tz", Callback = function(v) tq = table.find(za, v) or 1 end})
-local wt
-wt = pt:Toggle({Name = "Auto Teleport", Default = false, Callback = function(v)
-	if not v or st.tb then return end
-	st.tb = true
-	task.spawn(function()
-		if st.fa then fz:Set(false) end
-		local t = os.clock()
-		while st.fj and os.clock() - t < 30 do task.wait(0.2) end
-		if st.fj then
-			wz("Teleport Failed: Farm Still Running")
-		elseif lp:GetAttribute("Carrying") ~= nil then
-			wz("Teleport Failed: Carrying")
+
+local function readEnumName(value)
+	local text = tostring(value)
+	return string.match(text, "[^%.]+$") or text
+end
+
+local function teleportToServer(job, jobId)
+	local failureReason = nil
+	local isStarted = false
+
+	local stateConnection = localPlayer.OnTeleport:Connect(function(teleportState)
+		if teleportState == Enum.TeleportState.Failed then
+			failureReason = failureReason or "Teleport Failed"
 		else
-			local ok, e = pcall(function()
-				rw()
-				fr()
-				if not tm({st = "Running"}, tq) then wz("Teleport Failed: Treadmill Not Ready") end
-			end)
-			if not ok then wz(`Teleport Failed: {e}`) end
+			isStarted = true
 		end
-		st.tb = false
-		wt:Set(false)
 	end)
-end})
-pt:Section({Name = "Server"})
-for _, z in {{"Hop Server", false}, {"Hop Low Server", true}} do
-	pt:Button({Name = z[1], Callback = function()
-		if st.hq then
-			W:Notify({Title = z[1], Text = "Already Hopping"})
-			return
+
+	local failedConnection = TeleportService.TeleportInitFailed:Connect(function(player, result)
+		if player == localPlayer then
+			failureReason = readEnumName(result)
 		end
-		st.hq = true
-		W:Notify({Title = z[1], Text = "Hopping"})
-		task.spawn(function()
-			local ok, wy = hx(z[2])
-			st.hq = false
-			if not ok then W:Notify({Title = z[1], Text = tostring(wy), Error = true}) end
+	end)
+
+	state.lastTeleportAt = os.clock()
+
+	local requested, requestFailure = pcall(TeleportService.TeleportToPlaceInstance, TeleportService, game.PlaceId, jobId, localPlayer)
+	if requested then
+		waitUntil(job, 10, function()
+			return failureReason ~= nil or isStarted
 		end)
-	end})
-end
-local pw = W:Tab({Name = "Setting", Icon = "gear"})
-pw:Section({Name = "Game"})
-pw:Button({Name = "FPS Booster", Callback = function()
-	local ok, e = bo()
-	W:Notify({Title = "FPS Booster", Text = ok and "On Until Rejoin" or e, Error = not ok and e ~= "Already On"})
-end})
-pw:Section({Name = "Support"})
-do
-	local lt, rb = 0, pw:TextBox({Name = "Describe The Problem", Placeholder = "What Went Wrong?"})
-	pw:Button({Name = "Send Log To Developer", Callback = function()
-		if os.clock() < lt then
-			W:Notify({Title = "Support", Text = `Send Log Failed: Wait {math.ceil(lt - os.clock())} s`})
-			return
-		end
-		local rs2 = (tostring(rb:Get() or ""):gsub("^%s+", ""):gsub("%s+$", "")):sub(1, 500)
-		if rs2 == "" then
-			W:Notify({Title = "Support", Text = "Send Log Failed: Describe The Problem First"})
-			return
-		end
-		lt = os.clock() + 300
-		task.spawn(function()
-			local fp, hj = `Avenoric/Configs/BreakAndStealAnEgg/{lp.Name}_Log.txt`, game:GetService("HttpService")
-			lg(`[Support] Send Log | {lp.Name} | Place {game.PlaceVersion} | Server {game.JobId:sub(1, 8)} | Problem: {rs2}`, true)
-			local ok, e = pcall(function()
-				local rq = ge.request or ge.http_request or (type(ge.http) == "table" and ge.http.request)
-				if type(rq) ~= "function" then error("No Request Function", 0) end
-				if not isfile(fp) then error("No Log File", 0) end
-				local s = readfile(fp)
-				local cu = #s > 8e6
-				if cu then s = s:sub(-8e6) end
-				local ex = identifyexecutor and select(2, pcall(identifyexecutor)) or "?"
-				local b = `BseLog{(hj:GenerateGUID(false):gsub("-", ""))}`
-				local pj = hj:JSONEncode({content = `**{lp.Name}** ({lp.UserId}) | Break And Steal An Egg | Place {game.PlaceVersion} | Server {game.JobId} | {tostring(ex)}{cu and " | Last 8 MB" or ""}\nProblem: {rs2}`, allowed_mentions = {parse = {}}})
-				local r = rq({Url = "https://discord.com/api/webhooks/1561788889776263258/DblWnAZmPXTmF_Sl13lQ_LY7nY6nqP0wR_NsXPzC83E_VrLXp3WoKBBMcQCGvYKzojUz?wait=true", Method = "POST", Headers = {["Content-Type"] = `multipart/form-data; boundary={b}`}, Body = `--{b}\r\nContent-Disposition: form-data; name="payload_json"\r\nContent-Type: application/json\r\n\r\n{pj}\r\n--{b}\r\nContent-Disposition: form-data; name="files[0]"; filename="{lp.Name}_Log.txt"\r\nContent-Type: text/plain\r\n\r\n{s}\r\n--{b}--\r\n`})
-				local sc = type(r) == "table" and r.StatusCode
-				if sc ~= 200 and sc ~= 204 then error(`Http {sc or "No Response"}`, 0) end
+
+		if isStarted and failureReason == nil then
+			waitUntil(job, 20, function()
+				return failureReason ~= nil
 			end)
-			lg(ok and "[Support] Log Sent" or `[Support] Send Log Failed: {e}`, true)
-			if ok then rb:Set("") else lt = os.clock() + 10 end
-			W:Notify({Title = "Support", Text = ok and "Log Sent To Developer" or `Send Log Failed: {e} ({fp})`})
-		end)
-	end})
+		end
+	end
+
+	stateConnection:Disconnect()
+	failedConnection:Disconnect()
+
+	if not requested then
+		return false, tostring(requestFailure)
+	end
+
+	if failureReason then
+		return false, failureReason
+	end
+
+	if not isStarted then
+		return false, "No Response"
+	end
+
+	return true, nil
 end
 
-local function om(a)
-	local n = 0
-	for x in string.gmatch(tostring(lp:GetAttribute(a) or ""), "%d+") do n = math.max(n, tonumber(x) or 0) end
-	return n
-end
-local function ug()
-	local c = tonumber(lp:GetAttribute("Cash")) or 0
-	if st.ua then
-		local tl = require(sh:WaitForChild("PickaxeConfig"))
-		tl = tl.Tiers or tl
-		local n, e = om("OwnedPickaxes"), nil
-		e = tl[n + 1]
-		if type(e) == "table" and type(e.Price) == "number" and c >= e.Price then
-			rs:WaitForChild("PickaxeShopRequest"):FireServer("Buy", n + 1)
-			lg(`[Shop] Buy Pickaxe {n + 1}`)
-			c -= e.Price
-		elseif n > 0 and lp:GetAttribute("PickaxeTier") ~= n then
-			rs:WaitForChild("PickaxeShopRequest"):FireServer("Equip", n)
-			lg(`[Shop] Equip Pickaxe {n}`)
-		end
-	end
-	local pl = op()
-	if st.ub and pl and pl:GetAttribute("TreadmillUnlocked") then
-		local tl = require(sh:WaitForChild("TreadmillUpgradeConfig"))
-		local e = (tl.Levels or tl)[tonumber(pl:GetAttribute("TreadmillLevel")) or 0]
-		local k = type(e) == "table" and (e.Cost or e.Price or e.UpgradeCost)
-		if type(k) == "number" and c >= k then
-			rs:WaitForChild("UpgradeTreadmillRequest"):FireServer()
-			lg(`[Shop] Upgrade Treadmill From Level {pl:GetAttribute("TreadmillLevel")}`)
-			c -= k
-		end
-	end
-	if st.ud and pl then
-		local k = require(sh:WaitForChild("PlotUpgradeConfig")).UpgradeCost(pl:GetAttribute("PlotLevel"))
-		if type(k) == "number" and c >= k then
-			rs:WaitForChild("UpgradePlotRequest"):FireServer()
-			lg(`[Shop] Upgrade Pen From Level {pl:GetAttribute("PlotLevel")}`)
-			c -= k
-		end
-	end
-	if st.uc then
-		local tl = require(sh:WaitForChild("TrailsConfig"))
-		tl = tl.Trails or tl
-		local n = om("OwnedTrails")
-		local e = tl[n + 1]
-		if type(e) == "table" and type(e.Price) == "number" and c >= e.Price then
-			rs:WaitForChild("TrailShopRequest"):FireServer("Buy", e.Id or n + 1)
-			lg(`[Shop] Buy Trail {n + 1}`)
-		elseif n > 0 and tonumber(lp:GetAttribute("EquippedTrail")) ~= n then
-			rs:WaitForChild("TrailShopRequest"):FireServer("Equip", n)
-			lg(`[Shop] Equip Trail {n}`)
-		end
-	end
-end
+local function runServerHop(job, isLowestFirst)
+	local sortOrder = if isLowestFirst then "Asc" else "Desc"
+	local listRetryDelay = 5
 
-task.spawn(function()
-	local q, x = rs:WaitForChild("PetsInventoryRemote"), rs:WaitForChild("IndexRemote")
-	local lc2 = 0
-	st.ic = x.OnClientEvent:Connect(function(a, s)
-		if a ~= "State" or typeof(s) ~= "table" then return end
-		local t = {}
-		for k in s do t[nk(tostring(k))] = true end
-		st.ix = t
-		if os.clock() - lc2 < 2 then return end
-		for _, v in s do
-			if v == "Ready" then
-				lc2 = os.clock()
-				x:FireServer("ClaimAll", nil)
+	while isJobRunning(job) do
+		local fetched, servers = pcall(fetchPublicServers, sortOrder)
+		local candidates = if fetched then pickHopServers(servers, game.JobId, isLowestFirst) else {}
+
+		if not fetched then
+			writeLog(`[Server] Hop Failed: Server List | {servers} | Retry In {listRetryDelay} s`)
+		elseif #candidates == 0 then
+			writeLog(`[Server] Hop Failed: No Server | Retry In {listRetryDelay} s`)
+		end
+
+		if #candidates == 0 then
+			waitUntil(job, listRetryDelay, function()
+				return false
+			end)
+
+			listRetryDelay = math.min(listRetryDelay * 2, 60)
+			continue
+		end
+
+		listRetryDelay = 5
+
+		for _, server in candidates do
+			if not isJobRunning(job) then
 				return
 			end
+
+			writeLog(`[Server] Hop To {string.sub(server.id, 1, 8)} | {server.playing}/{server.maxPlayers}`, true)
+
+			local teleported, reason = teleportToServer(job, server.id)
+			if teleported then
+				return
+			end
+
+			writeLog(`[Server] Hop Failed: {reason}`)
+			waitUntil(job, 1, function()
+				return false
+			end)
 		end
+
+		waitUntil(job, listRetryDelay, function()
+			return false
+		end)
+	end
+end
+
+local function runTeleportOnce(job, actionName, jobId)
+	writeLog(`[Server] {actionName} {string.sub(jobId, 1, 8)}`, true)
+
+	local teleported, reason = teleportToServer(job, jobId)
+	if not teleported and isJobRunning(job) then
+		window:Notify({Title = "Server", Text = `{actionName} Failed: {reason}`, Error = true})
+	end
+end
+
+local function startServerAction(actionName, run)
+	if state.serverJob and isJobRunning(state.serverJob) then
+		window:Notify({Title = "Server", Text = `{actionName} Failed: Teleport In Progress`, Error = true})
+		return
+	end
+
+	state.serverJob = startJob(actionName, run)
+end
+
+local function readJobId(text)
+	local trimmed = string.match(tostring(text or ""), "^%s*(.-)%s*$") or ""
+	local pattern = "^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$"
+
+	if not string.match(trimmed, pattern) then
+		return nil
+	end
+
+	return string.lower(trimmed)
+end
+
+local skippedRejoinErrors = {
+	[Enum.ConnectionError.DisconnectEvicted] = true,
+	[Enum.ConnectionError.DisconnectDuplicatePlayer] = true,
+}
+
+local function runAutoRejoin(job)
+	while isJobRunning(job) do
+		state.lastTeleportAt = os.clock()
+		writeLog("[Server] Auto Rejoin | Teleporting", true)
+
+		local requested, failure = pcall(TeleportService.Teleport, TeleportService, game.PlaceId, localPlayer)
+		if not requested then
+			writeLog(`[Server] Auto Rejoin Failed: {failure}`, true)
+		end
+
+		waitUntil(job, 10, function()
+			return false
+		end)
+	end
+end
+
+local function onErrorMessageChanged(message)
+	if type(message) ~= "string" or message == "" then
+		return
+	end
+
+	local errorCode = GuiService:GetErrorCode()
+	local errorName = readEnumName(errorCode)
+
+	if state.lastTeleportAt and os.clock() - state.lastTeleportAt < 30 then
+		writeLog(`[Server] Rejoin Ignored During Teleport | {message} | {errorName}`, true)
+		return
+	end
+
+	if skippedRejoinErrors[errorCode] then
+		writeLog(`[Server] Rejoin Skipped: Same Account Elsewhere | {errorName}`, true)
+		return
+	end
+
+	if state.rejoinJob and isJobRunning(state.rejoinJob) then
+		return
+	end
+
+	writeLog(`[Server] Kicked | {message} | {errorName}`, true)
+	state.rejoinJob = startJob("Auto Rejoin", runAutoRejoin)
+end
+
+trackConnection((GuiService :: any).ErrorMessageChanged:Connect(onErrorMessageChanged))
+
+trackConnection(localPlayer.Idled:Connect(function()
+	pcall(function()
+		local VirtualUser = game:GetService("VirtualUser")
+		VirtualUser:CaptureController()
+		VirtualUser:ClickButton2(Vector2.zero)
 	end)
-	while st.bg do
-		q:FireServer("EquipBest", nil)
-		x:FireServer("Get", nil)
-		local ok, e = pcall(ug)
-		if not ok then wz(`Auto Buy Failed: {e}`) end
-		sv2(0)
-		task.wait(3)
+end))
+
+if sharedEnvironment.__AvW then
+	pcall(sharedEnvironment.__AvW.Destroy, sharedEnvironment.__AvW)
+end
+
+local keyAccepted, keyFailure = pcall(Library.Gate, Library, {
+	Title = "Ngao - Gaming Hub",
+	Server = "https://getkey.kaeldrinnovasse.workers.dev",
+	Hub = "bse",
+	Discord = "https://discord.gg/tBVtKbpUFj",
+	Config = "BreakAndStealAnEgg",
+})
+
+if not keyAccepted then
+	writeLog(`[Hub] Key Gate Stopped: {keyFailure}`, true)
+	pcall(stopPreviousLoad, state)
+	return
+end
+
+window = Library:Window({Title = `Ngao - Gaming Hub | {gameName}`, Config = configName})
+Library.Log = writeLog
+
+local showToast = window.Notify
+
+function window:Notify(options)
+	if type(options) == "table" then
+		writeLog(`[{options.Title or "Hub"}] {options.Text or ""}`)
 	end
-end)
-task.spawn(function()
-	while st.bg do
-		local k, en, id = hv.ak()
-		if k then hv.av(k) end
-		if k and st.eh and kv() and not st.ej and not st.tb then
-			local ok, e = pcall(hv.rn, k, en, id)
-			if not ok then wz(`Auto Halloween Failed: {e}`) end
-			st.ej = nil
-		end
-		task.wait(1)
-	end
-end)
-task.spawn(function()
-	local nm, ls, lt, o = {}, {}, 0, {}
-	for _, T in W.Tabs do
-		for _, e in T.Rows do
-			if e.Flag then nm[e.Flag] = e.Sec and `{e.Sec} {e.Name}` or e.Name end
-		end
-	end
-	local function vs(v) return type(v) == "table" and `[{table.concat(v, ", ")}]` or tostring(v) end
-	for k, v in L.Flags do
-		ls[k] = vs(v)
-		table.insert(o, `{nm[k] or k} = {ls[k]}`)
-	end
-	table.sort(o)
-	lg(`[Config] {table.concat(o, " | ")}`)
-	while st.bg do
-		task.wait(1)
-		for k, v in L.Flags do
-			local s = vs(v)
-			if ls[k] ~= s then
-				ls[k] = s
-				lg(`[Config] {nm[k] or k} = {s}`)
+
+	return showToast(self, options)
+end
+
+local function hideFloatingToggle()
+	for _, child in window.Gui:GetChildren() do
+		if child:IsA("GuiButton") then
+			local glyph = child:FindFirstChildWhichIsA("TextLabel")
+			if glyph and glyph.Text == "studio" then
+				child.Visible = false
 			end
 		end
-		if (st.fj or st.ej) and os.clock() - lt >= 60 then
-			lt = os.clock()
-			local _, r = lc()
-			local p = r and r.Position
-			lg(`[State] Pos {p and `{math.floor(p.X)}, {math.floor(p.Y)}, {math.floor(p.Z)}` or "Dead"} | Carry {lp:GetAttribute("Carrying") or "-"} | Cash {lp:GetAttribute("Cash")} | Candy {lp:GetAttribute("CandyCorn")} | Bag {lp:GetAttribute("CandyHeistBag") or 0} | Speed {lp:GetAttribute("SpeedPower")} | Farm {st.fa and "On" or "Off"} Zone {st.za} | Event {st.ej and "On" or "Off"} | Treadmill {r and r.Anchored and "On" or "Off"}`)
+	end
+end
+
+local function loadLogoImage()
+	local decodeBase64 = (crypt and crypt.base64decode) or base64_decode
+	if type(decodeBase64) ~= "function" or not (getcustomasset and writefile) then
+		return nil
+	end
+
+	local decoded, asset = pcall(function()
+		ensureFolders({"Avenoric", "Avenoric/Assets"})
+		writefile(logoPath, decodeBase64(logoData))
+
+		return getcustomasset(logoPath)
+	end)
+
+	if decoded and type(asset) == "string" then
+		return asset
+	end
+
+	return nil
+end
+
+local function toggleWindow()
+	if window.Main.Visible then
+		window:Hide()
+	else
+		window:Show()
+	end
+end
+
+local function buildHudButton()
+	local mainGui = playerGui:FindFirstChild("MainGUI")
+	local rightHud = mainGui and mainGui:FindFirstChild("RightHUD")
+	local eggsButton = rightHud and rightHud:FindFirstChild("Eggs")
+	if not eggsButton then
+		return
+	end
+
+	local previousButton = rightHud:FindFirstChild("NgaoButton")
+	if previousButton then
+		previousButton:Destroy()
+	end
+
+	local button = eggsButton:Clone()
+	button.Name = "NgaoButton"
+	button.LayoutOrder = 0
+
+	local notification = button:FindFirstChild("Notification")
+	if notification then
+		notification:Destroy()
+	end
+
+	local gradient = button:FindFirstChildWhichIsA("UIGradient")
+	if gradient then
+		gradient.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(184, 122, 0)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(232, 172, 18)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 214, 64)),
+		})
+	end
+
+	local icon = button:FindFirstChild("Icon")
+	local logoAsset = loadLogoImage()
+	if logoAsset and icon and icon:IsA("ImageLabel") then
+		icon.Image = logoAsset
+	end
+
+	button.Parent = rightHud
+	state.hudButton = button
+
+	trackConnection(button.Activated:Connect(toggleWindow))
+end
+
+hideFloatingToggle()
+
+local hudBuilt, hudFailure = pcall(buildHudButton)
+if not hudBuilt then
+	reportError(`Hud Button Failed: {hudFailure}`)
+end
+
+local generalTab = window:Tab({Name = "General", Icon = "hammer-code"})
+
+generalTab:Section({Name = "Farm"})
+
+if #zoneNames > 0 then
+	generalTab:Dropdown({Name = "Select Area", Options = zoneNames, Default = zoneNames[1], Flag = "sa", Callback = function(value)
+		state.farmZone = table.find(zoneNames, value) or 1
+	end})
+else
+	reportError("Area List Failed: No Zone Names")
+end
+
+if #rarityNames > 0 then
+	generalTab:Dropdown({Name = "Select Rarity", Options = rarityNames, Default = {}, Multi = true, Flag = "sr", Callback = function(values)
+		local selected = {}
+		for _, rarity in values do
+			selected[rarity] = true
+		end
+
+		state.farmRarities = selected
+	end})
+else
+	reportError("Rarity List Failed: No Rarity Names")
+end
+
+local function applyThreshold(label, text, apply)
+	local amount = parseAmount(text)
+	if not amount then
+		window:Notify({Title = "Farm", Text = `{label} Failed: Bad Number`, Error = true})
+		return
+	end
+
+	apply(amount)
+end
+
+generalTab:TextBox({Name = "Min Kg", Placeholder = "All / 500 / 2.5K", Default = "", Flag = "mk", Callback = function(text)
+	applyThreshold("Min Kg", text, function(amount)
+		state.minPetKg = amount
+	end)
+end})
+
+generalTab:TextBox({Name = "Min Income", Placeholder = "All / 1B / 5T", Default = "", Flag = "mi", Callback = function(text)
+	applyThreshold("Min Income", text, function(amount)
+		state.minPetIncome = amount
+	end)
+end})
+
+generalTab:Toggle({Name = "Auto Break", Default = false, Flag = "ab", Callback = function(isOn)
+	if state.breakJob then
+		state.breakJob.status = "Stopped"
+		state.breakJob = nil
+	end
+
+	stopWalking()
+
+	if not isOn then
+		return
+	end
+
+	if not (eggTargeting and eggHitRemote and treadmillRemote) then
+		window:Notify({Title = "Farm", Text = "Auto Break Failed: Game Data Missing", Error = true})
+		return
+	end
+
+	state.breakJob = startJob("Auto Break", runAutoBreak)
+end})
+
+generalTab:Section({Name = "Pet"})
+
+if #rarityNames > 0 then
+	generalTab:Dropdown({Name = "Select Sell Rarity", Options = rarityNames, Default = {}, Multi = true, Flag = "sv", Callback = function(values)
+		local selected = {}
+		for _, rarity in values do
+			selected[rarity] = true
+		end
+
+		state.sellRarities = selected
+	end})
+end
+
+generalTab:Toggle({Name = "Auto Sell", Default = false, Flag = "as", Callback = function(isOn)
+	if state.sellJob then
+		state.sellJob.status = "Stopped"
+		state.sellJob = nil
+	end
+
+	if not isOn then
+		return
+	end
+
+	if not backpackSellRemote then
+		window:Notify({Title = "Sell", Text = "Auto Sell Failed: No Sell Remote", Error = true})
+		return
+	end
+
+	state.sellJob = startJob("Auto Sell", runAutoSell)
+end})
+
+local eventTab = window:Tab({Name = "Event", Icon = "calendar-star"})
+
+eventTab:Section({Name = "Halloween"})
+
+local function readAreaSet(values)
+	local selected = {}
+	for _, value in values do
+		local zoneIndex = table.find(zoneNames, value)
+		if zoneIndex then
+			selected[zoneIndex] = true
 		end
 	end
-end)
-task.spawn(function()
-	while st.bg do
-		if st.ti and not st.fj and not st.ej and not st.tb and lp:GetAttribute("Carrying") == nil then pcall(ton, {st = "Running"}) end
-		task.wait(1)
-	end
-end)
 
-pcall(function()
-	for _, c in getconnections(rs:WaitForChild("CatchFlingRemote").OnClientEvent) do
-		if c.Function then c:Disable() end
-	end
-end)
-
-local vim = game:GetService("VirtualInputManager")
-local function ak()
-	vim:SendKeyEvent(true, Enum.KeyCode.F15, false, game)
-	task.wait(0.05)
-	vim:SendKeyEvent(false, Enum.KeyCode.F15, false, game)
+	return selected
 end
-if ge.__BseJ then pcall(ge.__BseJ.Disconnect, ge.__BseJ) end
-local jr = false
-ge.__BseJ = (game:GetService("GuiService") :: any).ErrorMessageChanged:Connect(function(m)
-	if jr or type(m) ~= "string" or m == "" or os.clock() - st.hp < 30 then return end
-	jr = true
-	lg(`[Rejoin] Kick: {m}`, true)
+
+if #zoneNames > 0 then
+	for _, event in {{key = "DisguisedEggs", flag = "h1"}, {key = "TrickOrTreat", flag = "h2"}, {key = "CandyHeist", flag = "h3"}} do
+		eventTab:Dropdown({Name = `{halloween.labels[event.key]} Area`, Options = zoneNames, Default = {}, Multi = true, Flag = event.flag, Callback = function(values)
+			state.eventZones[event.key] = readAreaSet(values)
+		end})
+	end
+
+	eventTab:Dropdown({Name = `{halloween.labels.BloodMoon} Area`, Options = zoneNames, Default = zoneNames[1], Flag = "h4", Callback = function(value)
+		state.eventZones.BloodMoon = table.find(zoneNames, value) or 1
+	end})
+end
+
+eventTab:Toggle({Name = "Auto Halloween", Default = false, Flag = "ah", Callback = function(isOn)
+	if state.halloweenJob then
+		state.halloweenJob.status = "Stopped"
+		state.halloweenJob = nil
+	end
+
+	stopWalking()
+
+	if not isOn then
+		return
+	end
+
+	if not (eggTargeting and eggHitRemote and treadmillRemote and candyHeistRemote) then
+		window:Notify({Title = "Event", Text = "Auto Halloween Failed: Game Data Missing", Error = true})
+		return
+	end
+
+	state.halloweenJob = startJob("Auto Halloween", halloween.run)
+end})
+
+local shopTab = window:Tab({Name = "Shop", Icon = "shopping-basket"})
+
+shopTab:Section({Name = "Upgrade"})
+
+for _, item in shopItems do
+	shopTab:Toggle({Name = `Auto Upgrade {item.label}`, Default = false, Flag = item.flag, Callback = function(isOn)
+		if isOn and not item.isAvailable then
+			window:Notify({Title = "Shop", Text = `Auto Upgrade {item.label} Failed: Game Data Missing`, Error = true})
+		end
+
+		state[item.stateField] = isOn and item.isAvailable
+		updateShopJob()
+	end})
+end
+
+local serverTab = window:Tab({Name = "Server", Icon = "globe-simplified"})
+
+serverTab:Section({Name = "Server"})
+
+local jobIdBox = serverTab:TextBox({Name = "Job Id", Placeholder = "Paste A Job Id"})
+
+serverTab:Button({Name = "Join Server", Callback = function()
+	local jobId = readJobId(jobIdBox:Get())
+	if not jobId then
+		window:Notify({Title = "Server", Text = "Join Failed: Bad Job Id", Error = true})
+		return
+	end
+
+	if jobId == string.lower(game.JobId) then
+		window:Notify({Title = "Server", Text = "Join Failed: Already Here", Error = true})
+		return
+	end
+
+	startServerAction("Join", function(job)
+		window:Notify({Title = "Server", Text = "Joining Server"})
+		runTeleportOnce(job, "Join", jobId)
+	end)
+end})
+
+serverTab:Button({Name = "Copy Job Id", Callback = function()
+	local copy = setclipboard or toclipboard
+	if type(copy) ~= "function" then
+		window:Notify({Title = "Server", Text = "Copy Failed: No Clipboard", Error = true})
+		return
+	end
+
+	copy(game.JobId)
+	window:Notify({Title = "Server", Text = "Job Id Copied"})
+end})
+
+serverTab:Button({Name = "Hop Server", Callback = function()
+	startServerAction("Hop", function(job)
+		window:Notify({Title = "Server", Text = "Hopping To Another Server"})
+		runServerHop(job, false)
+	end)
+end})
+
+serverTab:Button({Name = "Hop Low Server", Callback = function()
+	startServerAction("Hop", function(job)
+		window:Notify({Title = "Server", Text = "Hopping To The Lowest Server"})
+		runServerHop(job, true)
+	end)
+end})
+
+serverTab:Button({Name = "Rejoin", Callback = function()
+	startServerAction("Rejoin", function(job)
+		window:Notify({Title = "Server", Text = "Rejoining This Server"})
+		runTeleportOnce(job, "Rejoin", game.JobId)
+	end)
+end})
+
+local settingTab = window:Tab({Name = "Setting", Icon = "gear"})
+
+settingTab:Section({Name = "Support"})
+
+local problemBox = settingTab:TextBox({Name = "Describe The Problem", Placeholder = "What Went Wrong?"})
+local nextSendAt = 0
+
+local function sendLogToDeveloper(problem)
+	local request = sharedEnvironment.request
+		or sharedEnvironment.http_request
+		or (type(sharedEnvironment.http) == "table" and sharedEnvironment.http.request)
+
+	if type(request) ~= "function" then
+		error("No Request Function", 0)
+	end
+
+	flushLog()
+
+	if not isfile(logPath) then
+		error("No Log File", 0)
+	end
+
+	local logText = readfile(logPath)
+	local isCut = #logText > 8e6
+	if isCut then
+		logText = string.sub(logText, -8e6)
+	end
+
+	local executorName = identifyexecutor and select(2, pcall(identifyexecutor)) or "?"
+	local boundary = `BseLog{string.gsub(HttpService:GenerateGUID(false), "-", "")}`
+	local header = `**{localPlayer.Name}** ({localPlayer.UserId}) | {gameName} | Place {game.PlaceVersion} | Server {game.JobId} | {tostring(executorName)}`
+
+	if isCut then
+		header ..= " | Last 8 MB"
+	end
+
+	local payload = HttpService:JSONEncode({
+		content = `{header}\nProblem: {problem}`,
+		allowed_mentions = {parse = {}},
+	})
+
+	local body = table.concat({
+		`--{boundary}`,
+		`Content-Disposition: form-data; name="payload_json"`,
+		"Content-Type: application/json",
+		"",
+		payload,
+		`--{boundary}`,
+		`Content-Disposition: form-data; name="files[0]"; filename="{localPlayer.Name}_Log.txt"`,
+		"Content-Type: text/plain",
+		"",
+		logText,
+		`--{boundary}--`,
+		"",
+	}, "\r\n")
+
+	local response = request({
+		Url = supportWebhookUrl,
+		Method = "POST",
+		Headers = {["Content-Type"] = `multipart/form-data; boundary={boundary}`},
+		Body = body,
+	})
+
+	local statusCode = type(response) == "table" and response.StatusCode
+	if statusCode ~= 200 and statusCode ~= 204 then
+		error(`Http {statusCode or "No Response"}`, 0)
+	end
+end
+
+settingTab:Button({Name = "Send Log To Developer", Callback = function()
+	local waitLeft = nextSendAt - os.clock()
+	if waitLeft > 0 then
+		window:Notify({Title = "Support", Text = `Send Log Failed: Wait {math.ceil(waitLeft)} s`})
+		return
+	end
+
+	local problem = string.sub(string.match(tostring(problemBox:Get() or ""), "^%s*(.-)%s*$") or "", 1, 500)
+	if problem == "" then
+		window:Notify({Title = "Support", Text = "Send Log Failed: Describe The Problem First"})
+		return
+	end
+
+	nextSendAt = os.clock() + 300
+
 	task.spawn(function()
-		local tq = game:GetService("TeleportService")
-		while true do
-			pcall(tq.Teleport, tq, game.PlaceId, lp)
-			task.wait(10)
-		end
-	end)
-end)
-if ge.__BseNl then pcall(ge.__BseNl.Disconnect, ge.__BseNl) end
-ge.__BseNl = rs:WaitForChild("Notify").OnClientEvent:Connect(function(...)
-	local t = {}
-	for i, v in {...} do
-		if type(v) == "table" then
-			local q = {}
-			for k, x in v do table.insert(q, `{k}={x}`) end
-			t[i] = "{" .. table.concat(q, ",") .. "}"
-		else
-			t[i] = tostring(v)
-		end
-	end
-	lg(`[Game] {table.concat(t, " | ")} | Carry {lp:GetAttribute("Carrying") or "-"}`)
-end)
-if ge.__BseA then pcall(ge.__BseA.Disconnect, ge.__BseA) end
-ge.__BseA = lp.Idled:Connect(function()
-	local vu = game:GetService("VirtualUser")
-	vu:CaptureController()
-	vu:ClickButton2(Vector2.new())
-	ak()
-end)
-task.spawn(function()
-	while st.bg do
-		pcall(ak)
-		task.wait(60)
-	end
-end)
+		writeLog(`[Support] Send Log | Place {game.PlaceVersion} | Server {string.sub(game.JobId, 1, 8)} | Problem: {problem}`, true)
 
-local gi = (function()
-	local dc, p = crypt and crypt.base64decode or base64_decode, "Avenoric/Assets/NgaoLogo.png"
-	if not (dc and getcustomasset and writefile) then return nil end
-	local ok, r = pcall(function()
-		if not isfolder("Avenoric") then makefolder("Avenoric") end
-		if not isfolder("Avenoric/Assets") then makefolder("Avenoric/Assets") end
-		writefile(p, dc("iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAABC/klEQVR42u1dd3wU1fb/3juzu+m9k0IJCQRCkQ5C6PJQqgZFQUAUAUF/WNAnYoiC8hTF90RRwWcBUUGpYqGGXqQGCDUhtBRIr7s7c+/5/bHFBAEpQcDn/bAfNrOzM7P31HvO95wL3KEjKSmJJyZCIQKrenxhYqKSmAil6jHH3/+e3D9h0hMtJgIcAFjV7yYlJXGA4Z0J3eMnPxaXN+WpDk8BDC1awHC1z0RU/Zp/jxsb7NKTTOw3AivVjifZKVv1+MJEKGAc77/ct+W/J/fN/uaDZ2j8gODXjS5uIIAlJYETEQPAkpL6+bw+tnVq5tEt9PHUxIKkx5r2BBQkJUD9Q2ZEdab7e9zAqCrBSUkOooIlOAmhYPrE3g2ff6jex5PGdGzvPJ8Z8PKw+OH/fKzJTIPRZL8Ow6THGkZNHXd3Ts6ZA0RE2ppF0+nF4fW/JCIOAKNGtTAQERt/f8hnB3d8T0SkFeWfonde6Fn0wiPxdwHsUkzgYETmuPfYh2tH/Supe5j90N+a4FqHXRI5wJA0LMHF/jcS4Jh8FUsX/CvsuYHh0z6aNjR/5+rZ9OroVosAjmPHNgZOeCBq1uL/vkTLv5hIk59oOg5Q8N70UZGThscfOH18BxGRbrHmERFpW37+mCYMjlrx+TsTagEcL41oPGLp5y8QEWkWrYCIhLiQnUavjWmV+UxiWKyNCRJUIqrGiFwxYMLg8NavPNb0w/df6VPx2pjWixlT/maA65Z6bsTIPkE9po5rlzp1bLuNrzzZqT4UE86dO+c2PjFszMyX7j2zd+NXpOslRETah68Pyn+qj899r49rt3f3+nlERJpuLdVnTOyRP+PF++5++bH4TZmHU4iIdF2WEJFOmlZIRKSn7VlJr41tc+iNCW17vfV/nTLLSrKkLsqkkKWk6UVERCL37EFKHtvy5LjBoQ1+o6mCUaPuc3u8h3HAtLHtV38xc4x2bP8qEnoJzX7twdKkUR0iqzB0VZPGkpLAFy5MVGw+x9+jCvEZ0tN3eb/ySNyHn787moryM+nU0c30r+e6n33hkYZT3nym8/41i2dQRVkOEZFm1YukFDptWfUZTZ/QnbJPp9okXMsnIkHpaZvoucH15L7ty4iIhK6XUVHRadr/6wqSZCWLXkBEpGed2kfTxnemvVsWExGRkBWkyzISVOZgAj3n9H6aPv7uU9Of7dn+k7eH1Jk0In7628/1OPbj12/QhaxDRCSISNeJSE9Z8i49nVhrSFJSkjpsWJSL3Tdgtn8cTjfl72EbNnXK8cqTrZu+NqbFrl/XfE62GbUIItKLCk/RhpX/przco/bjQmp6IQkqJyHLSBelJKhcEpEQVEqCykjIUhJUIfPz0onIKjW9iEgS7dq0mGYlDSYiIk0UkyaKiUgXVq1UElVKq7WYvv5oIpWX55GgChJURrooJiISF7KO0rsv3Vcx+/UHC/Zv/pbMFeftz6MJXRSTVS8kItLOnthCLw+N/dBGaAZABecKABgAuCXGIzbp8aaDPn5zaHcbQ9zaod5qyV/0vUl/cWhMPx9v308fHjvdPzSqmS5kiQrGQGSGt08wder9tADAz57czc3mctRr2A6SzGCMgzGApGSV5hym6RIeXj4ACAzE/PzDSZCFkV0B79myHATN4XGAcxW6LOcMAoAHVsx/Gwe2rcJDo6ZCSDMYOISQOH1yJ69Tr7V8Knmeq6oaXTl30wEz10QRd/qATAFQoQRGxMErIOz+l4bo+3LPnjKExzRq5OXlG6VJXsvN1TswPKq+d2X5Ofe0A7vmMsbXPPDA/cqiRYvE/xYDEBgY+KJFqnhqQPj46IbN/j143Azm7hkkdFGocsVon1RAkJUJvUI1Grwwd/p4NG6dgOiGnSBlORRFgRA6DIo3vnjv/xAddxe69xsDXZagoiwf7l7+DCCo3AUFeWeRnbkGDZvf63wIITQYFCPAvbB+5TxkHp+DuFbdIIlDCAuMhgB899GLKDh/Fk8lzeOKyok4QdMLVTAGg+ICwMV+PQmdypjB6IFuA0YHFZ8/+XFIeAw8fPzhGxQKdw9/cMUVjLviq/efspw+cngGSSAuLo6IwKZMAUtLS2QLFy6SjIH+0uv7xEQoqtENkx5rNnXBf8aQrldIIovQRLFNhdvVuCaKSBNFRES0Ze08mvq0J6X88G+bCteLHc4c7duxksbeZ6QdKd8SEdHBXb/QB8lDiEiS1VpARETzZ02gVd+3oKWfP022YSYiorKSQvryPy/Rgg/a0dmMwfTdp8+SY6xb/hklj/anFfNfJikFWbR8klRmt/lEhfm5dGDXWlry5auUtu9HkmQlm6MpJBHp9pdGpOuCSgURaZlHUuifQxsuJiKemAiFcYcZ4P8bGiAxEfy7xSbxysiYqXe16zmp//A3pICFCbJwu62EFDpUxQjOPCDJirzc0zi853N06tUGVotNOwihwWT0x+HUX7Fz7eu4u1djhNRqCIu5Et99OhHBofUghIDB4ItNv3wL1bAdzds3xqrvLNA1iexzJ3Bw5zpkHF6C+JYMne69BzvX74CbR2vkZp3Giq/egq/ffgx5uit2pFSCMQ6D6g1zRTkyT2xH6vYVEFoqjh/YgvKycDRv2w9C1wBOANMZYFSELIVTlUlBUKBsW7+0UjGo/2TMIImIMcb4xMfjw3LSD3jXb9y+Vsv2PY79Y3Bypv0z+ksxgM3mG8XEB+uMa9i47aT+w98QQlZyMDDGOKQUULgCVfFGUdEF7N7wGQ7+uhLFhRV4aHQIsk8VwMOrFkjqMBn9cfTALvy44CkMGdcIm34qgaq647MZj6JLHw/knvaCoqg4uHsjdm+YhrFJPVFRWopzmTsx//0HwdhZ1I5xxYjnGsDNwxugSpgtEnu2LEB+7nI0b+uOFh07wlJZAat5N/47YwRMLgRz5QW4eRShSasQHN57HnEtHsMDj08HY3bGlBpOnziEXzd9hx4DR8PLOwC6tEJV3HHmxA62Ztl/M0wmw30vP97gn9Ofbh/49nPdArx8g2Obt+zhmnlwM8/JOdsDQOaUKVMYcPNNAbsZMfopU5LpYjuWmAhl0SJFTJ94zyB/X99vRzw/R4BLDkbM5sgJKNwbVmsZ1i79HOmHvkGT1m7IPJqDQ3uy8K/5T2H+rJ/RocdHqBPbHDtSlmPbqlcx9Jn2MJh0/HvSIfj6e6LHQE9ERPti5QKgQdOhWL10HEY81xY+ft4QQkNpaSlUxuHp6wPACMgKCE2AKxyaLlBRXgEff18AKoRWCa4okFIi51wuVIXg6e0HN08vfPPRVhhd+qHf0GdRWZ6PnHMncfzQDhRd+BVbflmMtt1G4eGnpoNQCTAGDhNyzh5F2p4Uiqwdw7z8AuHh7Qc3dx8wxRvZp3Zh9rRRX78+J/XhJAieDMg70gQkJyfL5OSLmALgyYuYeOOlnjFcM388aMy/SFFVJsjMAAIjBZx7Y/fmX7Dllxlo2NSCkRObwdU9FCfSFqNDz3gQWcHIDyGRsVg671+4cO4rjHo5AW4e3jiXkYWA4BIkPtkQAcEhKM7Pxv6dW1FadACPv9gBXj7uEFYrFM7g6+cDECCtVhCsYJyBKzb7azSoMPr7Qmo6iKzgnIOkAAdDragIu0AynMnIwbHUHDRokoovZvaHTmXw9KhAZLQvXI2FaNF5IIaMnwFJZb85nLICoRH1EBrRmAEQtovpDDAD0NmyeW9ZTp04Nu1PonvNawAiMMZAH7/9SKusc0X5ye+tzLAfQyLA49YTs37ReO2Ylz/pFFG/vRCyWCEAKneDVdOw8ONkWM2/oM8jLREYGgJpLQdUA/777mq079oQsfE+eD/pCFzcoxAWeRR9h3YCpIAQVjCuwLZy0CE1KyQ4jqZmo2GzcJsEW22Etj8nGLvi77jk50Q24jMGMM5BYCgpKgJXFBgMBri4BaCkIAdzZhzGyOcXwcvXA5yRTctUSShK0iCFgCQLGCcYFB9xIvVn5eN/PfXfGV+fHpn4gK4sWgRxxzmBU6aAAYyyTxya7Obl/wmAjClTklhiYjJbtIiLp94JeD5x1CudIuq3F7ooVsAYVO6F7DMZWDhnHJq1sSDh3t4ANOiWUnDGwDmHp4cJAcEe4IorwLPRvocXmrTuBqmVggHgjANEkNZKgHEwpkAF0KhFFEjXITXNSXyHP3ZFiWCXO/7bByQEwBi8fW3aBJzjfHY2vptzHIPHfAEfvyBYrZWwWswoKTqLwgs5yD17EiXFJwEqQtquHfALaYwnXpxFUprZ6mVzy339A94BZbCFcSB2B64CWHIy5JcfPhl0cNvauNoxbfYCa9EoLY0lL2LilVGN4oND609J6DNWCFnOiQgGxRvpaXuw5PNxGDAsEvUaxUBYS8AYoCgcRAAJDd36N4OntwsgJf5v6n0AVEhrCX5bPtkfoMrfBIDsUs9uxmzaLyp1HYxzFF2oxMx/LkVASCvs2jAH+RdOArCCUzkYK4GPvwp3LwXRDX1RUlCA077e6PvI81AUF3lo52Il/dDuOe98ezYtMREKS64m/SwpKYkBKTw5eYO4GU6hWjPqP4kxlkwXTp5oSVZdtXiEFALAokWLQEQseUyr//R5+Fl3wCiELGNG1Q9HD2zHD1+NwbD/a4nAsEDo5iIoqlJ9jkkiIMQdEAQiAmk6iLTfEf+SNOI3X44YYwAjuLgqeDq5H0iaoWnH4eJhhIuLF1xdQ2F0Ndmn2QOpOw5i1WIz4u7qgLKyLAnU56uWzsm7UKbPADQWFzeFkpLAkZLCkzdskACTycnJhJvoGNQIA3TunMzBuDyfe66tppkLxoyZVmHz+pl4dlDtXq079+scFdNBWPVCxah64+Txg/hh/jiMeK4N/IJ8oFvKqhG/6pCa/E2KWXVVfFsMCbi6qXD18ATgDWcOgAQgBXSzBm5g2L15N/496Qf848E22Lv5A9zVsS8d3r2CnzqROnfeT+fPje/FTMnJsNjdMsm4EfGBVveHH0xoXma1dIsIb/LJk698kl3T8YEaYYANGyC5agSH3jEoJEQ1upRi0aIyIpLqa0+1ndyt/0gAVqZyFxTmncfiuaMxZFxT+AX5QlgqoCjKNdvk22mQJJCQduceYA7fmgFcYeAMcHFVkDxnOC5knYZ/yCQZ3bC18vbE7nl1ov/xHslP8f7PqgXQ1eGdDHU8/Lw6+4WGdw2Paty8NO90rCypOBrYptesJHzCa9oMqDW0kpBCqzS+8HC9JqWVFautFjOIiJ57KDahVULvdoFhTUjXizjnnvjmo2fRa5AfgiNCISylziXYHR/fvgynMsYghYb41vVhtVRg+bwyPJX8DO3eOI9OpR+ZWnxibdm4AYGJLu6ebfwDwzsHh0c3jGnU0i0mvhOK8zKx7Kv/HJz2/qruzDMk37aqYrcXAyQlJbHk5GSa++bQyJBaEX4lZnOhFDoYU+nl4bHDO/R4gAFCV1Uf9cdv3kNEnUw0atEduqX4ipL/VxokCYCCtct3oUnbEWBkURZ8+KoeHBbav1XHf7xct37LoJDwGETGNIbJ1ReAqp9J36XMn528q9V9Y/syz5DcUS1gGDQoUQI1mzm8YQZIS0tjAHB43+Z6zdveDXE+nwEMk8Z2igoJ8OkRUa85AF05nXEUGUfnYcykzhBa2f8M8QGAqwqs5hJkHjXgkfH9wVUrRjw/W/X0Cuh89uQxlJScklvXfyK//zKfj3/9K5xNP6D85+XEs6ExTf/vvvtGFBw8SMbGjQ1W7F5U8892oxeIO3+eAYDQtNoRdRpACgFAsuJzh++9q13PYDA3QaSyNYvfQfeBkVBUE5ik/xniS0lgigvSdh9Hrcgu8PIOQO7ZfGSeSMXqpS/JovwPKDZ+L6+s2Ke2ThjE3d0COZhk7f8xLCg0pM5Ps6YMPPHjl902Pj8o7NP3/jlgAhH9DvZ+azXAhg0EpqBWnZhWAaG1UV66WAMY+QQ06hwd34YAIG3/ZiiG/WgQ3xPCWgGusP8hoKttqXDicDmCwhti8ZdTkHv6ZzRr64lu98VyV48w7Fi3FUK/G227PojiwlzENu6O2MbdTQBMxw+s9nr3pSERRhPaWPXKNw0mN6FbbyMTEJcEQrIAB/cOCKkNH09vn3nzxnvlH8ns6B9SjwGS71z/BRLuqWOLF/+1UMx/uCxVVA7dYsbR1Gycz34HrToHov8jd4MrLpBaGYReAA8vd4SGncCyeX1RVsqgqkFw9wxHWFRrioxuRM/P+Bk551LN6Ye2J/7r6YqOFovyycuzNswDSX6jMYIbZQD22mtMAmQyurrE+AbVgUExBaf98Eurlvf0D1EUL5w+eZBJcRB1GnSG1Mx/SoDm5qdPCFJIKEYVILI7eZeHP4FxPPZcRwSH+9gIr1dCWEvBOQeDQKOWtdGoZV0AOqxmKyrKypB9+gQyT+xg65Zy5u7VSMQ17+/WrGWn6O8Pbffw9Aox2msmcHHi7U9lAIcEfPD68CAwc22jyR/M6B6SkXmiaf/IWACQqdt/4bHxPmDcaEuA3OGoWCkkmMKgmNxRmFcIg0GBh6cRUtClYxYEKJwQGuUH0gWktcIWonZGMxmk1QpJBM45jKoKY4A/fAKC0PAuEwALrV+ySZn7xuIKF3f/d/uOmTKzffsHCwBiyck3HiHkNSERh3f+pCqKwQhuQp2Gd9Wv36TJcz5BdQGA5Z7dhoZNawFkAbsjbT8DEUEICYBBMbmCMYZV3+3EGxO+h9DFVUWrpKZfMkRN9vSjalBsAFcQpFWD0HVkn8qi2clrWeruwP8++c43jabPOzK5fftBBYmJpNRUQIjfeCxcwawVubqffwhlnToEv8AIl6LzZ8ICQiNQmJ/DFCUbfkH+IF37LUJ2m9pzW8r3N8mVUkJKAa4aoZrcICWw9edUPDfiezw9fgN8A7zh7e8NYdVBJK8tUESAEBLcoIIbjLCYtWpWhnMJrnIoJgXFednKJ8/+KwS2iiPUZLpYvfEg0Gs0NCE0KiQi0rhs3lRy9/DFkAnvw93Dmx3cswsBIQDjJghNu828f7JlHMn2XjHaIF2axQLOOLiqQOE2xG/xhQJsW3ccK5YcxbbdxThv9kRMmDsGP9EaQhdgCgdXTYC02kLCV9AIRAQpAcXAoRrcUVJQikX/3Yyu9zZGnYYhtvS1DQ6N4DBPNuqlrsg7lzss5aezj0bGJSz39Kr/75ETP9zIGJM1oQX4jQeBCF5emk95cYXi46ujMG8ra9r6PmZy8Ude9jH4B7nbcOA3KahPZHPIbP7IlX0x2+Q7zodNwowuUIzuOHuyAHu2noJiMEExusJcoWHfpsP4T/IPGDnoOzz74i78uI1QpAQjwFiGCc/Eo05cFBRVgdAFVn+/GxdyKsBUpbomqfKMUhK4QYVqcoO5XMPPC3fg8QFf4MTBXNSODYHU9Oq4AymRey4PhUUW2eSuABYZVdbv9JE162a9OiAJYFSlcPZW5gIYSs0Vwmoxw9PbEwHB7lj25Vt48MnXUZSfgboxHraVCrvRtXR1wRISYCCbJw4bGshSaYXBwGyeOcFJCM4YmMLAFQOclVrQUZpXjEP7crF9fTpcXQmde8dj+5qj2L39JH7dcR5p6RXILzeCDK4wunjAxDhkeT5GPVEXfR7tBktZPratP4r5/z2AwtwCfLqsru2+kkB24WScgxtU2FBBArmn8rB5zWH8sCwDW1ItCHDV8cYHXcA4h9QlmL1aSBJBUUzYvyMD38xKLfQLrv0ayYKjTVt3hMXkfhIgTEkGJd8O2UBOOjO5uKDgggU9BjbFVx/+iO1rW4Exgpu76bqXqrbJlFAMii3DqtukCAqDanQBwFCUW4ADu09j40/HcM+gZmjZMQaQVoCrVfoECAhrJfKyipB1shDHjuTiwL5cHEgrRUleEYLdddRqEI41L63H0YxKlJqNINUE1egHkzsBJAFIVFbq6N3GHQOH3oVl89Zh2fdHsPuQBTmFCkYPjoBPoA9AAorJ5TflKjVcOFuIg3vPYcv6dGzbfgHpWUAZeSFALccrr7RCdOMoSGs5eBWcA+cMUjOj58BW5OPt7b3864yGU+eemGVX/Q5XgW4DDUAICgsnIQUMLt4oLyvHkPGd8e3H03HicCF6D+psn8CrV+lg3EZ4hQMGd5QXFUPTBLz93KEYjIC0IHXrMaz+4Si2bM3B/mMWdG3lhmatoyCsFSi6UIIL2WXIzipC1ukSpKcX4Ozpcpw+V44LBUBxJaAxE0hxga97MIorJbal6AA3wmh0hdGTACkBEpDSEdJlCHAzwwTCuMdXIvWoGZrqARg90LBWHu5/qBGEJlB8oQCF+ZXIOl2IE0fzcOjABaQdLcHZbIkizQgy+kLlAnU9C/Hcs83R+5E20CpLwTgHkw4zZos1MM5RmJfPopsFq/15xeikkY27f/9Z0tCBw6f8CrAaqSBiN+YEgicnQz59r2d9V7/I1HoNG7jc97AbhUaFMkDifHYR/AI9oFwlwl1KgmJQIISEohqgma1Y/f0+fP3pXoyb1BVtusVhyy97sOTrNGzaUYDzpSboJjeEupvRvYUCVz8fZJwowPk8CwqKCKXlhAqhQjIVjKvgqgpFYeCcgYHASEKXtko1lZMtwEMOm1N9dokAFwNBswpUCAWuJgOIJEzcikbB5Qiq5YuiIisKS6woKBEoKgEqNA7BXaCoRigGwEUl+BrK0ShK4snnOqF5p8YAtGqayqYtyQ5AVnFgVyY+nvojwiJiLH6+vhlGl+Dlj7381ctgjGpCA7AbbejAGKPZSc/Uzs/78UjuuWzTxBmJFF7PjwmrDsVosOHmrjLAophcUJRXDA9vd2SdvIAZr67Cyg1laBTtgslJrbF88REsX5WLIqsHDC4uUBQGCAkPk4ZKs0CZGeCqCVw12DxzxkAkQXZpJimcvgGzQ7ydzTw4B4ctQOMoOrWdI2wajJiNORiDwgBp12qMA0IwWMw6OOfgiv3FGWwaXYATwdtoho9Jg0HV4ebuCg9vI1xMhLAwH4TWckW9+gHwC/BCQKgP3DwM0HUBNw8TXN1dcT6rlNYtO4qTx7AsOKT1O4+/PGMzSVEjhSM1wgDPDXkuqGH8tkMdekYGhEb6kbePC7NlBa8OlCmkhGp0x6kj5/DhG6vQtXdDfPrJXmw7ZoKnpwGdo4uQmWdA2hkFBjcPKFyzSwgDoECTKiQJQGqAbgaTlVC5FQaF4Go0wt3NBS4GBUajAkVhYIoClXPoQoMUBCkIFk2H2SJRVmGGVROwCsAqDSDuCsXoDoOqgEGzxwsu4Qc5Ajxkd//oN+owMDAmICSHIFvFsRDShmqWOhjpMKoEf7dKRPkDUZEeaJ4Qi16DmsLD3QCFczDVhOzMXHz/SSo4r/v6uDeXvPrq5Fd4cnLyrcsFMMZscaz57+TNmHjX8QbNagUARFIT7GqWfWSXfNXkitStR/DSc2sBTcfJk9ux85wfXDwUqLBiR4YLCipd4OrJIKGDyABdCuiaBYpeBneDhgAfd4SF+CIivB7CI+ogql59+PgEwtMnAIFBtWBwcYNidAHnBiiqAYrCoWsWCClBUoNmroClsgIXcs+gvLQIxYUXcCozAydPpGFf6hGcyrNAKF5QjW5QFJuPQFWoLC+TD7CJKUESB+OAgQgGBWBMBQNBwgBXg0CEexEaRHsi4Z5YNG9fH7XqBgLMrqVgoJyzBWz9yvTisgr2i6eHvoqEzpJrAB10w07gFIBxbpDmCn7mwpn8doER/nQtcXXV5Ipd6w7hn8+twZEifzQNKcPxfBcYFAVMCpihoFKocDFxaIJBt5ZDEcUI8TEhtnEtNG/WA42btUVUTFOERDaAm7sfbqRhV1SDix/SgozDO7F1/WKsX70S+w+fQn6pCTB5wWAwgUG3m4lL62OqqmoJTqZxRA6JJIgL5JldsOc4cOzccXh8cwKeHgw+3i7w9nFFSIi7PHkoWykuCPj5P8uPPgS5G5jGbo90cKPERCa/+x4Xsiv25GZVDAqMCCZJOv4o6EdCQjW54cjeDLzywlocLwmAu4nhbLELynUjGJPgDCCmQggJc3khAlx1NLurNhK6PoKW7e9F3bjWMLp4X+RI2sCZ5Eg9M2YLQbMrWT36LVhko459NQJwZkTdRh1Rt1FHDHosCQd+/QXrf16ETZs34vjpPFSQGxSTBxRFAYOwEZauRYsSynUVpZoBVGrTJEQCkARG5QCVgoM4VwgJzUr7Hd36QdMFP50+ANjK8G45AyTGxRFoESrKjdszjl2gxm2ilCtNgCODyAwGlBWW4u2kNTic7wM3FwYhJcqlCg4BcBWaUADLBUT4SXS/txP+MXA44lv3qkZ0KSVA9gCKvZroul0hdhn2kLZIo9HNBy0SHkSLhAcxPPs4dm1cjLU/L8POvQdxLl+HVfGC0WgEv8a4BwdBYQQoAFPtniWYnTwMjDNUVGiotMIIgktycrKsqSZTag2UBBEAHDvdfnfmse2nSdejVJVJot+HKYkAblBhLrfCxc2AH7/dg417dbh4eEIIHSCAc4BghF5ZglCPSvTr3wMDh/4fopt0cUTwIYQOxrizfOxmN1dgnNtVOEGQDgJHQGh99HrwRfR68DmcSN2MLWu+w5aNa7EnPR8lFhcwJkDXUORFVaOeVO0IGAGqAuiWyrLi/OILdumvkWygUlN1/z9u3GtpHevXvEEjryaeAT6ShM6rxbWJwBQV+bmleGHkEuSdOo/N23OQdlaFyWBTuYwboEsGo5aFe++OwatvfIgBI5LgF1zH7n1LO9EVeybyT04uMQbOFHDG7XkFAc5V+AXXRrN2vXH+5A6sX78dmsnXVrNYgxB+xhXmxYvyc1f9MH1bLrSaKuytIdFJBEiHrkUs3rMzmwHgv6FkCIwzG2qGKdi/5Th+3lKKn1aeQMbJEhgMRhtUjBuhaZWIcMvBqy8+g7c+TUHjNvdBlzqkFGB2wt8u/RcZY1AU1W6GBIQUiG7WAwPu64K6HoUwynI40rc1BS5UDQqPaVtXva1QwfYaQAGAGaJW/rR/W9au8uISphgMtlgJ4zCbBQgKGDNBCoLJ1YDjhV4oqHCFyiWImaBXFqJtPRXvf/wtHhr9NhSjh61VDHe2WbttB+cKOGNI+MejmD5nFT5d8CPuaRcO3VIBpqg1ogkYCAwSbiZOtwUDJCWBV3VEEhMTeXIytxaX+H24bXU6AzeSEAJMUZG2JwcTR3yL/Kw8qEYDIARKNROKLUZwRYWszMe9bcPx3n9XI75tfwjdCkYAV1TgjqkM4pBSh65L1G7QAX0HjYU35UHXhN2zu2H0AhTVgPqto3FbFIbY8Gi2ZGRSQoKKuDiZBOKjvtj07RfPtB7XrEPuXQGhvhIgbjJw/JJyAaXjlsDbQ4FucIMKzdanz5yHfgn1MeW9ZfD0C4cUOhTViDtxcK6Cc0AKgY69H8d/ZgPvvPES9me7wKgabMu7G+isp6gc8Pe/tYUhDqlf+OnkhC/eHdMd3IDkDRv05ORkmT0KShhYpcG1yXNLvzhgsa2IOXEu4OHnjjX7OVZs0aAaDWBMgdVcjF6twzFlpoP44o6S+stOqqKAINGx9ygkvTkb4a550KQjLE7X5XwSEUwGE9pEt749KoPO52cXHz24bvkb42LXP5/Y6onPp86u9clcg8YY6IV//TcldY/2yi8L9iqAUYARmBRQVANgMIKBw2qxoE1dE159ZxE8/cNtHvVfqFxM4SqE0NC844OY8H/PwUOcA0G9blwkI4KqqoCf363vEeSo/X/h0aaf9B3o/4TBzRM7NpzNO59Dy62l/vPdxvyyKbmHqz750SYf9nk4fExYbXcafP8ydrbcGyYuoJEBocYczPp4AZp2GAghNCiKAX+1Qfb6AcYl3ni2Nz5b/CsUVx9A6te6BiShWViPln45Hy3cFMNYYKm9ldGfnwuwB/LEws9eDdm3YUGXWrGN9ToN6lKLhMiAU8cuPLZz89nHTn7XePvY3mFfhzV6ftqGXz6vjArPHGsykUmUECPVCKXyHJ4YO+ovTXxnnwAGW+xAcYUQgOoEi11T1pUMBgMruJCdAayvqCk00I04gcw3vk+lx95VZ4suFEejgUUyKFSvcaSo1zhSKS8sbJu2O7vtr1veTM7Pl19rlsjU2kEFrbOKK6i80sruaR6FxCemQEp5y5d4dIncbk0CWBljIClQVHABxAjXlcQnAucMQreaFT7o1paHMwZauHChEuV13tz931v7TB7W6puSYnlvwn2NpLBUqmCAu6+7bNW9EbXqGuNz+njOmL07LhBXvAHreXYupwKPjJoOV/cACKGDc/VPJ7i0x/YVRbkksR3n2Dx7fkMMQVKAKwYMHDwa67eMRgExXFdkgBFUVeWshvuHsmu3a2AgMnzwxtCZBaf2dgqODNYO7d7bfNCT7dGhZxykZrVxiZRgXCFuMEqAKyfTMvHU0IUwBLbEwuUbYDQY7BPL/qQy7d8IWnVomgaLxQJd16EoCoxGI0wm0yUZ4rp6GtgrfzRLCZ54oAVSDpTA5GL8g3rC311CGhTGm9cqS/k2paiLkLdSA9jUgPb55y+/cebw9vDwSEvfEc8Pp/LSSib133ryMYUDIKZbKhWuGrDkq/3YfASYPvoJmIwmCCFsoM8/gfCsSpYwKysLa9aswfbt23H27FkUFhaipKTEyQBeXl7w8/NDSEgImjZtih49eiAmJsZJfNtzK9e8hDOYPFG7dl1g7zbYWsyLa/MmGOztdHiNNg1Tr8OoEYjYsGHTctf61Hrvp6//3VCTe+v2G9aKCc3CqxZ/SkF2tM9RLFiYjrA60RjUv8/v+vrdrFGVWCtWrMAXX3yBI0eOoG7dumjSpAnuvvtuNGjQAL6+vlDsPYHNZjPS09ORlpaGnTt3Yv78+QgJCUH//v0xZMgQ53mMsas2DSRtEdGYuCZQlmywE1FcU1tCxgBXVzfoIl8BIGuqV9C1rwKkLaKRB7ieO7kvQYpK3/KiYgWQpBgMIE3/LUvHOaSuY8FnqTiWSxgxojsCAoOuXYquU+oVRcG6devw5ptvQtd1PPDAA5g1axZCQkKu+P0GDRrg3nttG0tUVFRg7dq1WLhwIebPn48nnngCgwYNct7nWvAHdaIbwdNEKAVdlR/AQABXYRUcVFaAsmIzMcaE3SzxqjUCt6xX8Pcfvxx6MmPXKySzxj4yri2FhPswEroN12/ywPY1B/D8hHU4Vcjx0cffoHfvf1y/Pb1K4nPOIaXEhAkTkJKSgpdeegmDBw+uZtOFEE4pvliSHTbfwUSOsWvXLsyYMQMeHh5466234Ofnd1XMTHbAypkTOzDiwXuQXuwNoyIvuQKpTh0VmrUCYW6l1LltK5Zw7+BC7tdo9gP9E2YUF6MwKSnphkGh/EYQwUlJSapfRG3FpKgstJa3NLmotgaJduBHcUERvvloE7xNFQgJjkC7du2q2eOr9diFENVeDi/+csTPyclBQkICKioqsHXrVgwePNhJdAciSVVVKIri9PKrvjjnzs8d1xVCoGXLlvjmm2/QtWtXPPnkk0hLS3OahD9cCgIIqhWNWqH+kLoFf1jIyFSQpQA9mvni40+/ZtPmrkfPgWN8u3fu9PKmDakbZs6c2awmkEHX/eUpjLHXXp+q7964+mmjembMoDEtuV+QnxS6cFbenk7PQ2ioBy4UMdRr2Ax+fr52aWB/KMUOCeWcQ1GUai8H0RzM4GAWzjmysrLQq1cvDBgwAHPmzIG7uzt0XXdK8/Us6RzP4Hiuhx9+GK+++irefPNNpKWlOTXOlRStlBImVz/UqRMNCMsVpp6BMQPIWoh+CfXx9tzVaNy2PwQBuq05kDW+aXx8ly5dFiYkJPhMmTLl4v0J/xxE0AYbldkvmw6t37p2/elNP+9q7R/IvIIigkAkwFUVWqUZS5eewoaDZjw65FG0bdMOQojLaoCqyy3OOSwWC9LS0rBu3TqkpKRgx44dSE9Ph67r8PHxgdFoBGMMuq6DiFBZWYl+/fph5MiRGD9+fDXC11RQh3MOXdcRGhqKli1b4v3330fz5s3h6el5xZ5BJAU4V3DudCo2bNoMZvICu1TJHOfQrVa0i3XFm7NXwiewDoSuQ1FUMHBIKRXOuRYSEhIYGBhIsbGxa6ZMmaJcL0TsRqMwxBjTAfbppMdGrJnz1papLTqce2DAiFam81k5bOLYZdid7g5XNzc0aNDoilE2h/pWFAUHDhzAnDlzsHXrVhARoqKiYDKZnJM/e/ZsmM1mtG7dGiNHjsRdd90FABg7dqxTPWuaBoPh5oSYVVWFEAKRkZEYPXo05s2bhwkTJvxB0Ig5HUF3I1Ah2e+kjwEQUoGPmoMnn3kfvkH1IHQNimpw+hoKFEgpVc45NW7c+MlHHnnkQwDnanx9eC0jKSFBBQCjqw+eeaDh5i/faUwD27uKkAAviq4fQfWiI+n48RNERCSlpIuHrutERFRaWkpjxoyh2NhYmjBhAm3bto0qKyt/d77VaqVDhw7R1KlTqXXr1jRx4kT68ssvqV+/frYdxTTtkvep6eF47tWrV9OaNWsu+/tsx207jZ05sZO6tvSlOvUiKSamFtWv/9srJjaCIiMD6KkH40mzlpMUOkkSzvvs37+fpkyZQlarlew7ktHSpUuT7NpTuXWYwM6d5fr1pI7vF/l0zwFhbWrVCxMDHm7CX3gyAnU88+Hr54/w8FpXXKsfOnQI7du3h67r2LhxI9599120bdsWLi4u1RxBKSUMBgPi4uIwadIkbNq0CX5+fnj22Wfx1ltvXXf4tmqI+Krtp90v6Nq1K/Lz81FSUvKHGiCoVn2EB/tB6ubfrz6gwETF6NqzH1SDGyRJ22ZjioJPPvkEY8aMQfPmzW39h6VkACg6OnrE+PHjvTjn4npWdbwmdvxOTk6WnTvD09XD9KRqkGqXPk2UIU/1p4EPNkVhiQWeXr4wGtXfrTwd9j41NRWDBg3CP//5T3zyyScICgqCrutOglR1BDnnzn4+VqsVRqMR7du3x+DBgxETE3NFH+Nypsdhux2MUzUXcLV+QbNmzXDixIlqYeffrQSIYHTxQd260SDdXG36GWw9g4K8TWjUsovTkVYUBe+++y7effdduLq6ws/PD6qqgog4AISFhUXVqVOnLRFh4cKF/E9ngCoRqaKRkz7psG2N+tp7L60v/nXdDvblnF9xssAET3dXcKbYc8nVC0SysrLw6KOP4r333sPgwYOhabYCTFVVLyvJjuWaw7n79ttv0bdv36tq3Hgpv4MxhoyMDOzcuRMZGRlOol4NEzjuV6dOHVRWVkJz9Pi55P1s0b/6DeJhYGbIqgzAGXTdilrBXoioHQciBlU1YPny5ViyZAn27t2LWbNm4emnn8aqVasc2kf4+vqiXr16XQAgMDDw1kOmmWLAp59+VfeZAUGnOzfzoYBQP/nQgwPtO3MLp00UwvY+MTGRZs2a5bTt1zpKSkro0UcfpbKysmv6nuP++/fvp759+5KbmxspikJubm7Up08fOnDgQLXzrjQcdv/QoUNUXFx8+XvqGhERbVv1GTWpa6S6sbUpxm7/Y2PDKTIygEYPakxSryQpicrKyqhXr16UlpbmvEZqair16NGDzGaz0w/YtWtXCgB+PcvBGg3IL0xMVEhoPNJ3t1pi4d65le5QIX4X93eo6WXLlkHTNDz11FPQdf2avHaHrT5z5gzCwsLg7u5+1WrbIfm//vorunXrhuXLl6OiogJCCFRUVGDFihXo0aMHDh48eNWaAADc3d1RVFR0eZyBHftQq25DBPm4g/TfeicRFEgpEBwcDqYYwRiwY8cOBAUFoWHDhtB1HbquIz4+HuHh4Vi3bp3Tnrq6uoYCMHLO6Vr9gBplgENxcQRA6qU8UhNGL7NGpHLOyisqq+2k4bCH8+bNwwsvvHDJNO2liKbrujOa55jgrKwsREZGXnbSL6e2zWYzRo0ahby8PBjsqWnHy2g0IicnB88880y1QNMfmQEvL68/3P2E7I5gaKgPhP5bQIiYrQTMZDDYAkdEaNCgAU6fPo1FixbZ8ID252jWrBk2bdrkZACr1RqamJgY9Lteh382AyQnJ8vExESl16Nvr4trELmglo9kGjFhtZgh7ZE9h/QdOnQILi4uaNeundPR+yOJdYRnHQzkSNZcnL//owwhYwxbtmzBvn37wDl3+h1VnUvGGFJSUrB//36n4/lHw2g0/gEjM0iSMLn4ol7dGECYYW8jAoVgqy6uEjkMCwvDxx9/jJkzZ2LHjh1QVRWMMcTFxcFisVSNVBqzs7PVW1gahipFYovAGJP/fG/aS3XDXMsVgJeWlZFud4AcErVlyxa0bt3aGdK9kqrnnGPXrl346KOPsHLlSmia5pQ0k8nklI5rGdnZ2Vd0GB1MdvLkyavWLleV57C3nK0XGwcVlSBiTpiYBIdm1Z0aUbNaERMTg0GDBmH16tVOBk5ISMArr7zinEtd14Wvry/dDgzABn0H8dzYsVF1YkYPKzifX+LrpbCc8xdwPje32kTm5uaiSZMmV1T/Dol84YUX0KZNG4wZMwb33XcfunfvjuzsbACAv7//NfkODqIHBgbiSirT8dm1aBfHKuBq8q/RsU3hbvqtUynZQTR5+TkgslRjzsOHD6Nu3brOvw0GA3x9fZ3PLqXM3blz5/lrwSjcDAZgRISRj430233o4Mo5H334+pPPvh7qYzSjqKiYnTh+vBoBNE1DVFTUZcPDDlU9b948zJgxwxmCVVUVGzduxKRJkwAAwcHBKC4uvmowp+Ocdu3aISIiwhnQuTjAAwBBQUFo1arVH/ooDkKUlZX9oQZwfB5WOw4BPu427cdsuH/OjCgqKoC1styGIjIaMW/ePGRmZmLgwIHV0uh2TKMEQLm5uRm5ubmVjuDQLWGAxMREzhijefPm3T3owYca1YkK1+7u+RDatWiEyrIiHDh0AITfGiwZjUa4ubn9IaGWLFli675lzwM4/IE1a9agrKwMISEh0HX9qibfcV0hBLy8vPDaa68508QO5lIUxeloTps2DUFBQU5swB+N0tJSeHt7X3kXMbsKCI2IRUSoP0i3gDEOggTjHMUl5SgtzgNnDO//5z+YPXs25s6dCxcXl2rXdLy3Wq3s4MGDawHIlJQU5ZaZgPPnzzPOOcLDw5vH1K9PRUXF7MsFi9GlZx94GQW2bN0OBubspvVHyzaHVF2cZXO813XdmfAJCwtDenr6ZaNwlwvhDh8+HO+99x58fX2dyywhBAIDA/HBBx/g8ccfv2rUT2VlJUpLS+Hi4nJlf6EKRrBunbogqQPc4FgfwaJr8PR0Q8qGzVi+YgVWrFiBiIiI3wW5hBAEgO/bt690w4YN3wNASkqKvGWbR2/YsIEMBgMCAwNDGOesRYsWOJ9fhIIzvyK2rj927foVZ86ccardgIAAFBYWIjQ09IrXfeihhzB//nyn4+eQ2HvvvRe+vr4AgJYtW2Lz5s1o2rTpNeX4pZR45pln0KdPH6xevRoFBQUIDAzEPffcg4iIiKsivuOcEydOwNvb2/mMV4URbNgE6rerYFWNUI2ugGID05hMLkhPz0BM/frw9/d3AlarCoeiKFLTNCUlJeWLn3766djChQuVQYMG/Wm7jl96exxVRfPmzT/cvHkzEZGWefo0zf5gOo3oV58UA6PlK5Y7I1pr1qxxZtAuF21zRNjeeOMNcnd3JwDEOaeBAwdSfn4+SSmd3/32228pIyPjihm5K0UEL5fpu5rvm81m+vbbb8lsNl/VvaWUJKWgosIcWj7/DRp1fxzdVd9ItUJ9qFc7PyrIPUpl5RXUp8999MILL/xuPohIEBEtWLAgHYA/EbEbAYXUYJpcRdOmTd+2E1bLPHWKli//nsY+1IYefuQRslqtzgnPzs6mBQsW/GG41fGjjx07RosWLaLt27dfYjIl5ebm0meffUaapl1V+Pbia2ia5nxdLQNpmi20+91339Gvv/56Tcwn6bfzrOYS2rbqc3r+sU70QHsXyjp9iIiIzGYzPfPMM3T//fdTaWkpCeFMDYvNmzebu3fv3s2+XL31+/Ak2DEBbm5uw7744gsiIpGRnkFz5nxMSZMnUWFhUTWCSSnpq6++opycHOffVyulF5/veL9t2zZavnz5Vcfwb2Q4iL9hwwb66KOPru+eUjrzAw7BPrRnNZUU51bTbmPGjKHp06c77qETEb3zzjurHOhg4PbYcoXZs2Ixw4YNKyciUVpaKvsP6E9phw9XmyDH/0eOHKGlS5de1eQ5uP9y5zmOr1y5krZu3eo8djOAIQ7ib9myhV588UWqqKi4sXtJSbqukbjo+47fu3r1ahoxYoTzp546dYr69u07gohYYmLi7VNTn5iYqHDOUbt27TmbN2+mhQsX6kuWLLmkTXUQbPHixc5s141IreP6J0+epGHDhlFKSso12/OrvQcR0YoVK+jJJ5+k/Pz8a/Y7rtYncdzv7bffptdee81mOYjk3LlzswH4s996y+N20gL8+++/D4qOjt78+uuv23+TuIwjJKmsrIzmzJlDubm5100sh0RmZ2fTyJEjKSMjg9auXUuffvopFRQUVJvQayWUwz9wDIvFQpMnT6bRo0dTSUlJjRLfcS3HfDmue/bsWcfv0HJzc2nIkCFvOQQOt9uwP5ThoYceWldaWmqDAVwWJ2c7npWVRbNmzaL09PRqk3CliZVSViPokSNHaODAgbRlyxbnOfv27aN3332XVq5cSeXl5b9jGoeKvfjlcAYvPn/+/Pl077330owZMy7lmdco3FAIIS/ydXQiouTk5NPu7u5BdmFjtx3xGWNo3Ljxq9u2bbus9F+KCbKzs+ndd9+lH3/8sZoarEqQy3npc+fOpZ49e5L9ntV8hcrKSlq8eDFNnTqVvvjiCzp+/PhVaxkpJR07dozefvtt6tWrF40YMYIOHTp0SUe0plT/G2+84XRkiUizv6xERLNnz66oV6/ePYwx1FSr2JrkIM4Yk0FBQY1Gjhy5ddq0aR5CCKYof7xXnCPKJYTAN998g+PHj6NZs2bo0KEDAgMDL/mdnJwcLF++HEuXLkVwcDCmTZuGsLCwaqVaVaNnpaWlWLt2Lfbs2YOSkhIEBwcjICAAYWFh8PT0hMFggKZpKC4uxvHjx5GVlYVjx46hsrISLVu2xODBg53Jq5tU20hSSjZ48OAz+/bt2zRs2LDBffv2ZZGRkTh79iyWL19etHDhwjF79+79xl7PIW47BuCcyx49evw4d+7cf4SHhwt7EcM1b8R87tw5rFixwpmL9/f3h8lkgpQSxcXFOHPmDHJzcxEbG4shQ4agY8eOVyTMxRG9nJwc7Nu3D8eOHUN2djbKysqcWD5FUeDq6oro6Gi0bt0ajRs3dmYbHUimmt4Cz/7bZWlpKR88ePDmX375pWN4eHib8PDwAV5eXv5mszn77NmzCzIyMo4MGDBAsTfmxG3DAImJicp3330noqOje48bN+6Hp59+moQQ/HqkpCqxrFYrTp48idTUVBQUFEDXdXh4eCAmJgbx8fHw8PCoVg18NSVnV4M+unjouu5MSN3EXcj1o0ePqoMHD/5qz549Qy9T/l3jxR81kgtYuHChBMDuueee5wYPHswAyOudLAf6RkoJo9GI2NhYxMbGXhHdc7X3cpxXFf1zcXbNcbzqda8HcHKtTK8oCo4dOwar1XpWURSKi4szBgYGyqCgIDp//jzr3LmzrIn9AWp+vwCb4ydiYmLuHjZsWEJgYCAJIZQbsZFVId+XI9aN1PxdD3DiT2hUxdPT0+nChQupRIRGjRqJqqp+w4YNN+XevOY6ZysDevfurQAQ1zq5tk2a5RVhVpeqDv6rDFVViYj4oUOHRP369Q8BQJwNYIvbv0eyjRAu999//2E7rv/mBuH/mkOWlZVRly5dziYmJvrdBAf95miApKQkBy69SdOmTWMMBgMJIfi1YvuPHDmCffv2XRO0+68y7JqPMjMzkZ+ff2zp0qUFzs3G/gztcyNfTklJ4UQk/fz82sbHx3MA+rVek4jwwAMP4NSpU8jLy4PJZLrmEq87nQE45zI1NZXn5OT8av/dvKbW+TeVATZs2ED2dXr96Ojo6+qyyRjD+PHjUVxcDKPRWOOdOu+QwQ8ePAiz2ZxqtVqRkJDAbpbTV+M+ABHx3r17b8rKyiIi0m8kPHqldO9f2f7ruk7dunWrCA8Pj66iAXDb+wCMMWKMcSmli5eX13U7Lo66f4eHf7W1eHf6sPs7lJmZifT09COTJ08+ZU/yyDuFAQAA5eXldCPtWByQ73nz5uHo0aPgnF+xWuivMuy/UW7fvh15eXlbx40bp/2Z0l9jquZGJNYRzdu0aRMeffRR9O/fH5mZmVAUBbqu/6UZwAHo2LhxI3x8fHbruo6EhAR2xzCAY8lmt93XLf1SStx1113o0aMHjhw5gj59+iA9PR2qqv5lmcAO7abCwkJl+/btld26dVtPREhJSRF32g9Ru3TpsvvcuXNXBH9cDSbgwoUL1KFDBwJAdevWJTu83AnU+CsNOyZBX7JkCQUHB//kQFP96cuPGsgmSrPZfD4nJ8exucV1qUIpJQICArBs2TL07dsXGRkZ6NmzJ2bOnOnMxDlKtv5KY8mSJSCiZaqq0q1ggBqpBQgMDJy6cOFCO3JKu2FUjKZpNHHiRMcuutSrVy8n7v6vsFy0P7vMzMyk2rVr5w0YMCDozwz/oqZrAaKiooZPnjzZThv9hifHYRKWLl1K9evXJwBkMplo3LhxdOTIkd9h9W4W/Ptmq//XXnuNIiIivnJ1dcWdKP3Oh7777rvrdu/evcKeDJI1gYx1MFJOTg49++yzZDQaCQB5eHjQ448/Ths2bLgk1NyBG3T4DVULUW6LqI/9WfLz80XTpk3lww8/3AW4TRG+1xINjI6O3mBX03pNqeeqBN67dy8NHz6cXFxcnKahdevWNHXqVNq8eTPZEch3jPS/+eabFBkZuc5e2cPvZD9GtePoRk+aNKlGzMDltIGjFdukSZMoJibGyQgAKCoqigYMGEDJyck0f/582rhxIx09epTOnTtH58+fvy00gEMjnT59Wq9Xr542fPjwjrjBpt23x/Z4ANq1axfUpEmT83l5edJGN1njk1dVs5SWltJPP/1EEyZMoObNm5O9RdrvXu7u7uTh4UE9e/Z0Vu/eKmZwSP+jjz5KwcHBc+zR0zta+h1DMRqNCA4Ofu/tt9+ucS1wKTt/sSN47Ngx+u6772jatGk0dOhQ6tGjBzVs2JBCQ0PJzc2NOnXqRJWVlbeMAezPLObPny/9/PxyNm/eHGYXnr8EA3AAbNy4cXXi4+NLzpw5I26GFriUabgSo1mtViotLaXs7Ozr6kJa013Fjxw5otWtW5dGjhw57E53/HCpXcUNBgMaNWr02hNPPHHDMYHrqafTdf22WxY6zFZ+fr7etGlTiouL+5eLi8sdb/cvWxhKRJ61atX6df78+URE4s9igistuW6V2ncQv6ysTOvSpQtFREQsthOf33FBn6vVAgAwfvz45tHR0SW7du0SRCRvJRPcarVfWlqq9erViyIiItYTkdtflvhVo4Occ/Tr129oy5Yt6fjx4/r/GhM4fuu5c+e0Dh06kL+//49EFFpVSP7qQzGZTGjRosXTTZs2pcOHD4tbbQ7+LJNjl3y5e/duPS4ujurUqbOQiFxuVmve25oJDAYD7r777qfj4+Np9erVTszgzVoi3g5ST0T67NmzKTg4mJo0aTLd0Trnf0XyLxkf6NOnT7/Q0NDzU6dOddS8y79Kjr9K5y6Zk5OjDx06lDw8PHIHDhw41BHouR1auN1SJmCM4ZVXXmkYGRm5rlu3brRq1SpHxwt5va1bbiN1T0Skff311xQTE0OhoaGrZ86c6ahmVf7XiV9tg0ovLy+0aNFidHBw8IlBgwZVZQTxZ273dqOEr6ru9+3bJwYOHEiBgYFFd99997OOkvW/3Dq/hpaIjHOOU6dO+davX/+FiIiIY71796avvvqKysrKpEMr3I6Aj4sIL3Jzc/WJEydSaGgo1a1b97sFCxY0sVcr8/9Ve39N1Uj2rc98YmJihvr5+W1o2bIlTZs2zdEoymkebrVWuIjwsqSkRH/rrbcoJiaGTCZTSmJi4r324M7fUn+NGUS1ahSxWbNmPcLDw5fWq1ev8rHHHqNVq1Y5umLqVZ2tP4sZqjh3RESiqKhInzlzJsXHx5Ofn9+R/v37j67SpfNvqb9eRrDDyhhgayE/ceLERuHh4dPCw8NPdenShWbOnEknT550rB6Ew2m8GcxwUaZREpGemZkpk5OTqWHDhuTv73+0a9eu/0dEnqjeFu/vgZrpL8gB22YSRUVFvi1bthwSEhLyc/369bXhw4fTokWLqKCgQFZlhqotZK+nCaQjgVSF6EIIoa9du5ZGjhxJkZGRFBgYuKtjx44jici7SlcS9W+q3Txn0TnLbm5umDx5couYmJjX/f399zRq1IhGjx5NS5cudXbPtDODc0l5uSaQVT+rQnBph7Hpe/bsoalTp1LHjh0pLCysPCgoaFGnTp3+QUTqRSuav5d2f4Z5sGsFVsVpNNxzzz3da9Wq9WFYWNiJuLg4GjlyJM2ZM4eOHDlCVqtVVllWXkodOAlu9+Tphx9+oJdffpm6du1KtWrV0oODg7c1aNDg/+bOnRtbdUubqs/yV3PG7gitkJyc7GhAAZPJBLPZ7NazZ8+WaWlp90kpOwKIi4yM9IqLi0NsbCwiIiIQFhYGDw8PSClRVFSE3NxcZGdn48SJEzh58iQOHjxoIaICKeWuwMDA1Q8//PCWSZMm7eOcS7I3bkpMTGQ12Zfv71EzWkGpuoUaEalPP/10ZGxs3MMmk+kNPz+/jV5eXkfDw8MrQ0NDqVatWhQaGlrq4uKS5u/vv8fT03NORETE/8XFxbXeu3evT5XgjdO+/6949f8Pd1jHIzH27/0AAAAASUVORK5CYII="))
-		return getcustomasset(p)
+		local sent, sendFailure = pcall(sendLogToDeveloper, problem)
+		writeLog(sent and "[Support] Log Sent" or `[Support] Send Log Failed: {sendFailure}`, true)
+
+		if sent then
+			problemBox:Set("")
+		else
+			nextSendAt = os.clock() + 10
+		end
+
+		window:Notify({Title = "Support", Text = sent and "Log Sent To Developer" or `Send Log Failed: {sendFailure}`})
 	end)
-	return ok and type(r) == "string" and r or nil
-end)()
-for _, x in W.Gui:GetChildren() do
-	local t = x:IsA("GuiButton") and x:FindFirstChildWhichIsA("TextLabel")
-	if t and t.Text == "studio" then x.Visible = false end
-end
-local rh = pgu:FindFirstChild("MainGUI") and pgu.MainGUI:FindFirstChild("RightHUD")
-local eb = rh and rh:FindFirstChild("Eggs")
-if eb then
-	local o = rh:FindFirstChild("NgaoButton")
-	if o then o:Destroy() end
-	local b = eb:Clone()
-	local n = b:FindFirstChild("Notification")
-	if n then n:Destroy() end
-	b.Name, b.LayoutOrder = "NgaoButton", 0
-	local g = b:FindFirstChild("UIGradient")
-	if g and g:IsA("UIGradient") then g.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(184, 122, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(232, 172, 18)), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 214, 64))}) end
-	local im = b:FindFirstChild("Icon")
-	if im and im:IsA("ImageLabel") and type(gi) == "string" then im.Image = gi end
-	b.Parent = rh
-	b.Activated:Connect(function() if W.Main.Visible then W:Hide() else W:Show() end end)
-end
+end})
+
+startJob("Anti AFK", runAntiAfk)
+
+writeLog(`[Hub] Loaded | Place {game.PlaceVersion} | Server {string.sub(game.JobId, 1, 8)} | {localPlayer.Name}`)
+window:Notify({Title = "Ngao - Gaming Hub", Text = `{gameName} Loaded`, Time = 4})
