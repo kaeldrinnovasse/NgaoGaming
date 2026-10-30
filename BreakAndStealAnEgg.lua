@@ -6577,14 +6577,14 @@ end
 local shopItems = {
 	{
 		label = "Pickaxe",
-		flag = "ap",
+		flag = "AutoUpgradePickaxe",
 		stateField = "buyPickaxe",
 		readOffer = readPickaxeOffer,
 		isAvailable = pickaxeConfig ~= nil and pickaxeShopRemote ~= nil,
 	},
 	{
 		label = "Treadmill",
-		flag = "at",
+		flag = "AutoUpgradeTreadmill",
 		stateField = "buyTreadmill",
 		readOffer = readTreadmillOffer,
 		isAvailable = treadmillUpgradeConfig ~= nil
@@ -6594,14 +6594,14 @@ local shopItems = {
 	},
 	{
 		label = "Pen",
-		flag = "ae",
+		flag = "AutoUpgradePen",
 		stateField = "buyPen",
 		readOffer = readPenOffer,
 		isAvailable = plotUpgradeConfig ~= nil and upgradePlotRemote ~= nil,
 	},
 	{
 		label = "Trail",
-		flag = "al",
+		flag = "AutoUpgradeTrail",
 		stateField = "buyTrail",
 		readOffer = readTrailOffer,
 		isAvailable = trailsConfig ~= nil and trailShopRemote ~= nil,
@@ -7103,7 +7103,7 @@ local generalTab = logSettingChanges(window:Tab({Name = "General", Icon = "hamme
 generalTab:Section({Name = "Farm"})
 
 if #zoneNames > 0 then
-	generalTab:Dropdown({Name = "Select Area", Options = zoneNames, Default = zoneNames[1], Flag = "sa", Callback = function(value)
+	generalTab:Dropdown({Name = "Select Area", Options = zoneNames, Default = zoneNames[1], Flag = "SelectArea", Callback = function(value)
 		state.farmZone = table.find(zoneNames, value) or 1
 	end})
 else
@@ -7111,7 +7111,7 @@ else
 end
 
 if #rarityNames > 0 then
-	generalTab:Dropdown({Name = "Select Rarity", Options = rarityNames, Default = {}, Multi = true, Flag = "sr", Callback = function(values)
+	generalTab:Dropdown({Name = "Select Rarity", Options = rarityNames, Default = {}, Multi = true, Flag = "SelectRarity", Callback = function(values)
 		local selected = {}
 		for _, rarity in values do
 			selected[rarity] = true
@@ -7133,19 +7133,19 @@ local function applyThreshold(label, text, apply)
 	apply(amount)
 end
 
-generalTab:TextBox({Name = "Min Kg", Placeholder = "All / 500 / 2.5K", Default = "", Flag = "mk", Callback = function(text)
+generalTab:TextBox({Name = "Min Kg", Placeholder = "All / 500 / 2.5K", Default = "", Flag = "MinKg", Callback = function(text)
 	applyThreshold("Min Kg", text, function(amount)
 		state.minPetKg = amount
 	end)
 end})
 
-generalTab:TextBox({Name = "Min Income", Placeholder = "All / 1B / 5T", Default = "", Flag = "mi", Callback = function(text)
+generalTab:TextBox({Name = "Min Income", Placeholder = "All / 1B / 5T", Default = "", Flag = "MinIncome", Callback = function(text)
 	applyThreshold("Min Income", text, function(amount)
 		state.minPetIncome = amount
 	end)
 end})
 
-generalTab:Toggle({Name = "Auto Break", Default = false, Flag = "ab", Callback = function(isOn)
+generalTab:Toggle({Name = "Auto Break", Default = false, Flag = "AutoBreak", Callback = function(isOn)
 	if state.breakJob then
 		state.breakJob.status = "Stopped"
 		state.breakJob = nil
@@ -7165,7 +7165,7 @@ generalTab:Toggle({Name = "Auto Break", Default = false, Flag = "ab", Callback =
 	state.breakJob = startJob("Auto Break", runAutoBreak)
 end})
 
-state.petIndexToggle = generalTab:Toggle({Name = "Pet Index", Default = false, Flag = "pi", Callback = function(isOn)
+state.petIndexToggle = generalTab:Toggle({Name = "Pet Index", Default = false, Flag = "PetIndex", Callback = function(isOn)
 	state.isPetIndexOn = isOn
 	state.indexLoggedZone = nil
 
@@ -7177,7 +7177,7 @@ end})
 generalTab:Section({Name = "Pet"})
 
 if #rarityNames > 0 then
-	generalTab:Dropdown({Name = "Select Sell Rarity", Options = rarityNames, Default = {}, Multi = true, Flag = "sv", Callback = function(values)
+	generalTab:Dropdown({Name = "Select Sell Rarity", Options = rarityNames, Default = {}, Multi = true, Flag = "SelectSellRarity", Callback = function(values)
 		local selected = {}
 		for _, rarity in values do
 			selected[rarity] = true
@@ -7187,7 +7187,7 @@ if #rarityNames > 0 then
 	end})
 end
 
-generalTab:Toggle({Name = "Auto Sell", Default = false, Flag = "as", Callback = function(isOn)
+generalTab:Toggle({Name = "Auto Sell", Default = false, Flag = "AutoSell", Callback = function(isOn)
 	if state.sellJob then
 		state.sellJob.status = "Stopped"
 		state.sellJob = nil
@@ -7222,18 +7222,18 @@ local function readAreaSet(values)
 end
 
 if #zoneNames > 0 then
-	for _, event in {{key = "DisguisedEggs", flag = "h1"}, {key = "TrickOrTreat", flag = "h2"}, {key = "CandyHeist", flag = "h3"}} do
+	for _, event in {{key = "DisguisedEggs", flag = "PhantomEggsArea"}, {key = "TrickOrTreat", flag = "HouseOfHorrorsArea"}, {key = "CandyHeist", flag = "CandyCarnageArea"}} do
 		eventTab:Dropdown({Name = `{halloween.labels[event.key]} Area`, Options = zoneNames, Default = {}, Multi = true, Flag = event.flag, Callback = function(values)
 			state.eventZones[event.key] = readAreaSet(values)
 		end})
 	end
 
-	eventTab:Dropdown({Name = `{halloween.labels.BloodMoon} Area`, Options = zoneNames, Default = zoneNames[1], Flag = "h4", Callback = function(value)
+	eventTab:Dropdown({Name = `{halloween.labels.BloodMoon} Area`, Options = zoneNames, Default = zoneNames[1], Flag = "BloodMoonArea", Callback = function(value)
 		state.eventZones.BloodMoon = table.find(zoneNames, value) or 1
 	end})
 end
 
-eventTab:Toggle({Name = "Auto Halloween", Default = false, Flag = "ah", Callback = function(isOn)
+eventTab:Toggle({Name = "Auto Halloween", Default = false, Flag = "AutoHalloween", Callback = function(isOn)
 	if state.halloweenJob then
 		state.halloweenJob.status = "Stopped"
 		state.halloweenJob = nil
