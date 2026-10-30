@@ -3176,6 +3176,33 @@ local function reportError(text)
 	writeLog(`[Error] {text}`)
 end
 
+local function trimLogFile()
+	if not isfile(logPath) then
+		return
+	end
+
+	local text = readfile(logPath)
+	if #text <= 4e6 then
+		return
+	end
+
+	local keptText = string.sub(text, -2e6)
+	local firstBreak = string.find(keptText, "\n", 1, true)
+	if firstBreak then
+		keptText = string.sub(keptText, firstBreak + 1)
+	end
+
+	writefile(logPath, keptText)
+	writeLog(`[Hub] Log Trimmed | {#text} -> {#keptText} Bytes`)
+end
+
+do
+	local trimmed, trimFailure = pcall(trimLogFile)
+	if not trimmed then
+		warn(`Log Trim Failed: {trimFailure}`)
+	end
+end
+
 local function findOwnedPlot()
 	local plots = workspace:FindFirstChild("Plots")
 	if not plots then
@@ -3302,6 +3329,11 @@ local state = {
 	candyDrops = {},
 	cornDrops = {},
 	lastDoorOutcome = nil,
+	isPetIndexOn = false,
+	petIndexToggle = nil,
+	indexState = nil,
+	indexRequestedAt = 0,
+	indexLoggedZone = nil,
 }
 
 sharedEnvironment.__BseAf = state
@@ -3437,6 +3469,7 @@ local treadmillUpgradeConfig = requireShared("TreadmillUpgradeConfig")
 local treadmillUnlockConfig = requireShared("TreadmillUnlockConfig")
 local plotUpgradeConfig = requireShared("PlotUpgradeConfig")
 local halloweenConfig = requireShared("HalloweenEventConfig")
+local zoneAnimalsConfig = requireShared("ZoneAnimalsConfig")
 
 local eggHitRemote = ReplicatedStorage:FindFirstChild("EggHitRequest")
 local treadmillRemote = ReplicatedStorage:FindFirstChild("TreadmillSessionRemote")
@@ -3451,10 +3484,32 @@ local upgradePlotRemote = ReplicatedStorage:FindFirstChild("UpgradePlotRequest")
 local candyHeistRemote = ReplicatedStorage:FindFirstChild("HalloweenCandyHeist")
 local candyDropsRemote = ReplicatedStorage:FindFirstChild("HalloweenCandyDrops")
 local doorsRemote = ReplicatedStorage:FindFirstChild("HalloweenDoors")
+local indexRemote = ReplicatedStorage:FindFirstChild("IndexRemote")
+
+local function requestIndexState()
+	if not indexRemote or os.clock() - state.indexRequestedAt < 1 then
+		return
+	end
+
+	state.indexRequestedAt = os.clock()
+	indexRemote:FireServer("Get", nil)
+end
+
+if indexRemote then
+	trackConnection(indexRemote.OnClientEvent:Connect(function(action, data)
+		if action == "State" and type(data) == "table" then
+			state.indexState = data
+		end
+	end))
+end
 
 if animalBankedRemote then
 	trackConnection(animalBankedRemote.OnClientEvent:Connect(function()
 		state.bankCount += 1
+
+		if state.isPetIndexOn then
+			task.delay(1, requestIndexState)
+		end
 	end))
 end
 
@@ -4191,6 +4246,11 @@ local function isWantedPickup(pickup)
 		return false
 	end
 
+	if state.isPetIndexOn then
+		local animalName = pickup:GetAttribute("AnimalName")
+		return type(state.indexState) == "table" and type(animalName) == "string" and state.indexState[animalName] == nil
+	end
+
 	if next(state.farmRarities) ~= nil and not state.farmRarities[pickup:GetAttribute("Rarity")] then
 		return false
 	end
@@ -4876,6 +4936,57 @@ local function breakEgg(job, egg, zoneIndex)
 	return "Done", hits
 end
 
+local function listMissingIndexAnimals(zoneIndex)
+	local zones = zoneAnimalsConfig and zoneAnimalsConfig.Zones
+	local roster = type(zones) == "table" and zones[zoneIndex]
+	if type(roster) ~= "table" or type(state.indexState) ~= "table" then
+		return nil
+	end
+
+	local missing = {}
+	for _, animal in roster do
+		if type(animal) == "table" and type(animal.Name) == "string" and state.indexState[animal.Name] == nil then
+			table.insert(missing, animal.Name)
+		end
+	end
+
+	return missing
+end
+
+local function updatePetIndex(zoneIndex)
+	if not state.isPetIndexOn then
+		return
+	end
+
+	if state.indexState == nil or os.clock() - state.indexRequestedAt > 30 then
+		requestIndexState()
+	end
+
+	local missing = listMissingIndexAnimals(zoneIndex)
+	if missing == nil then
+		return
+	end
+
+	local areaName = zoneNames[zoneIndex] or tostring(zoneIndex)
+
+	if #missing > 0 then
+		if state.indexLoggedZone ~= zoneIndex then
+			state.indexLoggedZone = zoneIndex
+			writeLog(`[Index] {areaName} Missing {#missing}: {table.concat(missing, ", ")}`)
+		end
+
+		return
+	end
+
+	window:Notify({Title = "Pet Index", Text = `{areaName} Index Complete`})
+
+	if state.petIndexToggle then
+		state.petIndexToggle:Set(false)
+	else
+		state.isPetIndexOn = false
+	end
+end
+
 local function runAutoBreak(job)
 	if not waitForEarlierRuns(job) then
 		if not isJobRunning(job) then
@@ -4915,6 +5026,7 @@ local function runAutoBreak(job)
 		end
 
 		state.isBreakPaused = false
+		updatePetIndex(zoneIndex)
 
 		if not isInsideZone(root.Position, zoneIndex) then
 			state.activity = "Traveling"
@@ -4991,6 +5103,7 @@ local halloween = {
 	phantomCandyByZone = {},
 	doorTag = "BreakableHalloweenDoor",
 	treatOutcomes = {Candy = true, Damage = true, Cash = true, WalkSpeed = true},
+	lastScheduleText = "",
 }
 
 halloween.labels.DisguisedEggs = "Phantom Eggs"
@@ -5091,6 +5204,45 @@ function halloween.readActiveEvent()
 	end
 
 	return nil
+end
+
+function halloween.describeSchedule()
+	local raw = workspace:GetAttribute(halloween.scheduleAttribute)
+	if type(raw) ~= "string" then
+		return nil
+	end
+
+	local decoded, schedule = pcall(HttpService.JSONDecode, HttpService, raw)
+	if not decoded or type(schedule) ~= "table" then
+		return nil
+	end
+
+	local parts = {}
+	for _, event in type(schedule.Active) == "table" and schedule.Active or {} do
+		local endsAt = type(event) == "table" and tonumber(event.EndsAt)
+		if endsAt then
+			table.insert(parts, `Active {halloween.labels[event.Key] or tostring(event.Key)} Until {os.date("%H:%M:%S", math.floor(endsAt))}`)
+		end
+	end
+
+	local nextAt = tonumber(schedule.NextAt)
+	if schedule.NextKey and nextAt then
+		table.insert(parts, `Next {halloween.labels[schedule.NextKey] or tostring(schedule.NextKey)} At {os.date("%H:%M:%S", math.floor(nextAt))}`)
+	end
+
+	if schedule.Paused then
+		table.insert(parts, "Paused")
+	end
+
+	return table.concat(parts, " | ")
+end
+
+function halloween.logScheduleChange()
+	local text = halloween.describeSchedule()
+	if text and text ~= halloween.lastScheduleText then
+		halloween.lastScheduleText = text
+		writeLog(`[Event] Schedule | {text}`)
+	end
 end
 
 function halloween.getTimeLeft(event)
@@ -6128,6 +6280,9 @@ function halloween.run(job)
 	writeLog("[Event] Auto Halloween Stop")
 end
 
+trackConnection(workspace:GetAttributeChangedSignal(halloween.scheduleAttribute):Connect(halloween.logScheduleChange))
+halloween.logScheduleChange()
+
 local function collectPetsToSell()
 	local backpack = localPlayer:FindFirstChild("Backpack")
 	local tools = {}
@@ -6224,6 +6379,61 @@ local function runAntiAfk(job)
 		waitUntil(job, 60, function()
 			return false
 		end)
+	end
+end
+
+local function describeCharacterPlace()
+	local _, _, root = getCharacterParts()
+	if not root then
+		return "No Character"
+	end
+
+	local zoneIndex = findZoneAt(root.Position)
+	if zoneIndex then
+		return zoneNames[zoneIndex] or `Zone {zoneIndex}`
+	end
+
+	local safeZone = getZoneHitbox("SafeZone")
+	if safeZone and isInsideBox(safeZone, root.Position) then
+		return "Base"
+	end
+
+	return string.format("%.0f, %.0f, %.0f", root.Position.X, root.Position.Y, root.Position.Z)
+end
+
+local function writeStatusLine()
+	local runningJobs = {}
+	for _, job in state.jobs do
+		if job.status == "Running" and job.name ~= "Status Log" and job.name ~= "Anti AFK" then
+			table.insert(runningJobs, job.name)
+		end
+	end
+
+	local cash = tonumber(localPlayer:GetAttribute("Cash")) or 0
+	local carrying = localPlayer:GetAttribute("Carrying")
+
+	writeLog(table.concat({
+		`[Status] {state.activity}`,
+		`At {describeCharacterPlace()}`,
+		`Jobs {#runningJobs > 0 and table.concat(runningJobs, ", ") or "None"}`,
+		`Cash {formatAmount(cash)}`,
+		`Pets {countPets()}`,
+		`Candy {tostring(localPlayer:GetAttribute("CandyCorn"))}`,
+		`Bag {tostring(localPlayer:GetAttribute("CandyHeistBag") or 0)}`,
+		`Carrying {tostring(carrying)}`,
+		`Ragdolled {tostring(isRagdolled())}`,
+	}, " | "))
+end
+
+local function runStatusLog(job)
+	while isJobRunning(job) do
+		waitUntil(job, 60, function()
+			return false
+		end)
+
+		if isJobRunning(job) then
+			writeStatusLine()
+		end
 	end
 end
 
@@ -6718,6 +6928,14 @@ end
 
 trackConnection((GuiService :: any).ErrorMessageChanged:Connect(onErrorMessageChanged))
 
+trackConnection(workspace:GetAttributeChangedSignal("AdminAbuseStartedAt"):Connect(function()
+	if workspace:GetAttribute("AdminAbuseStartedAt") ~= nil then
+		writeLog("[Server] Admin Abuse Started")
+	else
+		writeLog("[Server] Admin Abuse Ended")
+	end
+end))
+
 trackConnection(localPlayer.Idled:Connect(function()
 	pcall(function()
 		local VirtualUser = game:GetService("VirtualUser")
@@ -6846,7 +7064,41 @@ if not hudBuilt then
 	reportError(`Hud Button Failed: {hudFailure}`)
 end
 
-local generalTab = window:Tab({Name = "General", Icon = "hammer-code"})
+local function describeSettingValue(value)
+	if type(value) ~= "table" then
+		return tostring(value)
+	end
+
+	local items = {}
+	for _, item in value do
+		table.insert(items, tostring(item))
+	end
+
+	return `[{table.concat(items, ", ")}]`
+end
+
+local function logSettingChanges(tab)
+	for _, methodName in {"Toggle", "Dropdown", "TextBox"} do
+		local createRow = tab[methodName]
+
+		tab[methodName] = function(self, options)
+			local callback = options and options.Callback
+
+			if options and options.Flag and type(callback) == "function" then
+				options.Callback = function(value, ...)
+					writeLog(`[Setting] {options.Name} = {describeSettingValue(value)}`)
+					return callback(value, ...)
+				end
+			end
+
+			return createRow(self, options)
+		end
+	end
+
+	return tab
+end
+
+local generalTab = logSettingChanges(window:Tab({Name = "General", Icon = "hammer-code"}))
 
 generalTab:Section({Name = "Farm"})
 
@@ -6913,6 +7165,15 @@ generalTab:Toggle({Name = "Auto Break", Default = false, Flag = "ab", Callback =
 	state.breakJob = startJob("Auto Break", runAutoBreak)
 end})
 
+state.petIndexToggle = generalTab:Toggle({Name = "Pet Index", Default = false, Flag = "pi", Callback = function(isOn)
+	state.isPetIndexOn = isOn
+	state.indexLoggedZone = nil
+
+	if isOn then
+		requestIndexState()
+	end
+end})
+
 generalTab:Section({Name = "Pet"})
 
 if #rarityNames > 0 then
@@ -6944,7 +7205,7 @@ generalTab:Toggle({Name = "Auto Sell", Default = false, Flag = "as", Callback = 
 	state.sellJob = startJob("Auto Sell", runAutoSell)
 end})
 
-local eventTab = window:Tab({Name = "Event", Icon = "calendar-star"})
+local eventTab = logSettingChanges(window:Tab({Name = "Event", Icon = "calendar-star"}))
 
 eventTab:Section({Name = "Halloween"})
 
@@ -6992,7 +7253,7 @@ eventTab:Toggle({Name = "Auto Halloween", Default = false, Flag = "ah", Callback
 	state.halloweenJob = startJob("Auto Halloween", halloween.run)
 end})
 
-local shopTab = window:Tab({Name = "Shop", Icon = "shopping-basket"})
+local shopTab = logSettingChanges(window:Tab({Name = "Shop", Icon = "shopping-basket"}))
 
 shopTab:Section({Name = "Upgrade"})
 
@@ -7007,7 +7268,7 @@ for _, item in shopItems do
 	end})
 end
 
-local serverTab = window:Tab({Name = "Server", Icon = "globe-simplified"})
+local serverTab = logSettingChanges(window:Tab({Name = "Server", Icon = "globe-simplified"}))
 
 serverTab:Section({Name = "Server"})
 
@@ -7063,7 +7324,7 @@ serverTab:Button({Name = "Rejoin", Callback = function()
 	end)
 end})
 
-local settingTab = window:Tab({Name = "Setting", Icon = "gear"})
+local settingTab = logSettingChanges(window:Tab({Name = "Setting", Icon = "gear"}))
 
 settingTab:Section({Name = "Support"})
 
@@ -7164,6 +7425,28 @@ settingTab:Button({Name = "Send Log To Developer", Callback = function()
 end})
 
 startJob("Anti AFK", runAntiAfk)
+startJob("Status Log", runStatusLog)
+
+local function writeSessionLine()
+	local executorName, executorVersion = "?", ""
+	if identifyexecutor then
+		local identified, name, version = pcall(identifyexecutor)
+		if identified then
+			executorName, executorVersion = tostring(name), tostring(version or "")
+		end
+	end
+
+	writeLog(table.concat({
+		`[Hub] Session | Executor {executorName} {executorVersion}`,
+		`Players {#Players:GetPlayers()}/{Players.MaxPlayers}`,
+		`Cash {formatAmount(tonumber(localPlayer:GetAttribute("Cash")) or 0)}`,
+		`Speed Power {formatAmount(tonumber(localPlayer:GetAttribute("SpeedPower")) or 0)}`,
+		`Pickaxe {tostring(localPlayer:GetAttribute("PickaxeTier"))}`,
+		`Pets {countPets()}/{petInventoryConfig and petInventoryConfig.MaxPets or "?"}`,
+		`Candy {tostring(localPlayer:GetAttribute("CandyCorn"))}`,
+	}, " | "))
+end
 
 writeLog(`[Hub] Loaded | Place {game.PlaceVersion} | Server {string.sub(game.JobId, 1, 8)} | {localPlayer.Name}`)
+writeSessionLine()
 window:Notify({Title = "Ngao - Gaming Hub", Text = `{gameName} Loaded`, Time = 4})
