@@ -157,7 +157,7 @@ local function loadHub(key)
 	runState.tries += 1
 
 	if runState.tries > MAX_LOADS then
-		error("Dawnvector Failed: Too Many Loads", 0)
+		error("Auth Failed: Too Many Loads", 0)
 	end
 
 	local digestQuery = HttpService:UrlEncode(runState.digest)
@@ -167,13 +167,13 @@ local function loadHub(key)
 	local source = fetchScript(url)
 
 	if type(source) ~= "string" or source == "" then
-		error("Dawnvector Failed: Server Unreachable", 0)
+		error("Auth Failed: Server Unreachable", 0)
 	end
 
 	local chunk = loadChunk(source)
 
 	if type(chunk) ~= "function" then
-		error("Dawnvector Failed: Bad Script", 0)
+		error("Auth Failed: Bad Script", 0)
 	end
 
 	sharedEnvironment.__DV = runState
@@ -181,11 +181,11 @@ local function loadHub(key)
 end
 
 if requestedHub ~= nil and (type(requestedHub) ~= "string" or not requestedHub:match("^[a-z]+$")) then
-	error("Dawnvector Failed: No Hub", 0)
+	error("Auth Failed: No Hub", 0)
 end
 
 if type(loadChunk) ~= "function" then
-	error("Dawnvector Failed: No Loadstring", 0)
+	error("Auth Failed: No Loadstring", 0)
 end
 
 local gameId = nil
@@ -194,14 +194,14 @@ if requestedHub == nil then
 	gameId = readGameId()
 
 	if gameId == 0 then
-		error("Dawnvector Failed: No Game Id", 0)
+		error("Auth Failed: No Game Id", 0)
 	end
 end
 
 local deviceDigest = readDeviceDigest()
 
 if not deviceDigest then
-	error("Dawnvector Failed: No Device Id", 0)
+	error("Auth Failed: No Device Id", 0)
 end
 
 runState = {
